@@ -1,4 +1,4 @@
-import { Client, Account, Databases, ID } from "appwrite";
+import { Client, Account, Databases, ID , Query} from "appwrite";
 
 export const client = new Client()
   .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
@@ -23,4 +23,53 @@ export async function createPingProfile(userId: string, handle: string) {
       user_id: userId,
     }
   );
+}
+export async function createNotebook(
+  ownerId: string,
+  title: string,
+  description: string,
+  isPublic: boolean
+) {
+  return await databases.createDocument(
+    DATABASE_ID,
+    NOTEBOOKS_COLLECTION_ID,
+    ID.unique(),
+    {
+      title,
+      description,
+      is_public: isPublic,
+      owner_id: ownerId,
+    }
+  );
+}
+export async function createChapter(
+  notebookId: string,
+  title: string,
+  contentJson: string,
+  orderIndex: number
+) {
+  return await databases.createDocument(
+    DATABASE_ID,
+    CHAPTERS_COLLECTION_ID,
+    ID.unique(),
+    {
+      title,
+      content_json: contentJson,
+      order_index: orderIndex,
+      notebook_id: notebookId,
+      is_published: false,
+    }
+  );
+}
+
+export async function getNotebook(notebookId: string) {
+  return await databases.getDocument(DATABASE_ID, NOTEBOOKS_COLLECTION_ID, notebookId);
+}
+
+export async function getChaptersForNotebook(notebookId: string) {
+  const result = await databases.listDocuments(DATABASE_ID, CHAPTERS_COLLECTION_ID, [
+    Query.equal("notebook_id", notebookId),
+    Query.orderAsc("order_index"),
+  ]);
+  return result.documents;
 }
