@@ -1,5 +1,6 @@
 import { account, databases, DATABASE_ID, PINGS_COLLECTION_ID } from "@/lib/appwrite";
 import { ID } from "appwrite";
+import { OAuthProvider } from "appwrite";
 
 async function createPingProfile(userId: string, handle: string) {
   return await databases.createDocument(
@@ -45,4 +46,20 @@ export async function getCurrentUser() {
   } catch {
     return null; // not logged in
   }
+}
+
+export function signInWithGoogle() {
+  account.createOAuth2Session(
+    OAuthProvider.Google,
+    `${window.location.origin}/auth/callback`,
+    `${window.location.origin}/login`
+  );
+}
+
+export function signInWithGithub() {
+  account.createOAuth2Session(
+    OAuthProvider.Github,
+    `${window.location.origin}/auth/callback`,
+    `${window.location.origin}/login`
+  );
 }
