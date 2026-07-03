@@ -109,3 +109,25 @@ export async function getChapter(chapterId: string) {
 export async function updateChapter(chapterId: string, updates: Record<string, any>) {
   return await databases.updateDocument(DATABASE_ID, CHAPTERS_COLLECTION_ID, chapterId, updates);
 }
+export async function getNotebooksForUser(userId: string, publicOnly: boolean) {
+  const queries = [Query.equal("owner_id", userId)];
+  if (publicOnly) {
+    queries.push(Query.equal("is_public", true));
+  }
+  const result = await databases.listDocuments(DATABASE_ID, NOTEBOOKS_COLLECTION_ID, queries);
+  return result.documents;
+}
+export async function getPublicNotebooks() {
+  const result = await databases.listDocuments(DATABASE_ID, NOTEBOOKS_COLLECTION_ID, [
+    Query.equal("is_public", true),
+    Query.orderDesc("$createdAt"),
+  ]);
+  return result.documents;
+}
+
+export async function getPingByUserId(userId: string) {
+  const result = await databases.listDocuments(DATABASE_ID, PINGS_COLLECTION_ID, [
+    Query.equal("user_id", userId),
+  ]);
+  return result.documents[0] ?? null;
+}

@@ -1,58 +1,51 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { databases, DATABASE_ID, CHAPTERS_COLLECTION_ID } from "@/lib/appwrite";
-import { ID } from "appwrite";
-import Editor from "@/components/Editor";
+import { useEffect, useState } from "react";
+import { getPublicNotebooks, getPingByUserId } from "@/lib/appwrite";
 
-export default function Home() {
-  const [status, setStatus] = useState("");
-  const documentIdRef = useRef<string | null>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+export default function HomePage() {
+  const [notebooks, setNotebooks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const saveToAppwrite = async (json: object) => {
-    try {
-      if (documentIdRef.current) {
-        // update the existing document
-        await databases.updateDocument(
-          DATABASE_ID,
-          CHAPTERS_COLLECTION_ID,
-          documentIdRef.current,
-          { content_json: JSON.stringify(json) }
+  useEffect(() => {
+    getPublicNotebooks()
+      .then(async (nbs) => {
+        const withAuthors = await Promise.all(
+          nbs.map(async (nb) => {
+            const ping = await getPingByUserId(nb.owner_id);
+            return { ...nb, authorHandle: ping?.handle ?? "unknown" };
+          })
         );
-      } else {
-        // first save — create it once, remember the id
-        const doc = await databases.createDocument(
-          DATABASE_ID,
-          CHAPTERS_COLLECTION_ID,
-          ID.unique(),
-          {
-            title: "Test chapter",
-            content_json: JSON.stringify(json),
-            order_index: 0,
-            notebook_id: "test",
-            is_published: false,
-          }
-        );
-        documentIdRef.current = doc.$id;
-      }
-      setStatus("Saved ✅");
-    } catch (err) {
-      console.error(err);
-      setStatus("Failed ❌ — check console");
-    }
-  };
+        setNotebooks(withAuthors);
+      })
+      .catch((err) => console.error(err))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const handleChange = (json: object) => {
-    setStatus("Typing...");
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => saveToAppwrite(json), 1000);
-  };
+  if (loading) return <p className="p-8">Loading...</p>;
 
   return (
-    <main className="p-8">
-      <Editor onChange={handleChange} />
-      <p>{status}</p>
+    <main className="p-8 max-w-2xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">Ping</h1>
+
+      <ul className="flex flex-col gap-4">
+        {notebooks.map((nb) => (
+          <li key={nb.$id} className="border-b pb-3">
+            <a href={`/notebooks/${nb.$id}`} className="text-lg font-semibold underline">
+              {nb.title}
+            </a>
+            {nb.description && (
+              <p className="text-sm text-gray-500 mt-1">{nb.description}</p>
+            )}
+            <a href={`/${nb.authorHandle}`} className="text-sm text-gray-400 mt-1 block">
+              by @{nb.authorHandle}
+            </a>
+          </li>
+        ))}
+        {notebooks.length === 0 && (
+          <p className="text-sm text-gray-400">No public notebooks yet.</p>
+        )}
+      </ul>
     </main>
   );
 }
