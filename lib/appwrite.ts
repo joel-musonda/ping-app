@@ -1,4 +1,5 @@
 import { Client, Account, Databases, ID , Query} from "appwrite";
+import { Permission, Role } from "appwrite";
 
 export const client = new Client()
   .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
@@ -24,12 +25,24 @@ export async function createPingProfile(userId: string, handle: string) {
     }
   );
 }
+
+
 export async function createNotebook(
   ownerId: string,
   title: string,
   description: string,
   isPublic: boolean
 ) {
+  const permissions = [
+    Permission.read(Role.user(ownerId)),
+    Permission.update(Role.user(ownerId)),
+    Permission.delete(Role.user(ownerId)),
+  ];
+
+  if (isPublic) {
+    permissions.push(Permission.read(Role.any()));
+  }
+
   return await databases.createDocument(
     DATABASE_ID,
     NOTEBOOKS_COLLECTION_ID,
@@ -39,15 +52,30 @@ export async function createNotebook(
       description,
       is_public: isPublic,
       owner_id: ownerId,
-    }
+    },
+    permissions
   );
 }
+
+
 export async function createChapter(
   notebookId: string,
+  ownerId: string,
+  isPublic: boolean,
   title: string,
   contentJson: string,
   orderIndex: number
 ) {
+  const permissions = [
+    Permission.read(Role.user(ownerId)),
+    Permission.update(Role.user(ownerId)),
+    Permission.delete(Role.user(ownerId)),
+  ];
+
+  if (isPublic) {
+    permissions.push(Permission.read(Role.any()));
+  }
+
   return await databases.createDocument(
     DATABASE_ID,
     CHAPTERS_COLLECTION_ID,
@@ -58,7 +86,8 @@ export async function createChapter(
       order_index: orderIndex,
       notebook_id: notebookId,
       is_published: false,
-    }
+    },
+    permissions
   );
 }
 
@@ -72,4 +101,11 @@ export async function getChaptersForNotebook(notebookId: string) {
     Query.orderAsc("order_index"),
   ]);
   return result.documents;
+}
+export async function getChapter(chapterId: string) {
+  return await databases.getDocument(DATABASE_ID, CHAPTERS_COLLECTION_ID, chapterId);
+}
+
+export async function updateChapter(chapterId: string, updates: Record<string, any>) {
+  return await databases.updateDocument(DATABASE_ID, CHAPTERS_COLLECTION_ID, chapterId, updates);
 }

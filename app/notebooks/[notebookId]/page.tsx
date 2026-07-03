@@ -34,7 +34,14 @@ export default function NotebookPage() {
     setCreating(true);
     try {
       const nextOrder = chapters.length;
-      const chapter = await createChapter(notebookId, "Untitled chapter", "", nextOrder);
+      const chapter = await createChapter(
+        notebookId,
+        notebook.owner_id,
+        notebook.is_public,
+        "Untitled chapter",
+        "",
+        nextOrder
+      );
       router.push(`/notebooks/${notebookId}/chapters/${chapter.$id}`);
     } catch (err) {
       console.error(err);
@@ -63,9 +70,9 @@ export default function NotebookPage() {
 
       <ul className="mt-6 flex flex-col gap-2">
         {chapters.map((ch) => (
-         <li key={ch.$id}>
+          <li key={ch.$id}>
             
-             <a href={`/notebooks/${notebookId}/chapters/${ch.$id}`}
+            <a  href={`/notebooks/${notebookId}/chapters/${ch.$id}`}
               className="underline"
             >
               {ch.title}
