@@ -24,16 +24,4 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
-/* Custom typography layout specifically for our Tiptap elements */
-.tiptap h2 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-  color: #111827;
-}
 
-.tiptap p {
-  font-size: 1rem;
-  line-height: 1.5;
-  color: #374151;
-}
