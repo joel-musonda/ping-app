@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signUp } from "@/lib/auth";
+import { signUp, signInWithGoogle, signInWithGithub } from "@/lib/auth"; // <-- Added OAuth imports
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import Image from "next/image";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -26,34 +30,116 @@ export default function SignupPage() {
   };
 
   return (
-    <main className="p-8 max-w-sm mx-auto">
-      <h1 className="text-xl font-bold mb-4">Sign up</h1>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="border rounded p-2"
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="border rounded p-2"
-          required
-        />
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-black text-white rounded p-2 disabled:opacity-50"
-        >
-          {loading ? "Signing up..." : "Sign up"}
-        </button>
-      </form>
+    <main className="flex flex-col items-center justify-center min-h-screen bg-white text-neutral-900 px-4">
+      <div className="w-full max-w-sm p-6 bg-white rounded-xl border border-neutral-200 shadow-sm">
+        
+        {/* Top Logo Section */}
+        <div className="flex flex-col items-center mb-6 text-center">
+          <div className="mb-4">
+            <Image 
+              src="/logo.png" 
+              alt="Ping Logo"
+              width={48} 
+              height={48}
+              className="object-contain"
+              priority
+            />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Create your account</h1>
+          <p className="text-sm text-neutral-500 mt-1">
+            Get started with Ping today.
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="email" className="text-neutral-700 font-medium">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="bg-white border-neutral-300 text-neutral-900 focus-visible:ring-neutral-400"
+              required
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="password" className="text-neutral-700 font-medium">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="bg-white border-neutral-300 text-neutral-900 focus-visible:ring-neutral-400"
+              required
+            />
+          </div>
+
+          {error && (
+            <p className="text-red-500 text-xs font-medium bg-red-50 p-2 rounded-md border border-red-100">
+              {error}
+            </p>
+          )}
+
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-neutral-900 hover:bg-neutral-800 text-white font-medium shadow-sm transition-colors mt-2"
+          >
+            {loading ? "Signing up..." : "Sign up"}
+          </Button>
+
+          {/* Social Divider */}
+          <div className="relative flex py-2 items-center">
+            <div className="flex-grow border-t border-neutral-200"></div>
+            <span className="flex-shrink mx-4 text-xs uppercase text-neutral-400 font-semibold tracking-wider">or continue with</span>
+            <div className="flex-grow border-t border-neutral-200"></div>
+          </div>
+
+          {/* Social Sign Up Options */}
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={signInWithGoogle}
+              className="flex items-center justify-center gap-2 border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700 font-medium shadow-sm"
+            >
+              <Image 
+                src="/google.png" 
+                alt="Google"
+                width={16}
+                height={16}
+              />
+              Google
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={signInWithGithub}
+              className="flex items-center justify-center gap-2 border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700 font-medium shadow-sm"
+            >
+              <Image 
+                src="/github.png" 
+                alt="GitHub"
+                width={16}
+                height={16}
+              />
+              GitHub
+            </Button>
+          </div>
+        </form>
+
+        <p className="text-center text-sm text-neutral-500 mt-6">
+          Already have an account?{" "}
+          <a href="/login" className="text-neutral-900 font-semibold hover:underline">
+            Log in
+          </a>
+        </p>
+      </div>
     </main>
   );
 }
