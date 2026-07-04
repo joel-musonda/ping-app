@@ -1,5 +1,8 @@
-import { Client, Account, Databases, ID , Query} from "appwrite";
+import { Client, Account, Databases, ID , Query,} from "appwrite";
 import { Permission, Role } from "appwrite";
+
+
+
 
 export const client = new Client()
   .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
@@ -130,4 +133,98 @@ export async function getPingByUserId(userId: string) {
     Query.equal("user_id", userId),
   ]);
   return result.documents[0] ?? null;
+}export const FOLLOWS_COLLECTION_ID = "follows";
+export const NOTIFICATIONS_COLLECTION_ID = "notifications";
+
+// Check if a relationship exists
+export async function checkIsFollowing(followerId: string, followingId: string) {
+  const res = await databases.listDocuments(DATABASE_ID, FOLLOWS_COLLECTION_ID, [
+    Query.equal("follower_id", followerId),
+    Query.equal("following_id", followingId)
+  ]);
+  return res.documents.length > 0 ? res.documents[0].$id : null;
+}
+
+// Follow a user and send a notification record
+export async function followUser(currentUserId: string, targetUserId: string, senderName: string, senderHandle: string) {
+  // 1. Create Follow Record
+  await databases.createDocument(DATABASE_ID, FOLLOWS_COLLECTION_ID, ID.unique(), {
+    follower_id: currentUserId,
+    following_id: targetUserId,
+  });
+
+  // 2. Dispatch Notification to Target
+  await databases.createDocument(DATABASE_ID, NOTIFICATIONS_COLLECTION_ID, ID.unique(), {
+    user_id: targetUserId,
+    sender_name: senderName,
+    sender_handle: senderHandle,
+    type: "follow",
+  });
+}
+
+// Unfollow a user
+export async function unfollowUser(followDocId: string) {
+  await databases.deleteDocument(DATABASE_ID, FOLLOWS_COLLECTION_ID, followDocId);
+}
+
+// Fetch active notifications
+export async function getNotifications(userId: string) {
+  const res = await databases.listDocuments(DATABASE_ID, NOTIFICATIONS_COLLECTION_ID, [
+    Query.equal("user_id", userId),
+    Query.orderDesc("$createdAt")
+  ]);
+  return res.documents;
+}
+
+// Delete a notification card
+export async function deleteNotification(docId: string) {
+  await databases.deleteDocument(DATABASE_ID, NOTIFICATIONS_COLLECTION_ID, docId);
+}
+export async function getFollowerCount(userId: string) {
+  const res = await databases.listDocuments(DATABASE_ID, FOLLOWS_COLLECTION_ID, [
+    Query.equal("following_id", userId),
+    Query.limit(1),
+  ]);
+  return res.total;
+}
+
+export async function getFollowingCount(userId: string) {
+  const res = await databases.listDocuments(DATABASE_ID, FOLLOWS_COLLECTION_ID, [
+    Query.equal("follower_id", userId),
+    Query.limit(1),
+  ]);
+  return res.total;
+}
+
+export async function searchAll(query: string) {
+  const [notebooksRes, pingsRes] = await Promise.all([
+    databases.listDocuments(DATABASE_ID, NOTEBOOKS_COLLECTION_ID, [
+      Query.equal("is_public", true),
+      Query.search("title", query),
+      Query.limit(5),
+    ]),
+    databases.listDocuments(DATABASE_ID, PINGS_COLLECTION_ID, [
+      Query.search("handle", query),
+      Query.limit(5),
+    ]),
+  ]);
+  return { notebooks: notebooksRes.documents, pings: pingsRes.documents };
+}
+export async function getUserActivityDates(userId: string): Promise<Set<string>> {
+  const notebooks = await getNotebooksForUser(userId, false);
+  console.log("DEBUG notebooks:", notebooks.length, notebooks);
+
+  const allChapters = await Promise.all(
+    notebooks.map((nb) => getChaptersForNotebook(nb.$id))
+  );
+  console.log("DEBUG chapters:", allChapters.flat().length, allChapters.flat());
+
+  const dates = new Set<string>();
+  allChapters.flat().forEach((chapter) => {
+    const date = new Date(chapter.$updatedAt).toISOString().split("T")[0];
+    dates.add(date);
+  });
+
+  console.log("DEBUG activityDates:", [...dates]);
+  return dates;
 }

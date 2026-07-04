@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { databases, DATABASE_ID, PINGS_COLLECTION_ID } from "@/lib/appwrite";
@@ -8,16 +8,21 @@ import { Query } from "appwrite";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Check, AlertCircle, Sparkles } from "lucide-react";
+import { Check, AlertCircle, Camera, User } from "lucide-react";
 
 export default function OnboardingPage() {
   const [user, setUser] = useState<any>(null);
   const [profileDoc, setProfileDoc] = useState<any>(null);
   const [handle, setHandle] = useState("");
+  const [name, setName] = useState("");
   const [bio, setBio] = useState("");
+  const [avatarDataUrl, setAvatarDataUrl] = useState("");
   const [isChecking, setIsChecking] = useState(false);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -37,13 +42,60 @@ export default function OnboardingPage() {
         const doc = res.documents[0];
         setProfileDoc(doc);
         setHandle(doc.handle);
+        setName(doc.name || "");
         setBio(doc.bio || "");
+        setAvatarDataUrl(doc.avatar_url || "");
       }
     }
     loadDraftProfile();
   }, [router]);
 
-  // Live real-time check to see if username handle is unique
+  // Read file, resize it down using standard HTML Canvas, and optimize string footprint
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadError("");
+    const reader = new FileReader();
+    
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        
+        // Downscale profile dimensions to maintain super small character footprints
+        const MAX_WIDTH = 120;
+        const MAX_HEIGHT = 120;
+        
+        canvas.width = MAX_WIDTH;
+        canvas.height = MAX_HEIGHT;
+        
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        
+        // Draw image onto miniature canvas asset space
+        ctx.drawImage(img, 0, 0, MAX_WIDTH, MAX_HEIGHT);
+        
+        // Compress image using low footprint JPEG formats (0.6 quality keeps it very small)
+        const compressedBase64 = canvas.toDataURL("image/jpeg", 0.6);
+        
+        if (compressedBase64.length > 5000) {
+          setUploadError("Image is too complex or large. Please choose a simpler avatar icon.");
+          return;
+        }
+        
+        setAvatarDataUrl(compressedBase64);
+      };
+      img.src = event.target?.result as string;
+    };
+    
+    reader.readAsDataURL(file);
+  };
+
+  const triggerFileSelect = () => {
+    fileInputRef.current?.click();
+  };
+
   useEffect(() => {
     if (!handle || handle.trim() === "") {
       setIsAvailable(null);
@@ -82,10 +134,11 @@ export default function OnboardingPage() {
     const finalizedHandle = handle.toLowerCase().replace(/[^a-z0-9_]/g, "");
 
     try {
-      // Completely removed the "name" attribute from the update request to prevent schema crashes
       await databases.updateDocument(DATABASE_ID, PINGS_COLLECTION_ID, profileDoc.$id, {
         handle: finalizedHandle,
+        name: name,
         bio: bio,
+        avatar_url: avatarDataUrl, 
         onboarded: true, 
       });
 
@@ -109,18 +162,53 @@ export default function OnboardingPage() {
     <main className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white border border-neutral-200 shadow-sm rounded-2xl p-6 md:p-8 space-y-6">
         
-        {/* Header Summary */}
-        <div className="space-y-1.5 text-center">
-          <div className="w-10 h-10 rounded-full bg-neutral-900 flex items-center justify-center mx-auto mb-2 text-white">
-            <Sparkles className="w-5 h-5" />
+        <div className="flex flex-col items-center text-center">
+          <div className="relative group cursor-pointer mb-3" onClick={triggerFileSelect}>
+            <div className="w-20 h-20 rounded-full bg-neutral-100 border border-neutral-200 flex items-center justify-center overflow-hidden transition group-hover:opacity-90 relative shadow-inner">
+              {avatarDataUrl ? (
+                <img src={avatarDataUrl} alt="Avatar Preview" className="w-full h-full object-cover" />
+              ) : (
+                <User className="w-8 h-8 text-neutral-400" />
+              )}
+              <div className="absolute inset-0 bg-neutral-900/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition duration-200">
+                <Camera className="w-5 h-5 text-white" />
+              </div>
+            </div>
           </div>
+          
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleImageChange} 
+            accept="image/*" 
+            className="hidden" 
+          />
+          
           <h1 className="text-xl font-bold tracking-tight text-neutral-900">Set up your profile</h1>
-          <p className="text-xs text-neutral-500">Customize your workspace handle and tell the community what you are coding.</p>
+          <p className="text-xs text-neutral-500 mt-1">Tap the icon above to upload your profile photo.</p>
+          
+          {uploadError && (
+            <p className="text-red-500 text-[11px] font-medium bg-red-50 border border-red-100 p-2 rounded-md mt-2 max-w-xs">
+              {uploadError}
+            </p>
+          )}
         </div>
 
         <form onSubmit={handleCompleteSetup} className="space-y-4">
 
-          {/* Unique Handle Input with Real-Time Validation */}
+          <div className="space-y-1.5">
+            <Label htmlFor="name" className="text-xs font-semibold text-neutral-700">Display Name</Label>
+            <Input 
+              id="name" 
+              type="text" 
+              placeholder="e.g. Joel Musonda"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="border-neutral-200 bg-white focus-visible:ring-neutral-400 text-sm h-9"
+              required
+            />
+          </div>
+
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
               <Label htmlFor="handle" className="text-xs font-semibold text-neutral-700">Unique Handle</Label>
@@ -150,7 +238,6 @@ export default function OnboardingPage() {
             </div>
           </div>
 
-          {/* Profile Bio Text Field */}
           <div className="space-y-1.5">
             <Label htmlFor="bio" className="text-xs font-semibold text-neutral-700">Profile Bio</Label>
             <textarea 
@@ -163,7 +250,6 @@ export default function OnboardingPage() {
             />
           </div>
 
-          {/* Complete Submission Button */}
           <Button
             type="submit"
             disabled={submitting || isAvailable !== true}
