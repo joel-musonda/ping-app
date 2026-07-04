@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import Image from "next/image"; // <-- Added Next.js Image component
+import Image from "next/image";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -105,12 +105,12 @@ export default function LoginPage() {
             <div className="flex-grow border-t border-neutral-200"></div>
           </div>
 
-          {/* Social Buttons with Branding Logos */}
+          {/* Social Buttons with Functional Auth Hooks */}
           <div className="grid grid-cols-2 gap-2">
             <Button
               type="button"
               variant="outline"
-              onClick={signInWithGoogle}
+              onClick={() => signInWithGoogle()}
               className="flex items-center justify-center gap-2 border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700 font-medium shadow-sm"
             >
               <Image 
@@ -126,11 +126,11 @@ export default function LoginPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={signInWithGithub}
+              onClick={() => signInWithGithub()}
               className="flex items-center justify-center gap-2 border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700 font-medium shadow-sm"
             >
               <Image 
-                src="/github.png" // <-- Put a github.png logo in your 'public' folder
+                src="/github.png" 
                 alt="GitHub"
                 width={16}
                 height={16}

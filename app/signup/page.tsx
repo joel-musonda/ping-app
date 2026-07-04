@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signUp, signInWithGoogle, signInWithGithub } from "@/lib/auth"; // <-- Added OAuth imports
+import { signUp, signInWithGoogle, signInWithGithub } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,8 +20,10 @@ export default function SignupPage() {
     setError("");
     setLoading(true);
     try {
-      const handle = await signUp(email, password);
-      router.push(`/${handle}`);
+      // Create the credentials user session
+      await signUp(email, password);
+      // Route directly to onboarding flow instead of bypassing it
+      router.push("/onboarding");
     } catch (err: any) {
       setError(err.message ?? "Something went wrong");
     } finally {
@@ -99,12 +101,12 @@ export default function SignupPage() {
             <div className="flex-grow border-t border-neutral-200"></div>
           </div>
 
-          {/* Social Sign Up Options */}
+          {/* Social Sign Up Options with Functional Handlers */}
           <div className="grid grid-cols-2 gap-2">
             <Button
               type="button"
               variant="outline"
-              onClick={signInWithGoogle}
+              onClick={() => signInWithGoogle()}
               className="flex items-center justify-center gap-2 border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700 font-medium shadow-sm"
             >
               <Image 
@@ -119,7 +121,7 @@ export default function SignupPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={signInWithGithub}
+              onClick={() => signInWithGithub()}
               className="flex items-center justify-center gap-2 border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700 font-medium shadow-sm"
             >
               <Image 

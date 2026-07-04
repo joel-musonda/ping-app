@@ -5,8 +5,54 @@ import { useParams } from "next/navigation";
 import { databases, DATABASE_ID, PINGS_COLLECTION_ID, getNotebooksForUser } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
 import { Query } from "appwrite";
-import { Book, Folder, Calendar, MapPin, Link2, Lock } from "lucide-react";
+import { Book, MapPin, Link2, Users, FileText, Share2, Percent, Lock } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+
+// Pure CSS Skeleton components to match Shadcn UI design guidelines
+function ProfileSkeleton() {
+  return (
+    <div className="flex flex-col space-y-4 animate-pulse">
+      <div className="w-32 h-32 md:w-40 md:h-40 bg-neutral-100 rounded-full shrink-0" />
+      <div className="space-y-2">
+        <div className="h-6 bg-neutral-100 rounded w-3/4" />
+        <div className="h-4 bg-neutral-100 rounded w-1/2" />
+      </div>
+      <div className="h-9 bg-neutral-100 rounded-md w-full" />
+      <div className="space-y-2 pt-2">
+        <div className="h-4 bg-neutral-100 rounded w-full" />
+        <div className="h-4 bg-neutral-100 rounded w-5/6" />
+      </div>
+      <div className="h-4 bg-neutral-100 rounded w-2/3 pt-1" />
+      <div className="space-y-2 pt-3 border-t border-neutral-100">
+        <div className="h-3 bg-neutral-100 rounded w-1/2" />
+        <div className="h-3 bg-neutral-100 rounded w-2/3" />
+      </div>
+    </div>
+  );
+}
+
+// Compact Card Skeleton mapping
+function NotebookSkeleton() {
+  return (
+    <div className="border border-neutral-200 rounded-xl p-4 space-y-3 bg-white animate-pulse">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2 w-2/3">
+          <div className="w-4 h-4 bg-neutral-100 rounded shrink-0" />
+          <div className="h-4 bg-neutral-100 rounded w-full" />
+        </div>
+        <div className="w-3.5 h-3.5 bg-neutral-100 rounded shrink-0" />
+      </div>
+      <div className="space-y-1.5">
+        <div className="h-3 bg-neutral-100 rounded w-full" />
+        <div className="h-3 bg-neutral-100 rounded w-4/5" />
+      </div>
+      <div className="flex gap-2 pt-1">
+        <div className="h-4 bg-neutral-100 rounded w-12" />
+        <div className="h-4 bg-neutral-100 rounded w-24" />
+      </div>
+    </div>
+  );
+}
 
 export default function PingProfilePage() {
   const { handle } = useParams<{ handle: string }>();
@@ -38,126 +84,227 @@ export default function PingProfilePage() {
       .finally(() => setLoading(false));
   }, [handle]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh] bg-white">
-        <p className="text-sm text-neutral-500 animate-pulse font-medium">Loading workspace layout...</p>
-      </div>
-    );
-  }
-
-  if (!ping) {
+  if (!loading && !ping) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] bg-white text-center p-4">
         <h2 className="text-xl font-bold text-neutral-900">Workspace Not Found</h2>
-        <p className="text-sm text-neutral-500 mt-1">The user handle @{handle} does not exist on Ping.</p>
+        <p className="text-sm text-neutral-500 mt-1">The handle @{handle} does not exist.</p>
       </div>
     );
   }
 
   return (
-    <main className="max-w-6xl w-full mx-auto px-4 py-8 bg-white text-neutral-900">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+    <main className="max-w-6xl w-full mx-auto px-4 md:px-6 py-6 bg-white text-neutral-900 md:h-[calc(100vh-65px)] md:overflow-hidden">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12 h-full">
         
-        {/* Left Profile Sidebar Workspace */}
-        <div className="md:col-span-1 flex flex-col space-y-4">
-          
-          {/* Avatar Placeholder Area */}
-          <div className="w-32 h-32 md:w-full md:h-auto md:aspect-square bg-neutral-100 rounded-full md:rounded-2xl border border-neutral-200 overflow-hidden flex items-center justify-center shadow-sm">
-            <span className="text-3xl font-bold text-neutral-400 uppercase">
-              {handle.charAt(0)}
-            </span>
-          </div>
+        {/* Left Profile Sidebar - Stacked on Mobile, Floating Scroll on Desktop */}
+        <div className="col-span-1 flex flex-col space-y-4 md:overflow-y-auto md:pr-2 h-full pb-4 md:pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {loading ? (
+            <ProfileSkeleton />
+          ) : (
+            <>
+              {/* Circular Avatar Frame */}
+              <div className="w-32 h-32 md:w-40 md:h-40 bg-neutral-100 rounded-full border border-neutral-200 overflow-hidden flex items-center justify-center shrink-0 shadow-sm">
+                <span className="text-4xl md:text-5xl font-bold text-neutral-300 uppercase select-none">
+                  {handle.charAt(0)}
+                </span>
+              </div>
 
-          {/* User Meta Frame */}
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight text-neutral-900">
-              {ping.name || "Software Developer"}
-            </h1>
-            <p className="text-lg text-neutral-500">@{ping.handle}</p>
-          </div>
+              {/* Identity Info */}
+              <div className="space-y-0.5 shrink-0">
+                <h2 className="text-xl font-bold tracking-tight text-neutral-900 leading-tight">
+                {ping?.handle}
+                </h2>
+              
+              </div>
 
-          {/* Bio Data Section */}
-          <div className="space-y-3 pt-2 text-sm text-neutral-600 border-t border-neutral-100">
-            <p className="leading-relaxed">
-              {ping.bio || "Just trying to become the best Software Developer I can be. Building seamless workspaces with Next.js and Appwrite."}
-            </p>
-            
-            <div className="space-y-2 pt-2 text-neutral-500 text-xs font-medium">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-neutral-400" />
-                <span>Lusaka, Zambia</span>
+              {/* Follow CTA Button */}
+              <button className="w-full bg-neutral-900 hover:bg-neutral-800 text-white text-sm font-medium py-2 px-4 rounded-md shadow-sm transition-colors shrink-0">
+                Follow
+              </button>
+
+              {/* Bio Text Frame */}
+              <p className="text-sm text-neutral-700 leading-relaxed pt-1 shrink-0">
+                {ping?.bio || "Just trying to become the best Software Developer I can be."}
+              </p>
+
+              {/* Followers / Following Metrics Matrix */}
+              <div className="flex items-center gap-3 text-xs text-neutral-600 pt-1 shrink-0">
+                <div className="flex items-center gap-1 hover:text-neutral-900 cursor-pointer">
+                  <Users className="w-3.5 h-3.5 text-neutral-400" />
+                  <span className="font-bold text-neutral-900">18</span>
+                  <span>followers</span>
+                </div>
+                <span>·</span>
+                <div className="flex items-center gap-1 hover:text-neutral-900 cursor-pointer">
+                  <span className="font-bold text-neutral-900">15</span>
+                  <span>following</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Link2 className="w-4 h-4 text-neutral-400" />
-                <a href="#" className="text-neutral-900 hover:underline">ping.dev/{ping.handle}</a>
+
+              {/* Location & Metadata Info */}
+              <div className="space-y-2 pt-3 text-xs font-medium text-neutral-500 border-t border-neutral-100 shrink-0">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-neutral-400" />
+                  <span>Orlando, FL</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Link2 className="w-4 h-4 text-neutral-400" />
+                  <a href="#" className="text-neutral-900 hover:underline break-all">
+                    ping.dev/{ping?.handle}
+                  </a>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-neutral-400" />
-                <span>Joined Workspace</span>
-              </div>
-            </div>
-          </div>
+            </>
+          )}
         </div>
 
-        {/* Right Notebooks Dashboard Grid */}
-        <div className="md:col-span-3 space-y-6">
-          <div className="flex items-center gap-2 pb-2 border-b border-neutral-200">
-            <Folder className="w-4 h-4 text-neutral-700" />
-            <h2 className="text-sm font-semibold text-neutral-900 uppercase tracking-wider">
-              Notebooks ({notebooks.length})
-            </h2>
+        {/* Right Dashboard Feed - Main Scroll Flow Area */}
+        <div className="col-span-1 md:col-span-3 flex flex-col space-y-8 md:overflow-y-auto md:pr-1 h-full pb-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          
+          {/* Notebook Repository Grid Area */}
+          <div className="space-y-4 shrink-0">
+            <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
+              Notebooks
+            </h3>
+
+            {loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <NotebookSkeleton />
+                <NotebookSkeleton />
+                <NotebookSkeleton />
+                <NotebookSkeleton />
+              </div>
+            ) : notebooks.length === 0 ? (
+              <div className="border border-dashed border-neutral-200 rounded-xl p-8 text-center">
+                <Book className="w-6 h-6 text-neutral-300 mx-auto mb-2" />
+                <p className="text-xs font-medium text-neutral-500">No notebooks available yet.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {notebooks.map((nb) => {
+                  const createdDate = nb.$createdAt 
+                    ? new Date(nb.$createdAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric"
+                      })
+                    : "Recently";
+
+                  return (
+                    <a key={nb.$id} href={`/notebooks/${nb.$id}`} className="block group">
+                      <Card className="h-full border-neutral-200 bg-white hover:border-neutral-300 hover:shadow-sm transition-all duration-200 rounded-xl">
+                        <CardHeader className="p-4 flex flex-col justify-between h-full space-y-3">
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <Book className="w-4 h-4 text-neutral-500 shrink-0" />
+                                <CardTitle className="text-sm font-bold text-neutral-900 truncate  underline-offset-2 decoration-1">
+                                  {nb.title}
+                                </CardTitle>
+                              </div>
+                              {!nb.is_public && (
+                                <Lock className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+                              )}
+                            </div>
+                            <CardDescription className="text-xs text-neutral-500 font-normal line-clamp-2 pt-0.5 leading-relaxed">
+                              Click to open this synchronized notebook and manage its active layout chapters.
+                            </CardDescription>
+                          </div>
+
+                          {/* Footer Tag Metadata */}
+                          <div className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-wider text-neutral-400 pt-1">
+                            <span className="px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600 border border-neutral-200 font-semibold text-[9px]">
+                              {nb.is_public ? "Public" : "Private"}
+                            </span>
+                            <span>• Created {createdDate}</span>
+                          </div>
+                        </CardHeader>
+                      </Card>
+                    </a>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
-          {notebooks.length === 0 ? (
-            <div className="border border-dashed border-neutral-200 rounded-xl p-12 text-center">
-              <Book className="w-8 h-8 text-neutral-300 mx-auto mb-3" />
-              <p className="text-sm font-medium text-neutral-900">No notebooks yet</p>
-              <p className="text-xs text-neutral-500 mt-0.5">Notebooks created by this user will display here.</p>
+          {/* Activity Streak Matrix Panel */}
+          <div className="space-y-4 pt-4 border-t border-neutral-100 shrink-0">
+            <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
+              Activity
+            </h3>
+
+            {/* Metric Tabs Heading */}
+            <div className="flex items-center gap-6 text-xs font-bold text-neutral-400 border-b border-b-neutral-100 pb-2">
+              <div className="flex items-center gap-1.5 text-neutral-900 border-b-2 border-b-neutral-900 pb-2 -mb-[9px] cursor-pointer">
+                <FileText className="w-3.5 h-3.5" />
+                <span>123 posts</span>
+              </div>
+              <div className="flex items-center gap-1.5 hover:text-neutral-600 cursor-pointer pb-2">
+                <Share2 className="w-3.5 h-3.5" />
+                <span>762 snippets</span>
+              </div>
+              <div className="flex items-center gap-1.5 hover:text-neutral-600 cursor-pointer pb-2">
+                <Percent className="w-3.5 h-3.5" />
+                <span>26% linked</span>
+              </div>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {notebooks.map((nb) => (
-                <a 
-                  key={nb.$id} 
-                  href={`/notebooks/${nb.$id}`}
-                  className="block group transition-transform"
-                >
-                  <Card className="h-full border-neutral-200 bg-white hover:border-neutral-400 hover:shadow-sm transition-all duration-200">
-                    <CardHeader className="p-4 flex flex-col justify-between h-full space-y-2">
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between w-full">
-                          <div className="flex items-center gap-2">
-                            <Book className="w-4 h-4 text-neutral-500 group-hover:text-neutral-900 transition-colors" />
-                            <CardTitle className="text-md font-semibold text-neutral-900 group-hover:underline underline-offset-2 decoration-1">
-                              {nb.title}
-                            </CardTitle>
-                          </div>
-                          {!nb.is_public && (
-                            <Lock className="w-3.5 h-3.5 text-neutral-400" title="Private Notebook" />
-                          )}
-                        </div>
-                        <CardDescription className="text-xs text-neutral-500 line-clamp-2">
-                          Click to open this synchronized notebook and manage its active layout chapters.
-                        </CardDescription>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 pt-2 text-[10px] uppercase font-bold tracking-wider text-neutral-400">
-                        <span className={`px-1.5 py-0.5 rounded border ${
-                          nb.is_public 
-                            ? "bg-neutral-100 text-neutral-600 border-neutral-200" 
-                            : "bg-amber-50 text-amber-700 border-amber-200"
-                        }`}>
-                          {nb.is_public ? "Public" : "Private"}
-                        </span>
-                        <span>• Updated recently</span>
-                      </div>
-                    </CardHeader>
-                  </Card>
-                </a>
-              ))}
+
+            {/* Custom Activity Grid Container */}
+            <div className="p-4 bg-white border border-neutral-200 rounded-xl overflow-x-auto [scrollbar-width:thin]">
+              <div className="min-w-[620px] space-y-1">
+                {/* Horizontal Month Timeline Header */}
+                <div className="flex gap-1 text-[10px] font-medium text-neutral-400 mb-1 pl-7">
+                  <span className="w-10">Jun/Jul</span>
+                  <span className="w-10">Aug</span>
+                  <span className="w-10">Sep</span>
+                  <span className="w-10">Oct</span>
+                  <span className="w-10">Nov</span>
+                  <span className="w-10">Dec</span>
+                  <span className="w-10">Jan</span>
+                  <span className="w-10">Feb</span>
+                  <span className="w-10">Mar</span>
+                  <span className="w-10">Apr</span>
+                  <span className="w-10">May</span>
+                  <span className="w-10">Jun</span>
+                  <span className="w-10">Jul</span>
+                </div>
+                
+                {/* Streak Rows */}
+                {["Mon", "Wed", "Fri"].map((day, rowIndex) => (
+                  <div key={day} className="flex items-center gap-1">
+                    {/* Day Text Label */}
+                    <span className="w-6 text-[9px] text-neutral-400 font-medium text-left select-none">
+                      {day}
+                    </span>
+                    
+                    {/* Heatmap Track Pixels */}
+                    {Array.from({ length: 50 }).map((_, i) => {
+                      const seed = (i + rowIndex * 3) % 7;
+                      const hasActivity = seed === 2 || seed === 4 || seed === 5;
+                      const isDeepShade = seed === 4;
+
+                      return (
+                        <span
+                          key={i}
+                          className="w-2.5 h-2.5 rounded-[2px] block shrink-0 transition-colors"
+                          style={{
+                            backgroundColor: loading 
+                              ? "#F4F4F5" 
+                              : hasActivity 
+                                ? (isDeepShade ? "#6BAFD9" : "#A2CFFE") 
+                                : "#F4F4F5"
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
             </div>
-          )}
+
+          </div>
+
         </div>
 
       </div>
