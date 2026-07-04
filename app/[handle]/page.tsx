@@ -124,7 +124,7 @@ export default function PingProfilePage() {
               {/* Identity Info */}
               <div className="space-y-0.5 shrink-0">
                 <h2 className="text-xl font-bold tracking-tight text-neutral-900 leading-tight">
-                  {ping?.name || "Anonymous Member"}
+                  {ping?.name || handle}
                 </h2>
                 <p className="text-sm font-medium text-neutral-400">
                   @{ping?.handle}
@@ -159,12 +159,12 @@ export default function PingProfilePage() {
               <div className="space-y-2 pt-3 text-xs font-medium text-neutral-500 border-t border-neutral-100 shrink-0">
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-neutral-400" />
-                  <span>Zambia</span>
+                  <span>Not Avavilable</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Link2 className="w-4 h-4 text-neutral-400" />
                   <a href="#" className="text-neutral-900 hover:underline break-all">
-                    ping.dev/{ping?.handle}
+                   Not avalaible
                   </a>
                 </div>
               </div>

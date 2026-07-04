@@ -2,6 +2,7 @@ import { account, databases, DATABASE_ID, PINGS_COLLECTION_ID } from "@/lib/appw
 import { ID } from "appwrite";
 import { OAuthProvider } from "appwrite";
 
+
 async function createPingProfile(userId: string, handle: string) {
   return await databases.createDocument(
     DATABASE_ID,
@@ -62,4 +63,16 @@ export function signInWithGithub() {
     `${window.location.origin}/auth/callback`,
     `${window.location.origin}/login`
   );
+}
+
+// 1. Sends the password recovery link to the user's inbox
+export async function sendPasswordRecovery(email: string) {
+  // Replace the URL with your actual local or production domain path
+  const redirectUrl = "http://localhost:3000/reset-password";
+  return await account.createRecovery(email, redirectUrl);
+}
+
+// 2. Submits the new password using tokens extracted from the URL query strings
+export async function confirmPasswordRecovery(userId: string, secret: string, password: string) {
+  return await account.updateRecovery(userId, secret, password);
 }

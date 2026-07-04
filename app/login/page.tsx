@@ -84,9 +84,9 @@ export default function LoginPage() {
               <Checkbox className="border-neutral-300 data-[state=checked]:bg-neutral-900 data-[state=checked]:border-neutral-900" />
               Remember for 30 days
             </label>
-            <a href="#" className="text-neutral-900 font-medium hover:underline text-xs">
-              Forgot password?
-            </a>
+            <a href="/forgot-password" className="text-xs font-semibold text-neutral-400 hover:text-neutral-950 transition ml-auto">
+  Forgot password?
+</a>
           </div>
 
           {error && <p className="text-red-500 text-xs font-medium bg-red-50 p-2 rounded-md border border-red-100">{error}</p>}
