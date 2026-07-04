@@ -12,6 +12,7 @@ export default function NotebookPage() {
   const [chapters, setChapters] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
 
   const loadData = async () => {
     try {
@@ -19,6 +20,9 @@ export default function NotebookPage() {
       const ch = await getChaptersForNotebook(notebookId);
       setNotebook(nb);
       setChapters(ch);
+
+      const user = await getCurrentUser();
+      setIsOwner(!!user && user.$id === nb.owner_id);
     } catch (err) {
       console.error(err);
     } finally {
@@ -31,6 +35,7 @@ export default function NotebookPage() {
   }, [notebookId]);
 
   const handleNewChapter = async () => {
+    if (!isOwner) return; // safety net — button shouldn't even render otherwise
     setCreating(true);
     try {
       const nextOrder = chapters.length;
@@ -58,23 +63,22 @@ export default function NotebookPage() {
       <h1 className="text-2xl font-bold">{notebook.title}</h1>
       {notebook.description && <p className="text-gray-600 mt-2">{notebook.description}</p>}
 
-      <div className="mt-6">
-        <button
-          onClick={handleNewChapter}
-          disabled={creating}
-          className="bg-black text-white rounded p-2 px-4 disabled:opacity-50"
-        >
-          {creating ? "Creating..." : "+ New Chapter"}
-        </button>
-      </div>
+      {isOwner && (
+        <div className="mt-6">
+          <button
+            onClick={handleNewChapter}
+            disabled={creating}
+            className="bg-black text-white rounded p-2 px-4 disabled:opacity-50"
+          >
+            {creating ? "Creating..." : "+ New Chapter"}
+          </button>
+        </div>
+      )}
 
       <ul className="mt-6 flex flex-col gap-2">
         {chapters.map((ch) => (
           <li key={ch.$id}>
-            
-            <a  href={`/notebooks/${notebookId}/chapters/${ch.$id}`}
-              className="underline"
-            >
+            <a href={`/notebooks/${notebookId}/chapters/${ch.$id}`} className="underline">
               {ch.title}
             </a>
           </li>

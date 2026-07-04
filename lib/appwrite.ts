@@ -29,12 +29,12 @@ export async function createPingProfile(userId: string, handle: string) {
   );
 }
 
-
 export async function createNotebook(
   ownerId: string,
   title: string,
   description: string,
-  isPublic: boolean
+  isPublic: boolean,
+  snapshot: string = ""
 ) {
   const permissions = [
     Permission.read(Role.user(ownerId)),
@@ -55,11 +55,11 @@ export async function createNotebook(
       description,
       is_public: isPublic,
       owner_id: ownerId,
+      snapshot,
     },
     permissions
   );
 }
-
 
 export async function createChapter(
   notebookId: string,
@@ -227,4 +227,92 @@ export async function getUserActivityDates(userId: string): Promise<Set<string>>
 
   console.log("DEBUG activityDates:", [...dates]);
   return dates;
+}
+export const LIKES_COLLECTION_ID = "likes";
+
+export async function checkIsLiked(userId: string, chapterId: string) {
+  const res = await databases.listDocuments(DATABASE_ID, LIKES_COLLECTION_ID, [
+    Query.equal("user_id", userId),
+    Query.equal("chapter_id", chapterId),
+  ]);
+  return res.documents.length > 0 ? res.documents[0].$id : null;
+}
+
+export async function getLikeCount(chapterId: string) {
+  const res = await databases.listDocuments(DATABASE_ID, LIKES_COLLECTION_ID, [
+    Query.equal("chapter_id", chapterId),
+    Query.limit(1),
+  ]);
+  return res.total;
+}
+
+export async function likeChapter(userId: string, chapterId: string) {
+  return await databases.createDocument(DATABASE_ID, LIKES_COLLECTION_ID, ID.unique(), {
+    user_id: userId,
+    chapter_id: chapterId,
+  });
+}
+
+export async function unlikeChapter(likeDocId: string) {
+  return await databases.deleteDocument(DATABASE_ID, LIKES_COLLECTION_ID, likeDocId);
+}
+export const COMMENTS_COLLECTION_ID = "comments";
+
+export async function createComment(
+  chapterId: string,
+  userId: string,
+  handle: string,
+  content: string
+) {
+  return await databases.createDocument(
+    DATABASE_ID,
+    COMMENTS_COLLECTION_ID,
+    ID.unique(),
+    {
+      chapter_id: chapterId,
+      user_id: userId,
+      handle,
+      content,
+    },
+    [
+      Permission.read(Role.any()),
+      Permission.delete(Role.user(userId)),
+    ]
+  );
+}
+
+export async function getCommentsForChapter(chapterId: string) {
+  const res = await databases.listDocuments(DATABASE_ID, COMMENTS_COLLECTION_ID, [
+    Query.equal("chapter_id", chapterId),
+    Query.orderDesc("$createdAt"),
+  ]);
+  return res.documents;
+}
+
+export async function deleteComment(commentId: string) {
+  return await databases.deleteDocument(DATABASE_ID, COMMENTS_COLLECTION_ID, commentId);
+}
+export async function getNotebookEngagement(notebookId: string) {
+  const chapters = await getChaptersForNotebook(notebookId);
+  const chapterIds = chapters.map((c) => c.$id);
+
+  const [likeCounts, commentCounts] = await Promise.all([
+    Promise.all(chapterIds.map((id) => getLikeCount(id))),
+    Promise.all(
+      chapterIds.map((id) =>
+        databases
+          .listDocuments(DATABASE_ID, COMMENTS_COLLECTION_ID, [
+            Query.equal("chapter_id", id),
+            Query.limit(1),
+          ])
+          .then((res) => res.total)
+      )
+    ),
+  ]);
+
+  return {
+    likes: likeCounts.reduce((a, b) => a + b, 0),
+    comments: commentCounts.reduce((a, b) => a + b, 0),
+    chapterCount: chapters.length,
+  };
 }
