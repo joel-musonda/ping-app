@@ -29,7 +29,7 @@ export default async function RootLayout({
   const activePathname = headerList.get("x-url") || "";
 
   // Check if the user is visiting the login or signup page
-  const isAuthPage = activePathname.includes("/login") || activePathname.includes("/signup");
+  const isAuthPage = activePathname.includes("/login") || activePathname.includes("/signup") || activePathname.includes("/onboarding");
 
   return (
     <html

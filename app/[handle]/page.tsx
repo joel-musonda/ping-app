@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { databases, DATABASE_ID, PINGS_COLLECTION_ID, getNotebooksForUser } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
 import { Query } from "appwrite";
-import { Book, MapPin, Link2, Users, FileText, Share2, Percent, Lock } from "lucide-react";
+import { Book, MapPin, Link2, Users, FileText, Share2, Percent, Lock, User } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 // Pure CSS Skeleton components to match Shadcn UI design guidelines
@@ -61,6 +61,8 @@ export default function PingProfilePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!handle) return;
+    
     databases
       .listDocuments(DATABASE_ID, PINGS_COLLECTION_ID, [Query.equal("handle", handle)])
       .then(async (res) => {
@@ -103,19 +105,30 @@ export default function PingProfilePage() {
             <ProfileSkeleton />
           ) : (
             <>
-              {/* Circular Avatar Frame */}
-              <div className="w-32 h-32 md:w-40 md:h-40 bg-neutral-100 rounded-full border border-neutral-200 overflow-hidden flex items-center justify-center shrink-0 shadow-sm">
-                <span className="text-4xl md:text-5xl font-bold text-neutral-300 uppercase select-none">
-                  {handle.charAt(0)}
-                </span>
+              {/* Circular Avatar Frame supporting Base64 Image Strings */}
+              <div className="w-32 h-32 md:w-40 md:h-40 bg-neutral-100 rounded-full border border-neutral-200 overflow-hidden flex items-center justify-center shrink-0 shadow-sm relative">
+                {ping?.avatar_url ? (
+                  <img 
+                    src={ping.avatar_url} 
+                    alt={`${ping?.name || handle}'s avatar`} 
+                    className="w-full h-full object-cover"
+                    decoding="async"
+                  />
+                ) : (
+                  <span className="text-4xl md:text-5xl font-bold text-neutral-300 uppercase select-none">
+                    {handle?.charAt(0)}
+                  </span>
+                )}
               </div>
 
               {/* Identity Info */}
               <div className="space-y-0.5 shrink-0">
                 <h2 className="text-xl font-bold tracking-tight text-neutral-900 leading-tight">
-                {ping?.handle}
+                  {ping?.name || "Anonymous Member"}
                 </h2>
-              
+                <p className="text-sm font-medium text-neutral-400">
+                  @{ping?.handle}
+                </p>
               </div>
 
               {/* Follow CTA Button */}
@@ -123,8 +136,8 @@ export default function PingProfilePage() {
                 Follow
               </button>
 
-              {/* Bio Text Frame */}
-              <p className="text-sm text-neutral-700 leading-relaxed pt-1 shrink-0">
+              {/* Dynamic Bio Text Frame */}
+              <p className="text-sm text-neutral-700 leading-relaxed pt-1 shrink-0 break-words whitespace-pre-wrap">
                 {ping?.bio || "Just trying to become the best Software Developer I can be."}
               </p>
 
@@ -132,12 +145,12 @@ export default function PingProfilePage() {
               <div className="flex items-center gap-3 text-xs text-neutral-600 pt-1 shrink-0">
                 <div className="flex items-center gap-1 hover:text-neutral-900 cursor-pointer">
                   <Users className="w-3.5 h-3.5 text-neutral-400" />
-                  <span className="font-bold text-neutral-900">18</span>
+                  <span className="font-bold text-neutral-900">0</span>
                   <span>followers</span>
                 </div>
                 <span>·</span>
                 <div className="flex items-center gap-1 hover:text-neutral-900 cursor-pointer">
-                  <span className="font-bold text-neutral-900">15</span>
+                  <span className="font-bold text-neutral-900">0</span>
                   <span>following</span>
                 </div>
               </div>
@@ -146,7 +159,7 @@ export default function PingProfilePage() {
               <div className="space-y-2 pt-3 text-xs font-medium text-neutral-500 border-t border-neutral-100 shrink-0">
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-neutral-400" />
-                  <span>Orlando, FL</span>
+                  <span>Zambia</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Link2 className="w-4 h-4 text-neutral-400" />
@@ -199,7 +212,7 @@ export default function PingProfilePage() {
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-2 min-w-0">
                                 <Book className="w-4 h-4 text-neutral-500 shrink-0" />
-                                <CardTitle className="text-sm font-bold text-neutral-900 truncate  underline-offset-2 decoration-1">
+                                <CardTitle className="text-sm font-bold text-neutral-900 truncate underline-offset-2 decoration-1">
                                   {nb.title}
                                 </CardTitle>
                               </div>
@@ -212,7 +225,6 @@ export default function PingProfilePage() {
                             </CardDescription>
                           </div>
 
-                          {/* Footer Tag Metadata */}
                           <div className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-wider text-neutral-400 pt-1">
                             <span className="px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600 border border-neutral-200 font-semibold text-[9px]">
                               {nb.is_public ? "Public" : "Private"}
@@ -234,26 +246,23 @@ export default function PingProfilePage() {
               Activity
             </h3>
 
-            {/* Metric Tabs Heading */}
             <div className="flex items-center gap-6 text-xs font-bold text-neutral-400 border-b border-b-neutral-100 pb-2">
               <div className="flex items-center gap-1.5 text-neutral-900 border-b-2 border-b-neutral-900 pb-2 -mb-[9px] cursor-pointer">
                 <FileText className="w-3.5 h-3.5" />
-                <span>123 posts</span>
+                <span>0 posts</span>
               </div>
               <div className="flex items-center gap-1.5 hover:text-neutral-600 cursor-pointer pb-2">
                 <Share2 className="w-3.5 h-3.5" />
-                <span>762 snippets</span>
+                <span>0 snippets</span>
               </div>
               <div className="flex items-center gap-1.5 hover:text-neutral-600 cursor-pointer pb-2">
                 <Percent className="w-3.5 h-3.5" />
-                <span>26% linked</span>
+                <span>0% linked</span>
               </div>
             </div>
 
-            {/* Custom Activity Grid Container */}
             <div className="p-4 bg-white border border-neutral-200 rounded-xl overflow-x-auto [scrollbar-width:thin]">
               <div className="min-w-[620px] space-y-1">
-                {/* Horizontal Month Timeline Header */}
                 <div className="flex gap-1 text-[10px] font-medium text-neutral-400 mb-1 pl-7">
                   <span className="w-10">Jun/Jul</span>
                   <span className="w-10">Aug</span>
@@ -270,15 +279,12 @@ export default function PingProfilePage() {
                   <span className="w-10">Jul</span>
                 </div>
                 
-                {/* Streak Rows */}
                 {["Mon", "Wed", "Fri"].map((day, rowIndex) => (
                   <div key={day} className="flex items-center gap-1">
-                    {/* Day Text Label */}
                     <span className="w-6 text-[9px] text-neutral-400 font-medium text-left select-none">
                       {day}
                     </span>
                     
-                    {/* Heatmap Track Pixels */}
                     {Array.from({ length: 50 }).map((_, i) => {
                       const seed = (i + rowIndex * 3) % 7;
                       const hasActivity = seed === 2 || seed === 4 || seed === 5;
