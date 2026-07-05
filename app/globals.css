@@ -1,6 +1,10 @@
 @import "tailwindcss";
 
-@theme inline {
+/* 1. Register plugins at the root level */
+@plugin "@tailwindcss/typography";
+
+/* 2. Custom utility variables inside the theme block */
+@theme {
   --color-background: #ffffff;      /* Pure white background */
   --color-foreground: #0a0a0a;      /* Near-black text */
   --font-sans: var(--font-geist-sans);
@@ -14,4 +18,3 @@ body {
   background: var(--color-background);
   color: var(--color-foreground);
 }
-

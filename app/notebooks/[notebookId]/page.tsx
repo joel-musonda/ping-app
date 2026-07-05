@@ -103,7 +103,7 @@ export default function NotebookPage() {
           </h1>
 
           <p className="text-xs text-neutral-500 font-normal italic mt-1.5 leading-relaxed line-clamp-3">
-            {notebook.snapshot || notebook.description || "Click to read the primary synopsis or introduction text of this repository."}
+            {notebook.snapshot || notebook.description || "Click to read the primary introduction of this repository."}
           </p>
 
           <div className="mt-4" />

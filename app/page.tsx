@@ -191,7 +191,7 @@ export default function HomePage() {
             {/* Platform Mini Footer */}
             <div className="pt-4 border-t border-neutral-100 text-[10px] text-neutral-400 font-medium space-y-1">
               <p>© 2026 Ping Inc.</p>
-              <p className="leading-normal">Minimalist notebook streams and synchronized documentation hubs.</p>
+              <p className="leading-normal">Great ideas change the world, share yours on Ping.</p>
             </div>
 
           </div>

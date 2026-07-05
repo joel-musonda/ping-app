@@ -345,17 +345,18 @@ export default function PingProfilePage() {
             <div className="flex items-center gap-6 text-xs font-bold text-neutral-400 border-b border-b-neutral-100 pb-2">
               <div className="flex items-center gap-1.5 text-neutral-900 border-b-2 border-b-neutral-900 pb-2 -mb-[9px] cursor-pointer">
                 <FileText className="w-3.5 h-3.5" />
-                <span>0 posts</span>
+                <span>Notebooks</span>
               </div>
-              <div className="flex items-center gap-1.5 hover:text-neutral-600 cursor-pointer pb-2">
+
+               {/*<div className="flex items-center gap-1.5 hover:text-neutral-600 cursor-pointer pb-2">
                 <Share2 className="w-3.5 h-3.5" />
                 <span>0 snippets</span>
-              </div>
-              <div className="flex items-center gap-1.5 hover:text-neutral-600 cursor-pointer pb-2">
+              </div>*/}
+              {/*<div className="flex items-center gap-1.5 hover:text-neutral-600 cursor-pointer pb-2">
                 <Percent className="w-3.5 h-3.5" />
                 <span>0% linked</span>
-              </div>
-            </div>
+              </div>*/}
+            </div> 
 
             <div className="p-4 bg-white border border-neutral-200 rounded-xl overflow-x-auto [scrollbar-width:thin]">
               <div className="min-w-[620px] space-y-1">
