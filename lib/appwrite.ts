@@ -325,5 +325,5 @@ export async function uploadNotebookCoverImage(file: File): Promise<string> {
 }
 export function getNotebookCoverImageUrl(fileId: string): string {
   const result = storage.getFileView(IMAGES_BUCKET_ID, fileId);
-  return typeof result === "string" ? result : result.href;
+  return typeof result === "string" ? result : (result as URL).href;
 }
