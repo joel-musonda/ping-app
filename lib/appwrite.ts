@@ -1,4 +1,4 @@
-import { Client, Account, Databases, ID , Query,} from "appwrite";
+import { Client, Account, Databases, ID , Query, Storage} from "appwrite";
 import { Permission, Role } from "appwrite";
 
 
@@ -14,8 +14,9 @@ export const databases = new Databases(client);
 export const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
 export const PINGS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_PINGS_COLLECTION_ID!;
 export const NOTEBOOKS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_NOTEBOOKS_COLLECTION_ID!;
-export const CHAPTERS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_CHAPTERS_COLLECTION_ID!;
-
+export const CHAPTERS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_CHAPTERS_COLLECTION_ID!;      
+export const storage = new Storage(client);
+export const IMAGES_BUCKET_ID = "6a494a7e003a27f563bc";
 export async function createPingProfile(userId: string, handle: string) {
   return await databases.createDocument(
     DATABASE_ID,
@@ -29,12 +30,13 @@ export async function createPingProfile(userId: string, handle: string) {
   );
 }
 
-export async function createNotebook(
+ export async function createNotebook(
   ownerId: string,
   title: string,
   description: string,
   isPublic: boolean,
-  snapshot: string = ""
+  snapshot: string = "",
+  coverImageUrl: string = ""
 ) {
   const permissions = [
     Permission.read(Role.user(ownerId)),
@@ -56,11 +58,12 @@ export async function createNotebook(
       is_public: isPublic,
       owner_id: ownerId,
       snapshot,
+      cover_image_url: coverImageUrl,
     },
     permissions
   );
 }
-
+   
 export async function createChapter(
   notebookId: string,
   ownerId: string,
@@ -315,4 +318,12 @@ export async function getNotebookEngagement(notebookId: string) {
     comments: commentCounts.reduce((a, b) => a + b, 0),
     chapterCount: chapters.length,
   };
+}
+export async function uploadNotebookCoverImage(file: File): Promise<string> {
+  const response = await storage.createFile(IMAGES_BUCKET_ID, ID.unique(), file);
+  return response.$id;
+}
+export function getNotebookCoverImageUrl(fileId: string): string {
+  const result = storage.getFileView(IMAGES_BUCKET_ID, fileId);
+  return typeof result === "string" ? result : result.href;
 }
