@@ -188,7 +188,7 @@ export default function PingProfilePage() {
             <ProfileSkeleton />
           ) : (
             <>
-              <div className="w-32 h-32 md:w-40 md:h-40 bg-neutral-100 rounded-full border border-neutral-200 overflow-hidden flex items-center justify-center shrink-0 shadow-sm relative">
+            <div className="w-32 h-32 md:w-40 md:h-40 bg-neutral-100 rounded-full border border-neutral-200 overflow-hidden flex items-center justify-center shrink-0 shadow-sm relative">
                 {ping?.avatar_url ? (
                   <img
                     src={ping.avatar_url}
@@ -202,6 +202,11 @@ export default function PingProfilePage() {
                   </span>
                 )}
               </div>
+
+
+
+
+
 
               <div className="space-y-0.5 shrink-0">
                 <h2 className="text-xl font-bold tracking-tight text-neutral-900 leading-tight">

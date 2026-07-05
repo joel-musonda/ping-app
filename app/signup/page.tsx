@@ -24,9 +24,12 @@ export default function SignupPage() {
       await signUp(email, password);
       // Route directly to onboarding flow instead of bypassing it
       router.push("/onboarding");
-    } catch (err: any) {
-      setError(err.message ?? "Something went wrong");
-    } finally {
+    
+      } catch (err: any) {
+  console.error("Signup failed:", err);
+  setError(err?.message || "Something went wrong. Please try again.");
+} finally {
+    
       setLoading(false);
     }
   };
