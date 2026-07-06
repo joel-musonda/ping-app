@@ -76,7 +76,7 @@ export default function HomePage() {
             return {
               ...nb,
               authorHandle: ping?.handle ?? "unknown",
-              authorName: ping?.name ?? "Anonymous Writer",
+              authorName: ping?.name ?? "Anonymous",
               authorAvatar: ping?.avatar_url ?? "",
               likeCount: engagement.likes,
               commentCount: engagement.comments,

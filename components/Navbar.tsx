@@ -14,6 +14,9 @@ import {
   Paintbrush, LogOut, ArrowLeftRight, Home, Info, AlertCircle, Trash2, UserPlus
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
+
+
 
 export default function Navbar() {
   const [profileData, setProfileData] = useState<{
@@ -301,7 +304,13 @@ export default function Navbar() {
                             </div>
                             <div className="flex flex-col min-w-0 text-xs">
                               <p className="text-[#c9d1d9] font-medium break-words">
-                                <span className="text-white font-bold">@{notif.sender_handle}</span> started following you.
+                            <span className="text-white font-bold">@{notif.sender_handle}</span>{" "}
+{notif.type === "like"
+  ? "liked your chapter."
+  : notif.type === "comment"
+  ? "commented on your chapter."
+  : "started following you."}
+
                               </p>
                               <span className="text-[10px] text-[#8b949e] mt-0.5">Just now</span>
                             </div>
@@ -378,10 +387,13 @@ export default function Navbar() {
                   </div>
 
                   <div className="p-2 border-b border-[#30363d] flex flex-col gap-0.5">
+                   
+                   <Link href="/settings">
                     <button className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs rounded-md text-left text-[#c9d1d9] hover:bg-[#21262d] hover:text-white transition">
                       <Settings className="w-3.5 h-3.5 text-[#8b949e]" />
                       <span>Settings</span>
                     </button>
+                    </Link>
                     <button className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs rounded-md text-left text-[#c9d1d9] hover:bg-[#21262d] hover:text-white transition">
                       <Paintbrush className="w-3.5 h-3.5 text-[#8b949e]" />
                       <span>Appearance</span>

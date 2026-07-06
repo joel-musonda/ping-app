@@ -12,7 +12,7 @@ It's a high-performance web platform built for digital writers and researchers t
 
 ## 🎨 The Inspiration
 
-Ping was inspired by the need for a seamless, lightweight, and deeply aesthetic writing tool—free from the visual bloat of traditional document editors. Taking cues from modern, developer-centric interfaces like **Cursor AI** and **VS Code**, the workspace features independent scrolling panels, absolute color demarcations, and a distraction-free environment. 
+Ping was inspired by the need for a seamless, lightweight, and deeply aesthetic writing tool—free from the visual bloat of traditional document editors. The workspace features independent scrolling panels, absolute color demarcations, and a distraction-free environment. 
 
 Ping serves as an intuitive digital workbench where thoughts instantly translate into organized chapters, archives, and distributed public streams.
 
@@ -23,7 +23,7 @@ Ping serves as an intuitive digital workbench where thoughts instantly translate
 * **Framework:** Next.js (App Router, Client-Side Content Lifecycle Optimization)
 * **Text Engine:** Tiptap Core (ProseMirror-backed asynchronous canvas editor)
 * **Database & Auth:** Appwrite Cloud (Distributed User Management & Document Fabrics)
-* **Styling:** TailwindCSS (Strict minimalist monochrome design token palette)
+* **Styling:** TailwindCSS (Strict minimalist monochrome design token palette) and Shadcn-ui
 * **Icons:** Lucide React
 
 ---
@@ -78,7 +78,3 @@ bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-

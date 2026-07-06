@@ -331,3 +331,49 @@ export function getNotebookCoverImageUrl(fileId: string): string {
   const result = storage.getFileView(IMAGES_BUCKET_ID, fileId);
   return typeof result === "string" ? result : (result as URL).href;
 }
+
+export async function notifyLike(
+  targetUserId: string,
+  senderId: string,
+  senderName: string,
+  senderHandle: string,
+  chapterId: string
+) {
+  if (targetUserId === senderId) return;
+  await databases.createDocument(DATABASE_ID, NOTIFICATIONS_COLLECTION_ID, ID.unique(), {
+    user_id: targetUserId,
+    sender_name: senderName,
+    sender_handle: senderHandle,
+    type: "like",
+    chapter_id: chapterId,
+  });
+}
+
+export async function notifyComment(
+  targetUserId: string,
+  senderId: string,
+  senderName: string,
+  senderHandle: string,
+  chapterId: string
+) {
+  if (targetUserId === senderId) return;
+  await databases.createDocument(DATABASE_ID, NOTIFICATIONS_COLLECTION_ID, ID.unique(), {
+    user_id: targetUserId,
+    sender_name: senderName,
+    sender_handle: senderHandle,
+    type: "comment",
+    chapter_id: chapterId,
+  });
+}
+export async function updateProfile(pingId: string, updates: Record<string, any>) {
+  return await databases.updateDocument(DATABASE_ID, PINGS_COLLECTION_ID, pingId, updates);
+}
+
+export async function deleteNotebookCascade(notebookId: string) {
+  // Delete all chapters in this notebook first, then the notebook itself
+  const chapters = await getChaptersForNotebook(notebookId);
+  await Promise.all(
+    chapters.map((ch) => databases.deleteDocument(DATABASE_ID, CHAPTERS_COLLECTION_ID, ch.$id))
+  );
+  await databases.deleteDocument(DATABASE_ID, NOTEBOOKS_COLLECTION_ID, notebookId);
+}
