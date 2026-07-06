@@ -203,11 +203,6 @@ export default function PingProfilePage() {
                 )}
               </div>
 
-
-
-
-
-
               <div className="space-y-0.5 shrink-0">
                 <h2 className="text-xl font-bold tracking-tight text-neutral-900 leading-tight">
                   {ping?.name || handle}
@@ -237,7 +232,7 @@ export default function PingProfilePage() {
               )}
 
               <p className="text-sm text-neutral-700 leading-relaxed pt-1 shrink-0 break-words whitespace-pre-wrap">
-                {ping?.bio || "Just trying to become the best Software Developer I can be."}
+                {ping?.bio || "Hello, Welcome to my Ping"}
               </p>
 
               <div className="flex items-center gap-3 text-xs text-neutral-600 pt-1 shrink-0">
