@@ -265,7 +265,9 @@ export async function createComment(
   chapterId: string,
   userId: string,
   handle: string,
-  content: string
+  content: string,
+  name: string = "",
+  avatarUrl: string = ""
 ) {
   return await databases.createDocument(
     DATABASE_ID,
@@ -276,6 +278,8 @@ export async function createComment(
       user_id: userId,
       handle,
       content,
+      name,
+      avatar_url: avatarUrl,
     },
     [
       Permission.read(Role.any()),

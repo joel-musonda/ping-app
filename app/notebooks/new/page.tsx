@@ -9,10 +9,10 @@ import ImageExtension from "@tiptap/extension-image";
 import TextAlign from "@tiptap/extension-text-align";
 import { 
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
-  Heading2, List, ImageIcon, Upload, FileText, Globe, X, Trash2, Camera
-} from "lucide-react";
+  Heading2, List, ImageIcon, Upload, FileText, Globe, X, Camera,  Heart, Send, Trash2 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
-import { uploadNotebookCoverImage, getNotebookCoverImageUrl, createNotebook, createChapter } from "@/lib/appwrite";
+import { uploadNotebookCoverImage, getNotebookCoverImageUrl, createNotebook, createChapter,checkIsLiked, getLikeCount, likeChapter, unlikeChapter,
+  createComment, getCommentsForChapter, deleteComment, getPingByUserId } from "@/lib/appwrite";
 
 
 
@@ -28,6 +28,17 @@ export default function CreateNotebookPage() {
   const [snapshot, setSnapshot] = useState("");
   const [coverImageUrl, setCoverImageUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+
+  //commenting and linking states
+  const [currentUser, setCurrentUser] = useState<any>(null);
+const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
+const [likeId, setLikeId] = useState<string | null>(null);
+const [likeCount, setLikeCount] = useState(0);
+const [likeLoading, setLikeLoading] = useState(false);
+const [comments, setComments] = useState<any[]>([]);
+const [newComment, setNewComment] = useState("");
+const [postingComment, setPostingComment] = useState(false);
 
   // Initialize Tiptap safely with immediatelyRender set to false to clear hydration warnings
   const editor = useEditor({
