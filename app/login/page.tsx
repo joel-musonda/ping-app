@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { logIn, signInWithGoogle, signInWithGithub } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,12 +9,31 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import Image from "next/image";
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const errorParam = searchParams.get("error");
+    if (errorParam) {
+      try {
+        const parsed = JSON.parse(errorParam);
+        if (parsed.type === "user_already_exists") {
+          setError(
+            "An account with this email already exists. Try logging in with your email and password instead."
+          );
+        } else {
+          setError(parsed.message || "Something went wrong signing in.");
+        }
+      } catch {
+        setError("Something went wrong signing in.");
+      }
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,14 +52,13 @@ export default function LoginPage() {
   return (
     <main className="flex flex-col items-center justify-center min-h-screen bg-white text-neutral-900 px-4">
       <div className="w-full max-w-sm p-6 bg-white rounded-xl border border-neutral-200 shadow-sm">
-        
-        {/* Top Logo Section */}
+
         <div className="flex flex-col items-center mb-6 text-center">
           <div className="mb-4">
-            <Image 
+            <Image
               src="/logo.png"
               alt="Ping Logo"
-              width={80} 
+              width={80}
               height={80}
               className="object-contain"
               priority
@@ -85,11 +103,15 @@ export default function LoginPage() {
               Remember for 30 days
             </label>
             <a href="/forgot-password" className="text-xs font-semibold text-neutral-400 hover:text-neutral-950 transition ml-auto">
-  Forgot password?
-</a>
+              Forgot password?
+            </a>
           </div>
 
-          {error && <p className="text-red-500 text-xs font-medium bg-red-50 p-2 rounded-md border border-red-100">{error}</p>}
+          {error && (
+            <p className="text-red-500 text-xs font-medium bg-red-50 p-2 rounded-md border border-red-100">
+              {error}
+            </p>
+          )}
 
           <Button
             type="submit"
@@ -105,7 +127,6 @@ export default function LoginPage() {
             <div className="flex-grow border-t border-neutral-200"></div>
           </div>
 
-          {/* Social Buttons with Functional Auth Hooks */}
           <div className="grid grid-cols-2 gap-2">
             <Button
               type="button"
@@ -113,13 +134,7 @@ export default function LoginPage() {
               onClick={() => signInWithGoogle()}
               className="flex items-center justify-center gap-2 border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700 font-medium shadow-sm"
             >
-              <Image 
-                src="/google.png" 
-                alt="Google"
-                width={16}
-                height={16}
-                className="dark:invert-0" 
-              />
+              <Image src="/google.png" alt="Google" width={16} height={16} />
               Google
             </Button>
 
@@ -129,13 +144,7 @@ export default function LoginPage() {
               onClick={() => signInWithGithub()}
               className="flex items-center justify-center gap-2 border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700 font-medium shadow-sm"
             >
-              <Image 
-                src="/github.png" 
-                alt="GitHub"
-                width={16}
-                height={16}
-                className="dark:invert-0" 
-              />
+              <Image src="/github.png" alt="GitHub" width={16} height={16} />
               GitHub
             </Button>
           </div>
@@ -149,5 +158,13 @@ export default function LoginPage() {
         </p>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

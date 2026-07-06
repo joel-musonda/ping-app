@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { databases, DATABASE_ID, PINGS_COLLECTION_ID } from "@/lib/appwrite";
+import { databases, DATABASE_ID, PINGS_COLLECTION_ID, createPingProfile } from "@/lib/appwrite";
 import { Query } from "appwrite";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -39,13 +39,19 @@ export default function OnboardingPage() {
       ]);
 
       if (res.documents.length > 0) {
-        const doc = res.documents[0];
-        setProfileDoc(doc);
-        setHandle(doc.handle);
-        setName(doc.name || "");
-        setBio(doc.bio || "");
-        setAvatarDataUrl(doc.avatar_url || "");
-      }
+  const doc = res.documents[0];
+  setProfileDoc(doc);
+  setHandle(doc.handle);
+  setName(doc.name || "");
+  setBio(doc.bio || "");
+  setAvatarDataUrl(doc.avatar_url || "");
+} else {
+  // No profile exists yet (first-time OAuth user) — create a draft one now
+  const starterHandle = activeUser.email.split("@")[0];
+  const newDoc = await createPingProfile(activeUser.$id, starterHandle);
+  setProfileDoc(newDoc);
+  setHandle(newDoc.handle);
+}
     }
     loadDraftProfile();
   }, [router]);

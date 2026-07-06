@@ -149,7 +149,8 @@ export default function Navbar() {
   pathname === "/signup" ||
   pathname === "/onboarding" ||
   pathname === "/forgot-password" ||
-  pathname === "/reset-password"
+  pathname === "/reset-password" ||
+  pathname === "/auth/callback"
 ) {
   return null;
 }

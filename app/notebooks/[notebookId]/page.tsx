@@ -4,8 +4,41 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getNotebook, getChaptersForNotebook, createChapter } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
-import { Book, Plus, MoreVertical, Edit2, MessageSquare, Clock, FileText, Globe } from "lucide-react";
+import { Book, Plus, MoreVertical, Edit2, MessageSquare, Clock, FileText, Globe, Menu, X } from "lucide-react";
 import ChapterContent from "@/components/ChapterContent";
+
+function NotebookPageSkeleton() {
+  return (
+    <main className="w-full min-h-[calc(100vh-56px)] h-[calc(100vh-56px)] bg-white flex overflow-hidden">
+      {/* Sidebar skeleton — hidden on mobile, visible on desktop, matching real layout */}
+      <div className="hidden md:flex w-80 border-r border-neutral-200 flex-col h-full bg-neutral-50/50 shrink-0 p-5 animate-pulse">
+        <div className="h-3 bg-neutral-200 rounded w-24 mb-3" />
+        <div className="h-5 bg-neutral-200 rounded w-full mb-2" />
+        <div className="h-3 bg-neutral-200 rounded w-3/4 mb-4" />
+        <div className="h-8 bg-neutral-200 rounded w-full mb-6" />
+        <div className="h-3 bg-neutral-200 rounded w-20 mb-3" />
+        <div className="space-y-2">
+          <div className="h-8 bg-neutral-100 rounded w-full" />
+          <div className="h-8 bg-neutral-100 rounded w-full" />
+          <div className="h-8 bg-neutral-100 rounded w-full" />
+        </div>
+      </div>
+
+      {/* Content skeleton */}
+      <div className="flex-1 px-6 md:px-12 py-10 max-w-2xl mx-auto w-full animate-pulse">
+        <div className="h-7 bg-neutral-200 rounded w-2/3 mb-3" />
+        <div className="h-3 bg-neutral-200 rounded w-32 mb-8" />
+        <div className="space-y-2">
+          <div className="h-3 bg-neutral-100 rounded w-full" />
+          <div className="h-3 bg-neutral-100 rounded w-full" />
+          <div className="h-3 bg-neutral-100 rounded w-5/6" />
+          <div className="h-3 bg-neutral-100 rounded w-full" />
+          <div className="h-3 bg-neutral-100 rounded w-2/3" />
+        </div>
+      </div>
+    </main>
+  );
+}
 
 export default function NotebookPage() {
   const { notebookId } = useParams<{ notebookId: string }>();
@@ -22,6 +55,9 @@ export default function NotebookPage() {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Mobile sidebar drawer state — closed by default on small screens
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const loadData = async () => {
     try {
@@ -76,17 +112,66 @@ export default function NotebookPage() {
     }
   };
 
-  if (loading) return <div className="p-8 text-xs font-medium text-neutral-400 animate-pulse">Loading workspace index...</div>;
+  const handleSelectChapter = (ch: any) => {
+    setSelectedChapter(ch);
+    setViewMode("chapter");
+    setSidebarOpen(false); // close drawer on mobile after picking a chapter
+  };
+
+  const handleSelectRoot = () => {
+    setViewMode("root");
+    setSidebarOpen(false);
+  };
+
+  if (loading) return <NotebookPageSkeleton />;
   if (!notebook) return <div className="p-8 text-sm text-neutral-500">Notebook repository not found.</div>;
 
-  return (
-    <main className="w-full min-h-[calc(100vh-56px)] h-[calc(100vh-56px)] bg-white text-neutral-900 select-none overflow-hidden flex">
+  const currentTitle = viewMode === "chapter" && selectedChapter ? selectedChapter.title : notebook.title;
 
-      {/* LEFT COLUMN PANEL */}
-      <div className="w-80 border-r border-neutral-200 flex flex-col h-full bg-neutral-50/50 shrink-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+  return (
+    <main className="w-full min-h-[calc(100vh-56px)] h-[calc(100vh-56px)] bg-white text-neutral-900 overflow-hidden flex relative">
+
+      {/* MOBILE TOP BAR — only visible below md breakpoint */}
+      <div className="md:hidden absolute top-0 left-0 right-0 z-30 flex items-center gap-3 px-4 h-12 border-b border-neutral-200 bg-white/95 backdrop-blur-sm">
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="p-1.5 -ml-1.5 rounded-md text-neutral-600 hover:bg-neutral-100 transition"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <span className="text-sm font-semibold text-neutral-900 truncate">{currentTitle}</span>
+      </div>
+
+      {/* MOBILE BACKDROP — dims background when drawer is open */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          className="md:hidden fixed inset-0 bg-neutral-950/40 z-40"
+        />
+      )}
+
+      {/* LEFT COLUMN PANEL — off-canvas drawer on mobile, static column on desktop */}
+      <div
+        className={`
+          fixed md:static top-0 left-0 h-full w-80 max-w-[85vw] border-r border-neutral-200
+          flex flex-col bg-white md:bg-neutral-50/50 shrink-0 overflow-y-auto z-50
+          [scrollbar-width:none] [&::-webkit-scrollbar]:hidden
+          transition-transform duration-200 ease-out
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0
+        `}
+      >
+        {/* Close button — mobile only */}
+        <div className="md:hidden flex justify-end p-3">
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="p-1.5 rounded-md text-neutral-500 hover:bg-neutral-100 transition"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
 
         <div
-         
+          onClick={handleSelectRoot}
           className={`p-5 border-b border-neutral-200/80 cursor-pointer transition-colors group/hero shrink-0 ${
             viewMode === "root" ? "bg-white" : "bg-transparent hover:bg-neutral-100/40"
           }`}
@@ -134,10 +219,7 @@ export default function NotebookPage() {
               return (
                 <div key={ch.$id} className="w-full relative group/item">
                   <button
-                    onClick={() => {
-                      setSelectedChapter(ch);
-                      setViewMode("chapter");
-                    }}
+                    onClick={() => handleSelectChapter(ch)}
                     className={`w-full text-left pl-3 pr-10 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-2 ${
                       isActive
                         ? "bg-white text-neutral-900 border border-neutral-200 shadow-sm"
@@ -173,7 +255,7 @@ export default function NotebookPage() {
       </div>
 
       {/* RIGHT COLUMN PANEL */}
-      <div className="flex-1 flex flex-col h-full bg-white overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex-1 flex flex-col h-full bg-white overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pt-12 md:pt-0">
 
         {viewMode === "root" && (
           <div className="max-w-2xl w-full mx-auto px-6 md:px-12 py-10 flex flex-col min-h-full">
@@ -252,7 +334,6 @@ export default function NotebookPage() {
               </div>
             </div>
 
-            {/* Chapter Body — now renders real Tiptap content, including images and formatting */}
             <div className="flex-1">
               <ChapterContent contentJson={selectedChapter.content_json} />
             </div>
