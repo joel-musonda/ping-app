@@ -1,3 +1,5 @@
+
+
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -11,7 +13,7 @@ import {
 import { useRouter, usePathname } from "next/navigation";
 import {
   Search, Bell, Plus, User, Book, Database, Heart, Settings,
-  Paintbrush, LogOut, ArrowLeftRight, Home, Info, AlertCircle, Trash2, UserPlus, X
+  Paintbrush, LogOut, ArrowLeftRight, Home, Info, AlertCircle, Trash2, UserPlus, X, Flame
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -468,7 +470,7 @@ export default function Navbar() {
 
       {/* MOBILE BOTTOM TAB BAR — only visible below md, logged in only */}
       {!loading && profileData && (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-neutral-200 h-16 grid grid-cols-4 items-center px-2">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-neutral-200 h-16 grid grid-cols-5 items-center px-2">
 
           <a
             href="/"
@@ -501,6 +503,14 @@ export default function Navbar() {
               <Plus className="w-6 h-6" />
             </button>
           </div>
+
+          <Link
+            href="/?trending=1"
+            className="flex flex-col items-center justify-center gap-0.5 text-neutral-500 hover:text-neutral-900 transition"
+          >
+            <Flame className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Trending</span>
+          </Link>
 
           <Link
             href="/settings"
