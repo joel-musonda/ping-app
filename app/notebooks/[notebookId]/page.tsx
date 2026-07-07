@@ -176,9 +176,10 @@ export default function NotebookPage() {
 
  const handleLikeToggle = async () => {
   if (!currentUser) {
-    router.push("/login");
+    router.push("/signup");
     return;
   }
+  // ...rest unchanged
   setLikeLoading(true);
   try {
     if (likeId) {
@@ -214,9 +215,10 @@ export default function NotebookPage() {
 
 const handlePostComment = async () => {
   if (!currentUser) {
-    router.push("/login");
+    router.push("/signup");
     return;
   }
+  // ...rest unchanged
   if (!newComment.trim()) return;
 
   setPostingComment(true);
