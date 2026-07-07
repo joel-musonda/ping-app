@@ -179,7 +179,7 @@ export default function PingProfilePage() {
   }
 
   return (
-    <main className="max-w-6xl w-full mx-auto px-4 md:px-6 py-6 bg-white text-neutral-900 md:h-[calc(100vh-65px)] md:overflow-hidden">
+    <main className="max-w-6xl w-full mx-auto px-4 md:px-6 py-4 bg-white text-neutral-900 md:h-[calc(100vh-65px)] md:overflow-hidden">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12 h-full">
 
         {/* Left Profile Sidebar */}

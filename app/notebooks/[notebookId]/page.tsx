@@ -405,7 +405,7 @@ const handlePostComment = async () => {
       <div className="flex-1 flex flex-col h-full bg-white overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pt-12 md:pt-0">
 
         {viewMode === "root" && (
-          <div className="max-w-2xl w-full mx-auto px-6 md:px-12 py-10 flex flex-col min-h-full">
+          <div className="max-w-2xl w-full mx-auto px-6 md:px-12 pt-6 pb-24 md:pb-10 flex flex-col min-h-full">
             <div className="flex justify-between items-start gap-6 border-b border-neutral-100 pb-4 mb-6 relative">
               <div className="space-y-2">
                 <h2 className="text-2xl font-bold tracking-tight text-neutral-900 leading-tight">
@@ -428,7 +428,7 @@ const handlePostComment = async () => {
         )}
 
         {viewMode === "chapter" && selectedChapter && (
-          <div className="max-w-2xl w-full mx-auto px-6 md:px-12 py-10 flex flex-col min-h-full">
+          <div className="max-w-2xl w-full mx-auto px-6 md:px-12 pt-6 pb-24 md:pb-10 flex flex-col min-h-full">
 
             <div className="flex justify-between items-start gap-6 border-b border-neutral-100 pb-4 mb-6 relative">
               <div className="space-y-2">
@@ -514,41 +514,12 @@ const handlePostComment = async () => {
                 </span>
               </div>
 
-              <div className="flex gap-3 items-start mb-6">
-                <div className="w-7 h-7 rounded-full bg-neutral-900 text-white text-[10px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden">
-                  {currentUserProfile?.avatar_url ? (
-                    <img src={currentUserProfile.avatar_url} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    currentUserProfile?.handle?.charAt(0) || "U"
-                  )}
-                </div>
-                <div className="flex-1 space-y-2">
-                  <textarea
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder={currentUser ? "Write a response or feedback snippet..." : "Log in to comment"}
-                    disabled={!currentUser}
-                    className="w-full p-2.5 min-h-[72px] rounded-lg border border-neutral-200 text-xs focus:outline-none focus:border-neutral-400 resize-none placeholder:text-neutral-400 transition disabled:opacity-50"
-                  />
-                  <div className="flex justify-end">
-                    <button
-                      onClick={handlePostComment}
-                      disabled={postingComment || !newComment.trim()}
-                      className="h-7 px-3 bg-neutral-900 hover:bg-neutral-800 text-white rounded-md text-xs font-medium shadow-sm transition flex items-center gap-1.5 disabled:opacity-50"
-                    >
-                      <Send className="w-3 h-3" />
-                      {postingComment ? "Posting..." : "Respond"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
               {comments.length === 0 ? (
-                <div className="space-y-4 text-center py-6 border border-dashed border-neutral-100 rounded-xl bg-neutral-50/40">
+                <div className="space-y-4 text-center py-6 border border-dashed border-neutral-100 rounded-xl bg-neutral-50/40 mb-6">
                   <p className="text-xs text-neutral-400 italic">No responses written for this section yet.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-4 mb-6">
                   {comments.map((c) => (
                     <div key={c.$id} className="flex gap-3 items-start group">
                       <div className="w-7 h-7 rounded-full bg-neutral-900 text-white text-[10px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden">
@@ -578,6 +549,35 @@ const handlePostComment = async () => {
                   ))}
                 </div>
               )}
+
+              <div className="flex gap-3 items-start py-15">
+                <div className="w-7 h-7 rounded-full bg-neutral-900 text-white text-[10px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden">
+                  {currentUserProfile?.avatar_url ? (
+                    <img src={currentUserProfile.avatar_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    currentUserProfile?.handle?.charAt(0) || "U"
+                  )}
+                </div>
+                <div className="flex-1 space-y-2 py-2">
+                  <textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder={currentUser ? "Write a response or feedback snippet..." : "Log in to comment"}
+                    disabled={!currentUser}
+                    className="w-full p-2.5 min-h-[72px] rounded-lg border border-neutral-200 text-xs focus:outline-none focus:border-neutral-400 resize-none placeholder:text-neutral-400 transition disabled:opacity-50"
+                  />
+                  <div className="flex justify-end">
+                    <button
+                      onClick={handlePostComment}
+                      disabled={postingComment || !newComment.trim()}
+                      className="h-7 px-3 bg-neutral-900 hover:bg-neutral-800 text-white rounded-md text-xs font-medium shadow-sm transition flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <Send className="w-3 h-3 " />
+                      {postingComment ? "Posting..." : "Respond"}
+                    </button>
+                  </div>
+                </div>
+              </div>
 
             </div>
 

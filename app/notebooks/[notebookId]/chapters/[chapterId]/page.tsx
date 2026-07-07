@@ -342,7 +342,7 @@ export default function ChapterWorkspacePage() {
 
   // --- RENDER BLOCK B: PUBLIC READ FORMAT CANVAS (SHOWS ENGAGEMENT FEEDS) ---
   return (
-    <main className="py-12 max-w-2xl mx-auto px-4 space-y-8">
+    <main className="py-6 max-w-2xl mx-auto px-4 space-y-8">
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-amber-600 bg-amber-50 border border-amber-100 px-3 py-1.5 rounded-lg text-xs font-semibold">
           <span>You are viewing this chapter in read-only library format.</span>

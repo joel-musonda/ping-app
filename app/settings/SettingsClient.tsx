@@ -165,7 +165,7 @@ export default function SettingsClient() {
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 py-10 px-4">
+    <main className="min-h-screen bg-neutral-50 py-6 px-4">
       <div className="max-w-2xl mx-auto space-y-10">
 
         <h1 className="text-2xl font-bold text-neutral-900">Settings</h1>

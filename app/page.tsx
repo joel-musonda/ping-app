@@ -107,7 +107,7 @@ function HomePageInner() {
     .slice(0, 4);
 
   return (
-    <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10 bg-white min-h-[calc(100vh-56px)] select-none text-neutral-950">
+    <main className="max-w-5xl mx-auto px-4 sm:px-6 py-0.1 md:py-2 bg-white min-h-[calc(100vh-56px)] select-none text-neutral-950">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
 
         {/* Left/Middle Core Dashboard */}

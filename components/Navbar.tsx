@@ -187,7 +187,7 @@ export default function Navbar() {
                   className="flex items-center gap-2 px-3 py-1.5 rounded-md hover:bg-[#21262d] text-xs transition"
                 >
                   <User className="w-3.5 h-3.5 text-[#8b949e]" />
-                  <span>@{p.handle}</span>
+                  <span className="text-white">@{p.handle}</span>
                 </a>
               ))}
             </div>
@@ -216,7 +216,7 @@ export default function Navbar() {
   return (
     <>
       {/* TOP BAR */}
-      <nav className="flex items-center justify-between px-4 py-2 border-b border-neutral-200 bg-white select-none h-14 relative z-50">
+      <nav className="flex items-center justify-between px-4 py-1 border-b border-neutral-200 bg-white select-none h-14 relative z-50">
 
         <div className="flex items-center gap-6">
           <a href="/" className="flex items-center gap-2 hover:opacity-90 transition">
@@ -454,7 +454,7 @@ export default function Navbar() {
             <input
               autoFocus
               type="text"
-              placeholder="Search notebooks or @handles..."
+              placeholder="Search notebooks and @pings..."
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               className="w-full h-9 pl-8 pr-4 rounded-md border border-neutral-200 bg-neutral-50/50 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-300 focus:bg-white transition-all"
