@@ -212,8 +212,8 @@ export default function PingProfilePage() {
 
               {isOwnProfile ? (
                 <button
-                  onClick={() => router.push("/settings/profile")}
-                  className="w-full bg-white hover:bg-neutral-50 border border-neutral-200 text-neutral-900 text-sm font-medium py-2 px-4 rounded-md shadow-sm transition-colors shrink-0"
+                  onClick={() => router.push("/settings")}
+                  className="w-full bg-white hover:bg-neutral-50 border border-neutral-200 text-neutral-900 text-sm font-medium py-2 px-4 rounded-md shadow-sm transition-colors shrink-0 cursor-pointer"
                 >
                   Edit Profile
                 </button>

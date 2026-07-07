@@ -393,14 +393,12 @@ export default function Navbar() {
                         <Book className="w-3.5 h-3.5 text-[#8b949e]" />
                         <span>Notebooks</span>
                       </a>
-                      <button className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs rounded-md text-left text-[#c9d1d9] hover:bg-[#21262d] hover:text-white transition">
-                        <Database className="w-3.5 h-3.5 text-[#8b949e]" />
-                        <span>Pings</span>
-                      </button>
+                      <Link href="/community" onClick={() => setProfileOpen(false)}>
                       <button className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs rounded-md text-left text-[#c9d1d9] hover:bg-[#21262d] hover:text-white transition">
                         <Heart className="w-3.5 h-3.5 text-[#8b949e]" />
                         <span>Community</span>
                       </button>
+                      </Link>
                     </div>
 
                     <div className="p-2 border-b border-[#30363d] flex flex-col gap-0.5">
@@ -536,7 +534,7 @@ export default function Navbar() {
             {notifications.length === 0 ? (
               <div className="p-6 text-center flex flex-col items-center justify-center gap-2">
                 <AlertCircle className="w-5 h-5 text-[#8b949e]" />
-                <p className="text-xs text-[#8b949e]">Notifications fully up to date.</p>
+                <p className="text-xs text-[#8b949e]">You're all caught up.</p>
               </div>
             ) : (
               notifications.map((notif) => (
