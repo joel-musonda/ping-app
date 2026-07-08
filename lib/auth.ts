@@ -18,11 +18,24 @@ export async function signUp(email: string, password: string) {
 }
 
 export async function logIn(email: string, password: string) {
+  try {
+    await account.deleteSession("current");
+  } catch {
+    // no active session, that's fine
+  }
   await account.createEmailPasswordSession(email, password);
 }
 
 export async function logOut() {
-  await account.deleteSession("current");
+  try {
+    await account.deleteSessions(); // clears ALL sessions for this account, not just the current one
+  } catch {
+    try {
+      await account.deleteSession("current");
+    } catch {
+      // already logged out, nothing to do
+    }
+  }
 }
 
 export async function getCurrentUser() {
@@ -33,7 +46,12 @@ export async function getCurrentUser() {
   }
 }
 
-export function signInWithGoogle() {
+export async function signInWithGoogle() {
+  try {
+    await account.deleteSession("current");
+  } catch {
+    // no active session, that's fine
+  }
   account.createOAuth2Session(
     OAuthProvider.Google,
     `${window.location.origin}/auth/callback`,
@@ -41,7 +59,12 @@ export function signInWithGoogle() {
   );
 }
 
-export function signInWithGithub() {
+export async function signInWithGithub() {
+  try {
+    await account.deleteSession("current");
+  } catch {
+    // no active session, that's fine
+  }
   account.createOAuth2Session(
     OAuthProvider.Github,
     `${window.location.origin}/auth/callback`,
