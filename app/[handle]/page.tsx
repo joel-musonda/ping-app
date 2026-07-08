@@ -13,14 +13,12 @@ import {
   getPingByUserId,
   getFollowerCount,
   getFollowingCount,
-  getUserActivityDates,
 } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
 import { Query } from "appwrite";
-import { Book, MapPin, Link2, Users, FileText, Share2, Percent, Lock } from "lucide-react";
+import { Book, MapPin, Link2, Users, FileText, Lock, Link} from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
-// Pure CSS Skeleton components to match Shadcn UI design guidelines
 function ProfileSkeleton() {
   return (
     <div className="flex flex-col space-y-4 animate-pulse">
@@ -68,7 +66,6 @@ function NotebookSkeleton() {
 export default function PingProfilePage() {
   const { handle } = useParams<{ handle: string }>();
   const router = useRouter();
-
   const [ping, setPing] = useState<any>(null);
   const [notebooks, setNotebooks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,18 +108,26 @@ export default function PingProfilePage() {
           }
         }
 
-        const [nbs, followers, following, activity] = await Promise.all([
+        const [nbs, followers, following] = await Promise.all([
           getNotebooksForUser(pingDoc.user_id, !(sessionUser?.$id === pingDoc.user_id)),
           getFollowerCount(pingDoc.user_id),
           getFollowingCount(pingDoc.user_id),
-          getUserActivityDates(pingDoc.user_id),
         ]);
 
         if (cancelled) return;
         setNotebooks(nbs);
         setFollowerCount(followers);
         setFollowingCount(following);
-        setActivityDates(activity);
+
+        // Map real creation timestamps into string tokens to feed the streak matrix cells
+        const datesSet = new Set<string>();
+        nbs.forEach((nb: any) => {
+          if (nb.$createdAt) {
+            const dateStr = nb.$createdAt.split("T")[0];
+            datesSet.add(dateStr);
+          }
+        });
+        setActivityDates(datesSet);
       })
       .catch((err) => {
         if (!cancelled) {
@@ -188,7 +193,7 @@ export default function PingProfilePage() {
             <ProfileSkeleton />
           ) : (
             <>
-            <div className="w-32 h-32 md:w-40 md:h-40 bg-neutral-100 rounded-full border border-neutral-200 overflow-hidden flex items-center justify-center shrink-0 shadow-sm relative">
+              <div className="w-32 h-32 md:w-40 md:h-40 bg-neutral-100 rounded-full border border-neutral-200 overflow-hidden flex items-center justify-center shrink-0 shadow-sm relative">
                 {ping?.avatar_url ? (
                   <img
                     src={ping.avatar_url}
@@ -248,7 +253,7 @@ export default function PingProfilePage() {
                 </div>
               </div>
 
-              {ping?.location || ping?.website ? (
+              {ping?.location || ping?.website || ping?.github || ping?.twitter ? (
                 <div className="space-y-2 pt-3 text-xs font-medium text-neutral-500 border-t border-neutral-100 shrink-0">
                   {ping?.location && (
                     <div className="flex items-center gap-2">
@@ -266,6 +271,32 @@ export default function PingProfilePage() {
                         className="text-neutral-900 hover:underline break-all"
                       >
                         {ping.website}
+                      </a>
+                    </div>
+                  )}
+                  {ping?.github && (
+                    <div className="flex items-center gap-2">
+                      <Link className="w-4 h-4 text-neutral-400" />
+                      <a
+                        href={ping.github.startsWith("http") ? ping.github : `https://github.com/${ping.github.replace('@', '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-neutral-900 hover:underline break-all"
+                      >
+                        {ping.github.includes("github.com") ? ping.github.split("github.com/")[1] : ping.github}
+                      </a>
+                    </div>
+                  )}
+                  {ping?.twitter && (
+                    <div className="flex items-center gap-2">
+                      <Link className="w-4 h-4 text-neutral-400 " />
+                      <a
+                        href={ping.twitter.startsWith("http") ? ping.twitter : `https://twitter.com/${ping.twitter.replace('@', '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-neutral-900 hover:underline break-all"
+                      >
+                        {ping.twitter.startsWith("@") ? ping.twitter : `@${ping.twitter}`}
                       </a>
                     </div>
                   )}
@@ -338,24 +369,15 @@ export default function PingProfilePage() {
             )}
           </div>
 
-          {/* Activity Streak Matrix Panel — now driven by real chapter edit dates */}
+          {/* Activity Streak Matrix Panel — driven by real notebook creation dates */}
           <div className="space-y-4 pt-4 border-t border-neutral-100 shrink-0">
             <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Activity</h3>
 
             <div className="flex items-center gap-6 text-xs font-bold text-neutral-400 border-b border-b-neutral-100 pb-2">
               <div className="flex items-center gap-1.5 text-neutral-900 border-b-2 border-b-neutral-900 pb-2 -mb-[9px] cursor-pointer">
                 <FileText className="w-3.5 h-3.5" />
-                <span>Notebooks</span>
+                <span>Notebooks streak</span>
               </div>
-
-               {/*<div className="flex items-center gap-1.5 hover:text-neutral-600 cursor-pointer pb-2">
-                <Share2 className="w-3.5 h-3.5" />
-                <span>0 snippets</span>
-              </div>*/}
-              {/*<div className="flex items-center gap-1.5 hover:text-neutral-600 cursor-pointer pb-2">
-                <Percent className="w-3.5 h-3.5" />
-                <span>0% linked</span>
-              </div>*/}
             </div> 
 
             <div className="p-4 bg-white border border-neutral-200 rounded-xl overflow-x-auto [scrollbar-width:thin]">
@@ -375,56 +397,51 @@ export default function PingProfilePage() {
                   <span className="w-10">Jun</span>
                   <span className="w-10">Jul</span>
                 </div>
-               {(() => {
-  const today = new Date();
-  const todayDayOfWeek = today.getDay(); // 0=Sun ... 6=Sat
+                {(() => {
+                  const today = new Date();
+                  const todayDayOfWeek = today.getDay(); // 0=Sun ... 6=Sat
 
-  // Sunday of the current week
-  const currentWeekSunday = new Date(today);
-  currentWeekSunday.setDate(today.getDate() - todayDayOfWeek);
+                  const currentWeekSunday = new Date(today);
+                  currentWeekSunday.setDate(today.getDate() - todayDayOfWeek);
 
-  const totalWeeks = 50;
-  const firstWeekSunday = new Date(currentWeekSunday);
-  firstWeekSunday.setDate(currentWeekSunday.getDate() - (totalWeeks - 1) * 7);
+                  const totalWeeks = 50;
+                  const firstWeekSunday = new Date(currentWeekSunday);
+                  firstWeekSunday.setDate(currentWeekSunday.getDate() - (totalWeeks - 1) * 7);
 
-  const rows = [
-    { label: "Mon", dayOfWeek: 1 },
-    { label: "Wed", dayOfWeek: 3 },
-    { label: "Fri", dayOfWeek: 5 },
-  ];
+                  const rows = [
+                    { label: "Mon", dayOfWeek: 1 },
+                    { label: "Wed", dayOfWeek: 3 },
+                    { label: "Fri", dayOfWeek: 5 },
+                  ];
 
-  return rows.map(({ label, dayOfWeek }) => (
-    <div key={label} className="flex items-center gap-1">
-      <span className="w-6 text-[9px] text-neutral-400 font-medium text-left select-none">
-        {label}
-      </span>
+                  return rows.map(({ label, dayOfWeek }) => (
+                    <div key={label} className="flex items-center gap-1">
+                      <span className="w-6 text-[9px] text-neutral-400 font-medium text-left select-none">
+                        {label}
+                      </span>
 
-      {Array.from({ length: totalWeeks }).map((_, weekIndex) => {
-        const cellDate = new Date(firstWeekSunday);
-        cellDate.setDate(firstWeekSunday.getDate() + weekIndex * 7 + dayOfWeek);
+                      {Array.from({ length: totalWeeks }).map((_, weekIndex) => {
+                        const cellDate = new Date(firstWeekSunday);
+                        cellDate.setDate(firstWeekSunday.getDate() + weekIndex * 7 + dayOfWeek);
 
-        const dateStr = cellDate.toISOString().split("T")[0];
-        const isActive = activityDates.has(dateStr);
-        const isFuture = cellDate > today;
+                        const dateStr = cellDate.toISOString().split("T")[0];
+                        const isActive = activityDates.has(dateStr);
+                        const isFuture = cellDate > today;
 
-        return (
-          <span
-            key={weekIndex}
-            title={dateStr}
-            className="w-2.5 h-2.5 rounded-[2px] block shrink-0 transition-colors"
-            style={{
-              backgroundColor: loading || isFuture ? "#F4F4F5" : isActive ? "#A2CFFE" : "#F4F4F5",
-            }}
-          />
-        );
-      })}
-    </div>
-  ));
-})()}
-
-               
-
-                  
+                        return (
+                          <span
+                            key={weekIndex}
+                            title={dateStr}
+                            className="w-2.5 h-2.5 rounded-[2px] block shrink-0 transition-colors"
+                            style={{
+                              backgroundColor: loading || isFuture ? "#F4F4F5" : isActive ? "#A2CFFE" : "#F4F4F5",
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                  ));
+                })()}
               </div>
             </div>
           </div>

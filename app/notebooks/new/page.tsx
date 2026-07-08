@@ -114,7 +114,7 @@ const [postingComment, setPostingComment] = useState(false);
     alert(`Upload Failed: ${err?.message || err}`);
   }
 };
-  // Direct programmatic execution (No form interferences)
+  
  const executePublishPipeline = async () => {
   if (!title.trim()) return alert("Please specify a notebook title first.");
   if (!snapshot.trim()) return alert("A snapshot description summary is required.");
@@ -179,10 +179,10 @@ const [postingComment, setPostingComment] = useState(false);
           <div className="flex items-center gap-3">
             <label className="flex items-center gap-1.5 text-xs text-neutral-500 font-medium cursor-pointer">
               <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} className="rounded text-neutral-900 focus:ring-0" />
-              <span>Public Stream</span>
+              <span>Public Notebook</span>
             </label>
             <button onClick={() => setIsPublishModalOpen(true)} className="h-8 px-4 bg-neutral-900 hover:bg-neutral-800 text-white rounded-md text-xs font-semibold shadow-sm transition">
-              Publish Notebook
+              Publish 
             </button>
           </div>
 
@@ -193,10 +193,10 @@ const [postingComment, setPostingComment] = useState(false);
       <div className="max-w-2xl mx-auto px-6 mt-10">
         <input 
           type="text"
-          placeholder="Notebook Title"
+          placeholder="Notebook Title Goes here"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full bg-transparent text-3xl font-black placeholder:text-neutral-200 border-none focus:outline-none focus:ring-0 mb-6 text-neutral-900"
+          className="w-full bg-transparent text-3xl font-black placeholder:text-neutral-400 border-none focus:outline-none focus:ring-0 mb-6 text-neutral-900"
         />
         <div className="bg-white border border-neutral-200 shadow-sm rounded-xl p-6 sm:p-8 min-h-[450px]">
           <EditorContent editor={editor} />

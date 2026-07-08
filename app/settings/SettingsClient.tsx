@@ -100,7 +100,7 @@ export default function SettingsClient() {
         github,
         avatar_url: avatarDataUrl,
       });
-      setSaveStatus("Saved ✅");
+      setSaveStatus("Saved successfully");
     } catch (err) {
       console.error("Failed to save profile:", err);
       setSaveStatus("Failed to save — check console");
@@ -236,7 +236,7 @@ export default function SettingsClient() {
             />
           </div>
           <div>
-            <label className="text-xs font-semibold text-neutral-600 block mb-1">Twitter / X</label>
+            <label className="text-xs font-semibold text-neutral-600 block mb-1">Social Link</label>
             <input
               value={twitter}
               onChange={(e) => setTwitter(e.target.value)}
@@ -245,7 +245,7 @@ export default function SettingsClient() {
             />
           </div>
           <div>
-            <label className="text-xs font-semibold text-neutral-600 block mb-1">GitHub</label>
+            <label className="text-xs font-semibold text-neutral-600 block mb-1">Social link</label>
             <input
               value={github}
               onChange={(e) => setGithub(e.target.value)}
