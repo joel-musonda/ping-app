@@ -80,7 +80,7 @@ function HomePageInner() {
             return {
               ...nb,
               authorHandle: ping?.handle ?? "unknown",
-              authorName: ping?.name ?? "Anonymous",
+              authorName: ping?.name ?? ping.handle,
               authorAvatar: ping?.avatar_url ?? "",
               likeCount: engagement.likes,
               commentCount: engagement.comments,

@@ -177,8 +177,8 @@ export default function PingProfilePage() {
   if (!loading && !ping) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] bg-white text-center p-4">
-        <h2 className="text-xl font-bold text-neutral-900">Workspace Not Found</h2>
-        <p className="text-sm text-neutral-500 mt-1">The handle @{handle} does not exist.</p>
+        <h2 className="text-xl font-bold text-neutral-900">Ping Not Found</h2>
+        <p className="text-sm text-neutral-500 mt-1">The Username @{handle} does not exist.</p>
       </div>
     );
   }
@@ -237,7 +237,7 @@ export default function PingProfilePage() {
               )}
 
               <p className="text-sm text-neutral-700 leading-relaxed pt-1 shrink-0 break-words whitespace-pre-wrap">
-                {ping?.bio || "Hello, Welcome to my Ping"}
+                {ping?.bio || "Hello There, Welcome to my Ping"}
               </p>
 
               <div className="flex items-center gap-3 text-xs text-neutral-600 pt-1 shrink-0">
@@ -310,7 +310,7 @@ export default function PingProfilePage() {
         <div className="col-span-1 md:col-span-3 flex flex-col space-y-8 md:overflow-y-auto md:pr-1 h-full pb-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 
           <div className="space-y-4 shrink-0">
-            <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Notebooks</h3>
+            <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Your Notebooks</h3>
 
             {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -408,11 +408,23 @@ export default function PingProfilePage() {
                   const firstWeekSunday = new Date(currentWeekSunday);
                   firstWeekSunday.setDate(currentWeekSunday.getDate() - (totalWeeks - 1) * 7);
 
-                  const rows = [
+                  {/*const rows = [
                     { label: "Mon", dayOfWeek: 1 },
                     { label: "Wed", dayOfWeek: 3 },
                     { label: "Fri", dayOfWeek: 5 },
-                  ];
+                  ];*/}
+
+                  const rows = [
+                    {label: "Sun",  dayOfWeek: 1},
+                    {label: "Mon",  dayOfWeek: 1},
+                    {label: "Tue",  dayOfWeek: 1},
+                    {label: "Wed",  dayOfWeek: 1},
+                    {label: "Thur",  dayOfWeek: 1},
+                    {label: "Fri",  dayOfWeek: 1},
+                    {label: "Sat",  dayOfWeek: 1}
+                  ]
+
+
 
                   return rows.map(({ label, dayOfWeek }) => (
                     <div key={label} className="flex items-center gap-1">
