@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signUp, signInWithGoogle, signInWithGithub } from "@/lib/auth";
+import { signUp, signInWithGoogle, signInWithGithub, sendEmailVerification } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,23 +16,28 @@ export default function SignupPage() {
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+  e.preventDefault();
+  setError("");
+  setLoading(true);
+  try {
+    await signUp(email, password);
+
     try {
-      // Create the credentials user session
-      await signUp(email, password);
-      // Route directly to onboarding flow instead of bypassing it
-      router.push("/onboarding");
-    
-      } catch (err: any) {
-  console.error("Signup failed:", err);
-  setError(err?.message || "Something went wrong. Please try again.");
-} finally {
-    
-      setLoading(false);
+      await sendEmailVerification();
+    } catch (err) {
+      console.error("Failed to send verification email:", err);
+      // Don't block signup if the verification email fails to send —
+      // onboarding will offer a "resend" option anyway.
     }
-  };
+
+    router.push("/onboarding");
+  } catch (err: any) {
+    console.error("Signup failed:", err);
+    setError(err?.message || "Something went wrong. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <main className="flex flex-col items-center justify-center min-h-screen bg-white text-neutral-900 px-4">

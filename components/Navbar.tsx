@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -9,11 +7,12 @@ import {
   getNotifications,
   deleteNotification,
   searchAll,
+  respondToInvite,
 } from "@/lib/appwrite";
 import { useRouter, usePathname } from "next/navigation";
 import {
   Search, Bell, Plus, User, Book, Database, Heart, Settings,
-  Paintbrush, LogOut, ArrowLeftRight, Home, Info, AlertCircle, Trash2, UserPlus, X, Flame
+  Paintbrush, LogOut, ArrowLeftRight, Home, Info, AlertCircle, Trash2, UserPlus, X, Flame, Check
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -24,6 +23,7 @@ export default function Navbar() {
     name: string;
     avatarUrl: string;
   } | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -50,6 +50,8 @@ export default function Navbar() {
   useEffect(() => {
     getCurrentUser()
       .then(async (user) => {
+        setCurrentUserId(user?.$id ?? null);
+
         if (!user) {
           setProfileData(null);
           return;
@@ -106,6 +108,23 @@ export default function Navbar() {
       setNotifications((prev) => prev.filter((n) => n.$id !== id));
     } catch (err) {
       console.error("Failed to dismiss notification:", err);
+    }
+  };
+
+  const handleInviteResponse = async (
+    inviteId: string,
+    accept: boolean,
+    notifId: string,
+    e: React.MouseEvent
+  ) => {
+    e.stopPropagation();
+    if (!currentUserId) return;
+    try {
+      await respondToInvite(inviteId, accept, currentUserId);
+      await deleteNotification(notifId);
+      setNotifications((prev) => prev.filter((n) => n.$id !== notifId));
+    } catch (err) {
+      console.error("Failed to respond to invite:", err);
     }
   };
 
@@ -213,6 +232,58 @@ export default function Navbar() {
     </div>
   );
 
+  // Shared renderer for a single notification row — used in both the desktop
+  // dropdown and the mobile bottom-sheet panel so the accept/decline logic
+  // only needs to live in one place.
+  const NotificationRow = ({ notif }: { notif: any }) => (
+    <div className="p-3 flex items-start justify-between gap-2.5 hover:bg-[#161b22] transition group">
+      <div className="flex gap-2 min-w-0">
+        <div className="mt-0.5 w-6 h-6 rounded-full bg-blue-950/50 flex items-center justify-center border border-blue-800 shrink-0">
+          <UserPlus className="w-3 h-3 text-blue-400" />
+        </div>
+        <div className="flex flex-col min-w-0 text-xs">
+          <p className="text-[#c9d1d9] font-medium break-words">
+            <span className="text-white font-bold">@{notif.sender_handle}</span>{" "}
+            {notif.type === "like"
+              ? "liked your chapter."
+              : notif.type === "comment"
+              ? "commented on your chapter."
+              : notif.type === "collab_invite"
+              ? "invited you to collaborate on a notebook."
+              : "started following you."}
+          </p>
+
+          {notif.type === "collab_invite" ? (
+            <div className="flex gap-2 mt-1.5">
+              <button
+                onClick={(e) => handleInviteResponse(notif.chapter_id, true, notif.$id, e)}
+                className="flex items-center gap-1 text-[10px] font-semibold bg-green-600/20 text-green-400 border border-green-800 rounded px-2 py-1 hover:bg-green-600/30 transition"
+              >
+                <Check className="w-3 h-3" /> Accept
+              </button>
+              <button
+                onClick={(e) => handleInviteResponse(notif.chapter_id, false, notif.$id, e)}
+                className="flex items-center gap-1 text-[10px] font-semibold bg-red-600/20 text-red-400 border border-red-800 rounded px-2 py-1 hover:bg-red-600/30 transition"
+              >
+                <X className="w-3 h-3" /> Decline
+              </button>
+            </div>
+          ) : (
+            <span className="text-[10px] text-[#8b949e] mt-0.5">Just now</span>
+          )}
+        </div>
+      </div>
+
+      <button
+        onClick={(e) => handleDismissNotification(notif.$id, e)}
+        className="p-1 rounded-md text-[#8b949e] hover:text-[#f85149] hover:bg-[#f85149]/10 opacity-0 group-hover:opacity-100 transition duration-150 shrink-0"
+        title="Dismiss alert"
+      >
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+
   return (
     <>
       {/* TOP BAR */}
@@ -229,7 +300,6 @@ export default function Navbar() {
 
         <div className="flex items-center gap-3">
 
-          {/* Desktop search — full input, hidden on mobile */}
           <div className="relative hidden md:block" ref={searchRef}>
             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-400">
               <Search className="w-3.5 h-3.5" />
@@ -257,7 +327,6 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile search icon — opens an inline expanding search bar */}
           <button
             onClick={() => setMobileSearchOpen((v) => !v)}
             className="md:hidden w-8 h-8 rounded-md flex items-center justify-center border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-600 transition"
@@ -269,7 +338,6 @@ export default function Navbar() {
             <div className="w-8 h-8 rounded-full bg-neutral-100 animate-pulse" />
           ) : profileData ? (
             <>
-              {/* Desktop-only actions — moved to bottom tab bar on mobile */}
               <button
                 onClick={handleNewNotebookClick}
                 className="hidden md:flex h-8 pl-2.5 pr-3 rounded-md bg-neutral-900 hover:bg-neutral-800 text-white font-medium text-xs items-center gap-1.5 shadow-sm transition-colors"
@@ -313,41 +381,13 @@ export default function Navbar() {
                           <p className="text-xs text-[#8b949e]">Notifications fully up to date.</p>
                         </div>
                       ) : (
-                        notifications.map((notif) => (
-                          <div key={notif.$id} className="p-3 flex items-start justify-between gap-2.5 hover:bg-[#161b22] transition group">
-                            <div className="flex gap-2 min-w-0">
-                              <div className="mt-0.5 w-6 h-6 rounded-full bg-blue-950/50 flex items-center justify-center border border-blue-800 shrink-0">
-                                <UserPlus className="w-3 h-3 text-blue-400" />
-                              </div>
-                              <div className="flex flex-col min-w-0 text-xs">
-                                <p className="text-[#c9d1d9] font-medium break-words">
-                                  <span className="text-white font-bold">@{notif.sender_handle}</span>{" "}
-                                  {notif.type === "like"
-                                    ? "liked your chapter."
-                                    : notif.type === "comment"
-                                    ? "commented on your chapter."
-                                    : "started following you."}
-                                </p>
-                                <span className="text-[10px] text-[#8b949e] mt-0.5">Just now</span>
-                              </div>
-                            </div>
-
-                            <button
-                              onClick={(e) => handleDismissNotification(notif.$id, e)}
-                              className="p-1 rounded-md text-[#8b949e] hover:text-[#f85149] hover:bg-[#f85149]/10 opacity-0 group-hover:opacity-100 transition duration-150 shrink-0"
-                              title="Dismiss alert"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))
+                        notifications.map((notif) => <NotificationRow key={notif.$id} notif={notif} />)
                       )}
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Profile avatar + dropdown — stays visible on all screen sizes */}
               <div className="relative" ref={profileRef}>
                 <div
                   onClick={() => setProfileOpen(!profileOpen)}
@@ -394,10 +434,10 @@ export default function Navbar() {
                         <span>Notebooks</span>
                       </a>
                       <Link href="/community" onClick={() => setProfileOpen(false)}>
-                      <button className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs rounded-md text-left text-[#c9d1d9] hover:bg-[#21262d] hover:text-white transition">
-                        <Heart className="w-3.5 h-3.5 text-[#8b949e]" />
-                        <span>Community</span>
-                      </button>
+                        <button className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs rounded-md text-left text-[#c9d1d9] hover:bg-[#21262d] hover:text-white transition">
+                          <Heart className="w-3.5 h-3.5 text-[#8b949e]" />
+                          <span>Community</span>
+                        </button>
                       </Link>
                     </div>
 
@@ -442,7 +482,6 @@ export default function Navbar() {
 
       </nav>
 
-      {/* MOBILE EXPANDING SEARCH BAR — appears below top bar when toggled */}
       {mobileSearchOpen && (
         <div className="md:hidden border-b border-neutral-200 bg-white px-4 py-3 relative z-40">
           <div className="relative">
@@ -466,14 +505,10 @@ export default function Navbar() {
         </div>
       )}
 
-      {/* MOBILE BOTTOM TAB BAR — only visible below md, logged in only */}
       {!loading && profileData && (
         <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-neutral-200 h-16 grid grid-cols-5 items-center px-2">
 
-          <a
-            href="/"
-            className="flex flex-col items-center justify-center gap-0.5 text-neutral-500 hover:text-neutral-900 transition"
-          >
+          <a href="/" className="flex flex-col items-center justify-center gap-0.5 text-neutral-500 hover:text-neutral-900 transition">
             <Home className="w-5 h-5" />
             <span className="text-[10px] font-medium">Home</span>
           </a>
@@ -491,7 +526,6 @@ export default function Navbar() {
             <span className="text-[10px] font-medium">Alerts</span>
           </button>
 
-          {/* Spacer reserving room for the raised center button */}
           <div className="relative flex justify-center">
             <button
               onClick={handleNewNotebookClick}
@@ -502,18 +536,12 @@ export default function Navbar() {
             </button>
           </div>
 
-          <Link
-            href="/?trending=1"
-            className="flex flex-col items-center justify-center gap-0.5 text-neutral-500 hover:text-neutral-900 transition"
-          >
+          <Link href="/?trending=1" className="flex flex-col items-center justify-center gap-0.5 text-neutral-500 hover:text-neutral-900 transition">
             <Flame className="w-5 h-5" />
             <span className="text-[10px] font-medium">Trending</span>
           </Link>
 
-          <Link
-            href="/settings"
-            className="flex flex-col items-center justify-center gap-0.5 text-neutral-500 hover:text-neutral-900 transition"
-          >
+          <Link href="/settings" className="flex flex-col items-center justify-center gap-0.5 text-neutral-500 hover:text-neutral-900 transition">
             <Settings className="w-5 h-5" />
             <span className="text-[10px] font-medium">Settings</span>
           </Link>
@@ -521,7 +549,6 @@ export default function Navbar() {
         </nav>
       )}
 
-      {/* MOBILE: Notification panel anchored above the bottom tab bar */}
       {notifOpen && (
         <div className="md:hidden fixed inset-x-4 bottom-20 z-50 rounded-xl bg-[#0d1117] border border-[#30363d] shadow-2xl text-[#c9d1d9] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-150 max-h-[60vh]">
           <div className="p-3 border-b border-[#30363d] flex items-center justify-between">
@@ -537,38 +564,12 @@ export default function Navbar() {
                 <p className="text-xs text-[#8b949e]">You're all caught up.</p>
               </div>
             ) : (
-              notifications.map((notif) => (
-                <div key={notif.$id} className="p-3 flex items-start justify-between gap-2.5 group">
-                  <div className="flex gap-2 min-w-0">
-                    <div className="mt-0.5 w-6 h-6 rounded-full bg-blue-950/50 flex items-center justify-center border border-blue-800 shrink-0">
-                      <UserPlus className="w-3 h-3 text-blue-400" />
-                    </div>
-                    <div className="flex flex-col min-w-0 text-xs">
-                      <p className="text-[#c9d1d9] font-medium break-words">
-                        <span className="text-white font-bold">@{notif.sender_handle}</span>{" "}
-                        {notif.type === "like"
-                          ? "liked your chapter."
-                          : notif.type === "comment"
-                          ? "commented on your chapter."
-                          : "started following you."}
-                      </p>
-                      <span className="text-[10px] text-[#8b949e] mt-0.5">Just now</span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={(e) => handleDismissNotification(notif.$id, e)}
-                    className="p-1 rounded-md text-[#8b949e] hover:text-[#f85149]"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))
+              notifications.map((notif) => <NotificationRow key={notif.$id} notif={notif} />)
             )}
           </div>
         </div>
       )}
 
-      {/* Spacer to prevent page content from being hidden behind the fixed bottom bar on mobile */}
       {!loading && profileData && <div className="md:hidden h-16" />}
     </>
   );

@@ -80,3 +80,11 @@ export async function sendPasswordRecovery(email: string) {
 export async function confirmPasswordRecovery(userId: string, secret: string, password: string) {
   return await account.updateRecovery(userId, secret, password);
 }
+export async function sendEmailVerification() {
+  const redirectUrl = `${window.location.origin}/verify-email`;
+  return await account.createVerification(redirectUrl);
+}
+
+export async function confirmEmailVerification(userId: string, secret: string) {
+  return await account.updateVerification(userId, secret);
+}

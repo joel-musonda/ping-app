@@ -8,6 +8,8 @@ import { Query } from "appwrite";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { sendEmailVerification } from "@/lib/auth";
+import { Mail } from "lucide-react";
 import { Check, AlertCircle, Camera, User } from "lucide-react";
 
 export default function OnboardingPage() {
@@ -21,9 +23,25 @@ export default function OnboardingPage() {
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [uploadError, setUploadError] = useState("");
-  
+  const [resending, setResending] = useState(false);
+  const [resendStatus, setResendStatus] = useState("");
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  const handleResendVerification = async () => {
+    setResending(true);
+    setResendStatus("");
+    try {
+      await sendEmailVerification();
+      setResendStatus("Verification email sent — check your inbox.");
+    } catch (err) {
+      console.error("Failed to resend verification:", err);
+      setResendStatus("Failed to send — please try again shortly.");
+    } finally {
+      setResending(false);
+    }
+  };
 
   useEffect(() => {
     async function loadDraftProfile() {
@@ -39,62 +57,55 @@ export default function OnboardingPage() {
       ]);
 
       if (res.documents.length > 0) {
-  const doc = res.documents[0];
-  setProfileDoc(doc);
-  setHandle(doc.handle);
-  setName(doc.name || "");
-  setBio(doc.bio || "");
-  setAvatarDataUrl(doc.avatar_url || "");
-} else {
-  // No profile exists yet (first-time OAuth user) — create a draft one now
-  const starterHandle = activeUser.email.split("@")[0];
-  const newDoc = await createPingProfile(activeUser.$id, starterHandle);
-  setProfileDoc(newDoc);
-  setHandle(newDoc.handle);
-}
+        const doc = res.documents[0];
+        setProfileDoc(doc);
+        setHandle(doc.handle);
+        setName(doc.name || "");
+        setBio(doc.bio || "");
+        setAvatarDataUrl(doc.avatar_url || "");
+      } else {
+        // No profile exists yet (first-time OAuth user) — create a draft one now
+        const starterHandle = activeUser.email.split("@")[0];
+        const newDoc = await createPingProfile(activeUser.$id, starterHandle);
+        setProfileDoc(newDoc);
+        setHandle(newDoc.handle);
+      }
     }
     loadDraftProfile();
   }, [router]);
 
-  // Read file, resize it down using standard HTML Canvas, and optimize string footprint
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploadError("");
     const reader = new FileReader();
-    
+
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement("canvas");
-        
-        // Downscale profile dimensions to maintain super small character footprints
         const MAX_WIDTH = 120;
         const MAX_HEIGHT = 120;
-        
         canvas.width = MAX_WIDTH;
         canvas.height = MAX_HEIGHT;
-        
+
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
-        
-        // Draw image onto miniature canvas asset space
+
         ctx.drawImage(img, 0, 0, MAX_WIDTH, MAX_HEIGHT);
-        
-        // Compress image using low footprint JPEG formats (0.6 quality keeps it very small)
         const compressedBase64 = canvas.toDataURL("image/jpeg", 0.6);
-        
+
         if (compressedBase64.length > 5000) {
           setUploadError("Image is too complex or large. Please choose a simpler avatar icon.");
           return;
         }
-        
+
         setAvatarDataUrl(compressedBase64);
       };
       img.src = event.target?.result as string;
     };
-    
+
     reader.readAsDataURL(file);
   };
 
@@ -109,7 +120,7 @@ export default function OnboardingPage() {
     }
 
     const cleanHandle = handle.toLowerCase().replace(/[^a-z0-9_]/g, "");
-    
+
     if (profileDoc && cleanHandle === profileDoc.handle) {
       setIsAvailable(true);
       return;
@@ -144,8 +155,8 @@ export default function OnboardingPage() {
         handle: finalizedHandle,
         name: name,
         bio: bio,
-        avatar_url: avatarDataUrl, 
-        onboarded: true, 
+        avatar_url: avatarDataUrl,
+        onboarded: true,
       });
 
       router.push(`/${finalizedHandle}`);
@@ -156,6 +167,7 @@ export default function OnboardingPage() {
     }
   };
 
+  // Still loading the user/profile
   if (!user || !profileDoc) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
@@ -164,10 +176,39 @@ export default function OnboardingPage() {
     );
   }
 
+  // Block onboarding until the user's email is verified.
+  // OAuth users (Google/GitHub) are pre-verified by the provider, so this
+  // only actually gates email/password signups.
+  if (!user.emailVerification) {
+    return (
+      <main className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
+        <div className="max-w-sm w-full bg-white border border-neutral-200 shadow-sm rounded-2xl p-6 md:p-8 text-center space-y-4">
+          <div className="w-14 h-14 mx-auto rounded-full bg-neutral-100 flex items-center justify-center">
+            <Mail className="w-6 h-6 text-neutral-500" />
+          </div>
+          <h1 className="text-lg font-bold text-neutral-900">Verify your email</h1>
+          <p className="text-sm text-neutral-500">
+            We sent a verification link to{" "}
+            <span className="font-medium text-neutral-900">{user.email}</span>. Click it to
+            continue setting up your profile.
+          </p>
+          <button
+            onClick={handleResendVerification}
+            disabled={resending}
+            className="text-sm font-medium text-neutral-900 underline disabled:opacity-50"
+          >
+            {resending ? "Sending..." : "Resend verification email"}
+          </button>
+          {resendStatus && <p className="text-xs text-neutral-400">{resendStatus}</p>}
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white border border-neutral-200 shadow-sm rounded-2xl p-6 md:p-8 space-y-6">
-        
+
         <div className="flex flex-col items-center text-center">
           <div className="relative group cursor-pointer mb-3" onClick={triggerFileSelect}>
             <div className="w-20 h-20 rounded-full bg-neutral-100 border border-neutral-200 flex items-center justify-center overflow-hidden transition group-hover:opacity-90 relative shadow-inner">
@@ -181,18 +222,18 @@ export default function OnboardingPage() {
               </div>
             </div>
           </div>
-          
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleImageChange} 
-            accept="image/*" 
-            className="hidden" 
+
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImageChange}
+            accept="image/*"
+            className="hidden"
           />
-          
+
           <h1 className="text-xl font-bold tracking-tight text-neutral-900">Set up your profile</h1>
           <p className="text-xs text-neutral-500 mt-1">Tap the icon above to upload your profile photo.</p>
-          
+
           {uploadError && (
             <p className="text-red-500 text-[11px] font-medium bg-red-50 border border-red-100 p-2 rounded-md mt-2 max-w-xs">
               {uploadError}
@@ -204,9 +245,9 @@ export default function OnboardingPage() {
 
           <div className="space-y-1.5">
             <Label htmlFor="name" className="text-xs font-semibold text-neutral-700">Display Name</Label>
-            <Input 
-              id="name" 
-              type="text" 
+            <Input
+              id="name"
+              type="text"
               placeholder="e.g. Joel Musonda"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -232,9 +273,9 @@ export default function OnboardingPage() {
             </div>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400 select-none">@</span>
-              <Input 
-                id="handle" 
-                type="text" 
+              <Input
+                id="handle"
+                type="text"
                 placeholder="username"
                 value={handle}
                 onChange={(e) => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
@@ -246,7 +287,7 @@ export default function OnboardingPage() {
 
           <div className="space-y-1.5">
             <Label htmlFor="bio" className="text-xs font-semibold text-neutral-700">Profile Bio</Label>
-            <textarea 
+            <textarea
               id="bio"
               rows={4}
               placeholder="Tell us a little bit about yourself, what you're building, or your interests..."

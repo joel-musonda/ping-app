@@ -377,3 +377,124 @@ export async function deleteNotebookCascade(notebookId: string) {
   );
   await databases.deleteDocument(DATABASE_ID, NOTEBOOKS_COLLECTION_ID, notebookId);
 }
+export const COLLABORATION_INVITES_COLLECTION_ID = "collaboration_invites";
+
+export async function inviteCollaborator(
+  notebookId: string,
+  notebookTitle: string,
+  inviterId: string,
+  inviterName: string,
+  inviterHandle: string,
+  inviteeId: string
+) {
+  if (inviterId === inviteeId) {
+    throw new Error("You can't invite yourself as a collaborator.");
+  }
+
+  const invite = await databases.createDocument(
+    DATABASE_ID,
+    COLLABORATION_INVITES_COLLECTION_ID,
+    ID.unique(),
+    {
+      notebook_id: notebookId,
+      notebook_title: notebookTitle,
+      inviter_id: inviterId,
+      invitee_id: inviteeId,
+      status: "pending",
+    },
+    [
+      Permission.read(Role.user(inviterId)),
+      Permission.read(Role.user(inviteeId)),
+      Permission.update(Role.user(inviteeId)), // only the invitee can accept/decline
+    ]
+  );
+
+  // Notify the invitee, reusing the same notifications table/pattern as likes/comments/follows
+  await databases.createDocument(DATABASE_ID, NOTIFICATIONS_COLLECTION_ID, ID.unique(), {
+    user_id: inviteeId,
+    sender_name: inviterName,
+    sender_handle: inviterHandle,
+    type: "collab_invite",
+    chapter_id: invite.$id, // reusing this field to carry the invite ID for now
+  });
+
+  return invite;
+}
+
+export async function getPendingInvitesForUser(userId: string) {
+  const res = await databases.listDocuments(DATABASE_ID, COLLABORATION_INVITES_COLLECTION_ID, [
+    Query.equal("invitee_id", userId),
+    Query.equal("status", "pending"),
+  ]);
+  return res.documents;
+}
+
+export async function getInvite(inviteId: string) {
+  return await databases.getDocument(DATABASE_ID, COLLABORATION_INVITES_COLLECTION_ID, inviteId);
+}
+export async function syncNotebookPermissions(notebookId: string) {
+  const notebook = await getNotebook(notebookId);
+  const collaboratorIds: string[] = notebook.collaborator_ids || [];
+
+  const permissions = [
+    Permission.read(Role.user(notebook.owner_id)),
+    Permission.update(Role.user(notebook.owner_id)),
+    Permission.delete(Role.user(notebook.owner_id)),
+    ...collaboratorIds.flatMap((id) => [
+      Permission.read(Role.user(id)),
+      Permission.update(Role.user(id)),
+      // Deliberately no delete permission for collaborators — only the owner can delete
+    ]),
+  ];
+
+  if (notebook.is_public) {
+    permissions.push(Permission.read(Role.any()));
+  }
+
+  // Passing {} as the data param leaves the document's fields untouched —
+  // this call only updates its permissions.
+  await databases.updateDocument(DATABASE_ID, NOTEBOOKS_COLLECTION_ID, notebookId, {}, permissions);
+
+  const chapters = await getChaptersForNotebook(notebookId);
+  await Promise.all(
+    chapters.map((ch) =>
+      databases.updateDocument(DATABASE_ID, CHAPTERS_COLLECTION_ID, ch.$id, {}, permissions)
+    )
+  );
+}
+
+export async function respondToInvite(inviteId: string, accept: boolean, currentUserId: string) {
+  const invite = await getInvite(inviteId);
+
+  if (invite.status !== "pending") return invite;
+  if (invite.invitee_id !== currentUserId) {
+    throw new Error("This invite isn't yours to respond to.");
+  }
+
+  const updated = await databases.updateDocument(
+    DATABASE_ID,
+    COLLABORATION_INVITES_COLLECTION_ID,
+    inviteId,
+    { status: accept ? "accepted" : "declined" }
+  );
+
+  if (accept) {
+    const notebook = await getNotebook(invite.notebook_id);
+    const existing: string[] = notebook.collaborator_ids || [];
+    if (!existing.includes(currentUserId)) {
+      await databases.updateDocument(DATABASE_ID, NOTEBOOKS_COLLECTION_ID, invite.notebook_id, {
+        collaborator_ids: [...existing, currentUserId],
+      });
+    }
+    await syncNotebookPermissions(invite.notebook_id);
+  }
+
+  return updated;
+}
+export async function searchPingsByHandle(query: string) {
+  const res = await databases.listDocuments(DATABASE_ID, PINGS_COLLECTION_ID, [
+    Query.search("handle", query),
+    Query.limit(5),
+  ]);
+  return res.documents;
+}
