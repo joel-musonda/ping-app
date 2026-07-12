@@ -9,7 +9,7 @@ import {
   notifyLike, notifyComment,
 } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
-import { Book, Plus, MoreVertical, Edit2, MessageSquare, Clock, FileText, Globe, Menu, X, Heart, Send, Trash2 } from "lucide-react";
+import { Book, Plus, MoreVertical, Edit2, MessageSquare, Clock, FileText, Globe, Menu, X, Heart, Send, Trash2, Users } from "lucide-react";
 import ChapterContent from "@/components/ChapterContent";
 
 function NotebookPageSkeleton() {
@@ -45,9 +45,9 @@ function NotebookPageSkeleton() {
 export default function NotebookPage() {
   const { notebookId } = useParams<{ notebookId: string }>();
   const router = useRouter();
-
   const [notebook, setNotebook] = useState<any>(null);
   const [authorProfile, setAuthorProfile] = useState<any>(null);
+  const [collaboratorProfiles, setCollaboratorProfiles] = useState<any[]>([]);
   const [chapters, setChapters] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<"root" | "chapter">("root");
   const [selectedChapter, setSelectedChapter] = useState<any>(null);
@@ -55,6 +55,7 @@ export default function NotebookPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -76,7 +77,6 @@ export default function NotebookPage() {
       setNotebook(nb);
       setChapters(ch);
 
-      // Default to the first chapter if one exists, instead of the empty overview
       if (ch.length > 0) {
         setSelectedChapter(ch[0]);
         setViewMode("chapter");
@@ -89,7 +89,15 @@ export default function NotebookPage() {
         getPingByUserId(nb.owner_id),
       ]);
       setIsOwner(!!user && user.$id === nb.owner_id);
+      setCanEdit(!!user && (user.$id === nb.owner_id || (nb.collaborator_ids && nb.collaborator_ids.includes(user.$id))));
       setAuthorProfile(author);
+
+      if (nb.collaborator_ids && nb.collaborator_ids.length > 0) {
+        const profiles = await Promise.all(
+          nb.collaborator_ids.map((id: string) => getPingByUserId(id).catch(() => null))
+        );
+        setCollaboratorProfiles(profiles.filter(Boolean));
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -143,19 +151,19 @@ export default function NotebookPage() {
   }, [selectedChapter]);
 
   const handleNewChapter = async () => {
-    if (!isOwner) return;
+    if (!canEdit) return; 
     setCreating(true);
     try {
       const nextOrder = chapters.length;
       const chapter = await createChapter(
         notebookId,
-        notebook.owner_id,
+        currentUser.$id, // FIXED: Using active user session ID instead of notebook owner_id
         notebook.is_public,
         "Untitled chapter",
         "",
         nextOrder
       );
-      router.push(`/notebooks/${notebookId}/chapters/${chapter.$id}`);
+      router.push(`/notebooks/${notebookId}/chapters/${chapter.$id}`); 
     } catch (err) {
       console.error(err);
     } finally {
@@ -174,26 +182,63 @@ export default function NotebookPage() {
     setSidebarOpen(false);
   };
 
- const handleLikeToggle = async () => {
-  if (!currentUser) {
-    router.push("/signup");
-    return;
-  }
-  // ...rest unchanged
-  setLikeLoading(true);
-  try {
-    if (likeId) {
-      await unlikeChapter(likeId);
-      setLikeId(null);
-      setLikeCount((c) => Math.max(0, c - 1));
-    } else {
-      const newLike = await likeChapter(currentUser.$id, selectedChapter.$id);
-      setLikeId(newLike.$id);
-      setLikeCount((c) => c + 1);
+  const handleLikeToggle = async () => {
+    if (!currentUser) {
+      router.push("/signup");
+      return;
+    }
+    setLikeLoading(true);
+    try {
+      if (likeId) {
+        await unlikeChapter(likeId);
+        setLikeId(null);
+        setLikeCount((c) => Math.max(0, c - 1));
+      } else {
+        const newLike = await likeChapter(currentUser.$id, selectedChapter.$id);
+        setLikeId(newLike.$id);
+        setLikeCount((c) => c + 1);
 
-      // Notify the notebook owner, but don't let a notification failure break the like itself
+        try {
+          await notifyLike(
+            notebook.owner_id,
+            currentUser.$id,
+            currentUserProfile?.name || "",
+            currentUserProfile?.handle || "anonymous",
+            selectedChapter.$id
+          );
+        } catch (err) {
+          console.error("Failed to send like notification:", err);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to toggle like:", err);
+    } finally {
+      setLikeLoading(false);
+    }
+  };
+
+  const handlePostComment = async () => {
+    if (!currentUser) {
+      router.push("/signup");
+      return;
+    }
+    if (!newComment.trim()) return;
+
+    setPostingComment(true);
+    try {
+      const comment = await createComment(
+        selectedChapter.$id,
+        currentUser.$id,
+        currentUserProfile?.handle || "anonymous",
+        newComment.trim(),
+        currentUserProfile?.name || "",
+        currentUserProfile?.avatar_url || ""
+      );
+      setComments((prev) => [comment, ...prev]);
+      setNewComment("");
+
       try {
-        await notifyLike(
+        await notifyComment(
           notebook.owner_id,
           currentUser.$id,
           currentUserProfile?.name || "",
@@ -201,56 +246,14 @@ export default function NotebookPage() {
           selectedChapter.$id
         );
       } catch (err) {
-        console.error("Failed to send like notification:", err);
+        console.error("Failed to send comment notification:", err);
       }
-    }
-  } catch (err) {
-    console.error("Failed to toggle like:", err);
-  } finally {
-    setLikeLoading(false);
-  }
-};
-
-  
-
-const handlePostComment = async () => {
-  if (!currentUser) {
-    router.push("/signup");
-    return;
-  }
-  // ...rest unchanged
-  if (!newComment.trim()) return;
-
-  setPostingComment(true);
-  try {
-    const comment = await createComment(
-      selectedChapter.$id,
-      currentUser.$id,
-      currentUserProfile?.handle || "anonymous",
-      newComment.trim(),
-      currentUserProfile?.name || "",
-      currentUserProfile?.avatar_url || ""
-    );
-    setComments((prev) => [comment, ...prev]);
-    setNewComment("");
-
-    try {
-      await notifyComment(
-        notebook.owner_id,
-        currentUser.$id,
-        currentUserProfile?.name || "",
-        currentUserProfile?.handle || "anonymous",
-        selectedChapter.$id
-      );
     } catch (err) {
-      console.error("Failed to send comment notification:", err);
+      console.error("Failed to post comment:", err);
+    } finally {
+      setPostingComment(false);
     }
-  } catch (err) {
-    console.error("Failed to post comment:", err);
-  } finally {
-    setPostingComment(false);
-  }
-};
+  };
 
   const handleDeleteComment = async (commentId: string) => {
     try {
@@ -343,7 +346,7 @@ const handlePostComment = async () => {
 
           <div className="mt-4" />
 
-          {isOwner && (
+          {canEdit && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -380,7 +383,7 @@ const handlePostComment = async () => {
                     <span className="truncate flex-1">{ch.title || "Untitled chapter"}</span>
                   </button>
 
-                  {isOwner && (
+                  {canEdit && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -413,8 +416,30 @@ const handlePostComment = async () => {
                 <h2 className="text-2xl font-bold tracking-tight text-neutral-900 leading-tight">
                   {notebook.title}
                 </h2>
-                <AuthorByline />
-                <div className="flex items-center gap-2 text-xs text-neutral-400 font-medium">
+                
+                <div className="flex flex-col gap-1">
+                  <AuthorByline />
+                  
+                  {collaboratorProfiles.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-x-2 text-xs text-neutral-400 font-medium">
+                      <Users className="w-3 h-3 text-neutral-400" />
+                      <span>with</span>
+                      {collaboratorProfiles.map((collab, index) => (
+                        <span key={collab.$id} className="text-neutral-600 font-medium">
+                          <a 
+                            href={`/${collab.handle}`} 
+                            className="hover:text-neutral-900 hover:underline transition"
+                          >
+                            {collab.name || `@${collab.handle}`}
+                          </a>
+                          {index < collaboratorProfiles.length - 1 && <span className="mr-1">,</span>}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-neutral-400 font-medium mt-1">
                   <Globe className="w-3.5 h-3.5" />
                   <span>Main Repository Overview</span>
                 </div>
@@ -437,8 +462,30 @@ const handlePostComment = async () => {
                 <h2 className="text-2xl font-bold tracking-tight text-neutral-900 leading-tight">
                   {selectedChapter.title || "Untitled chapter"}
                 </h2>
-                <AuthorByline />
-                <div className="flex items-center gap-2 text-xs text-neutral-400 font-medium">
+                
+                <div className="flex flex-col gap-1">
+                  <AuthorByline />
+                  
+                  {collaboratorProfiles.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-x-2 text-xs text-neutral-400 font-medium">
+                      <Users className="w-3 h-3 text-neutral-400" />
+                      <span>with</span>
+                      {collaboratorProfiles.map((collab, index) => (
+                        <span key={collab.$id} className="text-neutral-600 font-medium">
+                          <a 
+                            href={`/${collab.handle}`} 
+                            className="hover:text-neutral-900 hover:underline transition"
+                          >
+                            {collab.name || `@${collab.handle}`}
+                          </a>
+                          {index < collaboratorProfiles.length - 1 && <span className="mr-1">,</span>}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-neutral-400 font-medium mt-1">
                   <Clock className="w-3.5 h-3.5" />
                   <span>
                     {selectedChapter.$createdAt
@@ -458,7 +505,7 @@ const handlePostComment = async () => {
 
                 {menuOpen && (
                   <div className="absolute right-0 mt-1 w-40 rounded-lg border border-neutral-200 bg-white shadow-lg py-1 z-20 animate-in fade-in slide-in-from-top-1 duration-100">
-                    {isOwner ? (
+                    {canEdit ? (
                       <button
                         onClick={() => {
                           setMenuOpen(false);

@@ -77,11 +77,22 @@ function HomePageInner() {
               getPingByUserId(nb.owner_id),
               getNotebookEngagement(nb.$id),
             ]);
+
+            // Hydrate collaborator metadata profiles for the inline avatar stack layout
+            let collaboratorProfiles: any[] = [];
+            if (nb.collaborator_ids && nb.collaborator_ids.length > 0) {
+              const profiles = await Promise.all(
+                nb.collaborator_ids.map((id: string) => getPingByUserId(id).catch(() => null))
+              );
+              collaboratorProfiles = profiles.filter(Boolean);
+            }
+
             return {
               ...nb,
               authorHandle: ping?.handle ?? "unknown",
               authorName: ping?.name ?? ping.handle,
               authorAvatar: ping?.avatar_url ?? "",
+              collaboratorProfiles,
               likeCount: engagement.likes,
               commentCount: engagement.comments,
               chapterCount: engagement.chapterCount,
@@ -136,17 +147,39 @@ function HomePageInner() {
                 <article key={nb.$id} className="py-6 group relative block">
                   <a href={`/notebooks/${nb.$id}`} className="absolute inset-0 z-0" />
 
-                  <div className="flex justify-between gap-5">
+                  <div className="flex justify-between items-start gap-4 sm:gap-5">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2.5 relative z-10 text-xs">
-                        <div className="w-5 h-5 rounded-full bg-neutral-900 text-white text-[9px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden border border-neutral-200">
-                          {nb.authorAvatar ? (
-                            <img src={nb.authorAvatar} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            nb.authorHandle.charAt(0)
-                          )}
+                      
+                      {/* Top Bar Info with Overlapping Pictures Stack */}
+                      <div className="flex items-center gap-2 mb-2.5 relative z-10 text-xs flex-wrap">
+                        <div className="flex items-center -space-x-1.5 overflow-hidden shrink-0">
+                          {/* Owner Profile Picture */}
+                          <div className="w-5 h-5 rounded-full bg-neutral-900 text-white text-[9px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden border border-white shadow-sm">
+                            {nb.authorAvatar ? (
+                              <img src={nb.authorAvatar} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              nb.authorHandle.charAt(0)
+                            )}
+                          </div>
+
+                          {/* Dynamic Collaborator Pictures List stacked inline side by side */}
+                          {nb.collaboratorProfiles && nb.collaboratorProfiles.map((collab: any) => (
+                            <div 
+                              key={collab.$id}
+                              className="w-5 h-5 rounded-full bg-neutral-800 text-white text-[9px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden border border-white shadow-sm"
+                              title={`Collaborator: @${collab.handle}`}
+                            >
+                              {collab.avatar_url ? (
+                                <img src={collab.avatar_url} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                collab.handle?.charAt(0) || "?"
+                              )}
+                            </div>
+                          ))}
                         </div>
-                        <span className="font-semibold text-neutral-800 hover:underline cursor-pointer">
+
+                        {/* Owner Metadata Texts Only */}
+                        <span className="font-semibold text-neutral-800 hover:underline cursor-pointer ml-0.5">
                           {nb.authorName}
                         </span>
                         <span className="text-neutral-400 font-normal">@{nb.authorHandle}</span>
@@ -157,7 +190,7 @@ function HomePageInner() {
                       </div>
 
                       <div className="flex justify-between items-start gap-4 mb-1.5">
-                        <h3 className="text-lg font-bold tracking-tight text-neutral-900 group-hover:text-neutral-800 leading-snug transition-colors">
+                        <h3 className="text-lg font-bold tracking-tight text-neutral-900 group-hover:text-neutral-800 leading-snug transition-colors break-words">
                           {nb.title}
                         </h3>
                         {!nb.cover_image_url && (
@@ -166,7 +199,7 @@ function HomePageInner() {
                       </div>
 
                       {(nb.snapshot || nb.description) && (
-                        <p className="text-sm text-neutral-500 font-normal line-clamp-2 leading-relaxed mb-3.5 max-w-xl">
+                        <p className="text-sm text-neutral-500 font-normal line-clamp-2 leading-relaxed mb-3.5 max-w-[70%] sm:max-w-xl md:max-w-lg break-words">
                           {nb.snapshot || nb.description}
                         </p>
                       )}
@@ -187,9 +220,9 @@ function HomePageInner() {
                       </div>
                     </div>
 
-                    {/* Cover image thumbnail — only rendered if the notebook has one */}
+                    {/* Cover image thumbnail — protected from text overrunning via shrink-0 */}
                     {nb.cover_image_url && (
-                      <div className="w-24 h-24 sm:w-28 sm:h-28 shrink-0 rounded-lg overflow-hidden bg-neutral-100 border border-neutral-200">
+                      <div className="w-20 h-20 sm:w-28 sm:h-28 shrink-0 rounded-lg overflow-hidden bg-neutral-100 border border-neutral-200 self-start mt-1">
                         <img
                           src={nb.cover_image_url}
                           alt=""

@@ -408,22 +408,11 @@ export default function PingProfilePage() {
                   const firstWeekSunday = new Date(currentWeekSunday);
                   firstWeekSunday.setDate(currentWeekSunday.getDate() - (totalWeeks - 1) * 7);
 
-                  {/*const rows = [
+                  const rows = [
                     { label: "Mon", dayOfWeek: 1 },
                     { label: "Wed", dayOfWeek: 3 },
                     { label: "Fri", dayOfWeek: 5 },
-                  ];*/}
-
-                  const rows = [
-                    {label: "Sun",  dayOfWeek: 1},
-                    {label: "Mon",  dayOfWeek: 1},
-                    {label: "Tue",  dayOfWeek: 1},
-                    {label: "Wed",  dayOfWeek: 1},
-                    {label: "Thur",  dayOfWeek: 1},
-                    {label: "Fri",  dayOfWeek: 1},
-                    {label: "Sat",  dayOfWeek: 1}
-                  ]
-
+                  ];
 
 
                   return rows.map(({ label, dayOfWeek }) => (

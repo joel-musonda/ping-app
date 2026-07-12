@@ -16,7 +16,7 @@ export const PINGS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_PINGS_COLLEC
 export const NOTEBOOKS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_NOTEBOOKS_COLLECTION_ID!;
 export const CHAPTERS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_CHAPTERS_COLLECTION_ID!;      
 export const storage = new Storage(client);
-export const IMAGES_BUCKET_ID = "6a494a7e003a27f563bc";
+export const IMAGES_BUCKET_ID = process.env.NEXT_PUBLIC_APPWRITE_IMAGES_BUCKET_ID!;
 export async function createPingProfile(userId: string, handle: string) {
   return await databases.createDocument(
     DATABASE_ID,
@@ -30,14 +30,18 @@ export async function createPingProfile(userId: string, handle: string) {
   );
 }
 
- export async function createNotebook(
+
+   
+export async function createNotebook(
   ownerId: string,
   title: string,
   description: string,
   isPublic: boolean,
   snapshot: string = "",
-  coverImageUrl: string = ""
+  coverImageUrl: string = "",
+  collaboratorIds: string[] = []
 ) {
+  // Only pass permissions belonging to the active user session or public roles
   const permissions = [
     Permission.read(Role.user(ownerId)),
     Permission.update(Role.user(ownerId)),
@@ -59,6 +63,7 @@ export async function createPingProfile(userId: string, handle: string) {
       owner_id: ownerId,
       snapshot,
       cover_image_url: coverImageUrl,
+      collaborator_ids: collaboratorIds,
     },
     permissions
   );
@@ -66,12 +71,13 @@ export async function createPingProfile(userId: string, handle: string) {
    
 export async function createChapter(
   notebookId: string,
-  ownerId: string,
+  ownerId: string, // The active user creating this specific chapter
   isPublic: boolean,
   title: string,
   contentJson: string,
   orderIndex: number
 ) {
+  // Only grant permission rules that belong to the active creator session
   const permissions = [
     Permission.read(Role.user(ownerId)),
     Permission.update(Role.user(ownerId)),
@@ -115,14 +121,32 @@ export async function getChapter(chapterId: string) {
 export async function updateChapter(chapterId: string, updates: Record<string, any>) {
   return await databases.updateDocument(DATABASE_ID, CHAPTERS_COLLECTION_ID, chapterId, updates);
 }
+
+
 export async function getNotebooksForUser(userId: string, publicOnly: boolean) {
-  const queries = [Query.equal("owner_id", userId)];
-  if (publicOnly) {
-    queries.push(Query.equal("is_public", true));
-  }
-  const result = await databases.listDocuments(DATABASE_ID, NOTEBOOKS_COLLECTION_ID, queries);
-  return result.documents;
+  // Query 1: Notebooks owned by the user
+  const ownerQueries = [Query.equal("owner_id", userId)];
+  if (publicOnly) ownerQueries.push(Query.equal("is_public", true));
+
+  // Query 2: Notebooks where the user is a collaborator
+  const collabQueries = [Query.contains("collaborator_ids", userId)];
+  if (publicOnly) collabQueries.push(Query.equal("is_public", true));
+
+  // Execute queries simultaneously over the network
+  const [ownedRes, collabRes] = await Promise.all([
+    databases.listDocuments(DATABASE_ID, NOTEBOOKS_COLLECTION_ID, ownerQueries),
+    databases.listDocuments(DATABASE_ID, NOTEBOOKS_COLLECTION_ID, collabQueries),
+  ]);
+
+  // Combine and de-duplicate overlapping documents using their unique Appwrite ID ($id)
+  const combinedNotebooks = [...ownedRes.documents, ...collabRes.documents];
+  const uniqueMap = new Map();
+  combinedNotebooks.forEach((doc) => uniqueMap.set(doc.$id, doc));
+
+  return Array.from(uniqueMap.values());
 }
+
+
 export async function getPublicNotebooks() {
   const result = await databases.listDocuments(DATABASE_ID, NOTEBOOKS_COLLECTION_ID, [
     Query.equal("is_public", true),
@@ -379,6 +403,7 @@ export async function deleteNotebookCascade(notebookId: string) {
 }
 export const COLLABORATION_INVITES_COLLECTION_ID = "collaboration_invites";
 
+
 export async function inviteCollaborator(
   notebookId: string,
   notebookTitle: string,
@@ -391,6 +416,8 @@ export async function inviteCollaborator(
     throw new Error("You can't invite yourself as a collaborator.");
   }
 
+  // FIX: Only pass permissions that belong to YOU (the inviter), 
+  // or leave it empty [] so it perfectly inherits collection rules.
   const invite = await databases.createDocument(
     DATABASE_ID,
     COLLABORATION_INVITES_COLLECTION_ID,
@@ -404,19 +431,29 @@ export async function inviteCollaborator(
     },
     [
       Permission.read(Role.user(inviterId)),
-      Permission.read(Role.user(inviteeId)),
-      Permission.update(Role.user(inviteeId)), // only the invitee can accept/decline
+      Permission.update(Role.user(inviterId)),
+      Permission.delete(Role.user(inviterId)),
     ]
   );
 
-  // Notify the invitee, reusing the same notifications table/pattern as likes/comments/follows
-  await databases.createDocument(DATABASE_ID, NOTIFICATIONS_COLLECTION_ID, ID.unique(), {
-    user_id: inviteeId,
-    sender_name: inviterName,
-    sender_handle: inviterHandle,
-    type: "collab_invite",
-    chapter_id: invite.$id, // reusing this field to carry the invite ID for now
-  });
+  // FIX: Only pass permissions belonging to your current session,
+  // or leave it empty [] since Collection settings cover the rest.
+  await databases.createDocument(
+    DATABASE_ID, 
+    NOTIFICATIONS_COLLECTION_ID, 
+    ID.unique(), 
+    {
+      user_id: inviteeId,
+      sender_name: inviterName,
+      sender_handle: inviterHandle,
+      type: "collab_invite",
+      invite_id: invite.$id, 
+    },
+    [
+      Permission.read(Role.user(inviterId)),
+      Permission.delete(Role.user(inviterId)),
+    ]
+  );
 
   return invite;
 }
@@ -463,34 +500,54 @@ export async function syncNotebookPermissions(notebookId: string) {
   );
 }
 
+
 export async function respondToInvite(inviteId: string, accept: boolean, currentUserId: string) {
-  const invite = await getInvite(inviteId);
-
-  if (invite.status !== "pending") return invite;
-  if (invite.invitee_id !== currentUserId) {
-    throw new Error("This invite isn't yours to respond to.");
-  }
-
-  const updated = await databases.updateDocument(
+  // 1. Update the invitation status document
+  // Pass null or a basic permission array matching ONLY the current user 
+  // so the Client SDK doesn't throw a validation error.
+  const invite = await databases.updateDocument(
     DATABASE_ID,
     COLLABORATION_INVITES_COLLECTION_ID,
     inviteId,
-    { status: accept ? "accepted" : "declined" }
+    {
+      status: accept ? "accepted" : "declined",
+    },
+    [
+      Permission.read(Role.user(currentUserId)),
+      Permission.update(Role.user(currentUserId)),
+    ]
   );
 
-  if (accept) {
-    const notebook = await getNotebook(invite.notebook_id);
-    const existing: string[] = notebook.collaborator_ids || [];
-    if (!existing.includes(currentUserId)) {
-      await databases.updateDocument(DATABASE_ID, NOTEBOOKS_COLLECTION_ID, invite.notebook_id, {
-        collaborator_ids: [...existing, currentUserId],
-      });
+  if (accept && invite) {
+    // 2. Fetch the target notebook to get its current collaborator list
+    const notebook = await databases.getDocument(
+      DATABASE_ID,
+      NOTEBOOKS_COLLECTION_ID,
+      invite.notebook_id
+    );
+
+    const currentCollaborators = notebook.collaborator_ids || [];
+    
+    if (!currentCollaborators.includes(currentUserId)) {
+      // 3. Add the user to the notebook's collaborator list column
+      await databases.updateDocument(
+        DATABASE_ID,
+        NOTEBOOKS_COLLECTION_ID,
+        invite.notebook_id,
+        {
+          collaborator_ids: [...currentCollaborators, currentUserId],
+        },
+        // FIX: Remove custom collaborator permissions arrays here!
+        // Leave this array empty [] or only reference currentUserId. 
+        // Your collection settings cover the rest since Document Security is false.
+        [] 
+      );
     }
-    await syncNotebookPermissions(invite.notebook_id);
   }
 
-  return updated;
+  return invite;
 }
+
 export async function searchPingsByHandle(query: string) {
   const res = await databases.listDocuments(DATABASE_ID, PINGS_COLLECTION_ID, [
     Query.search("handle", query),

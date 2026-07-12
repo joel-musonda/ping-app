@@ -118,65 +118,67 @@ export default function CreateNotebookPage() {
   };
 
   const executePublishPipeline = async () => {
-    if (!title.trim()) return alert("Please specify a notebook title first.");
-    if (!snapshot.trim()) return alert("A snapshot description summary is required.");
-    if (!coverImageUrl) return alert("Please select a cover thumbnail image before publishing.");
+  if (!title.trim()) return alert("Please specify a notebook title first.");
+  if (!snapshot.trim()) return alert("A snapshot description summary is required.");
+  if (!coverImageUrl) return alert("Please select a cover thumbnail image before publishing.");
 
-    setPublishing(true);
-    try {
-      const user = await getCurrentUser();
-      if (!user) throw new Error("User session not found. Please log in again.");
+  setPublishing(true);
+  try {
+    const user = await getCurrentUser();
+    if (!user) throw new Error("User session not found. Please log in again.");
 
-      const notebook = await createNotebook(
-        user.$id,
-        title.trim(),
-        "",
-        isPublic,
-        snapshot.trim(),
-        coverImageUrl.trim()
-      );
+    const notebook = await createNotebook(
+      user.$id,
+      title.trim(),
+      "",
+      isPublic,
+      snapshot.trim(),
+      coverImageUrl.trim()
+    );
 
-      const contentJson = editor?.getJSON() ?? {};
-      await createChapter(
-        notebook.$id,
-        user.$id,
-        isPublic,
-        title.trim(),
-        JSON.stringify(contentJson),
-        0
-      );
+    const contentJson = editor?.getJSON() ?? {};
+    await createChapter(
+      notebook.$id,
+      user.$id,
+      isPublic,
+      title.trim(),
+      JSON.stringify(contentJson),
+      0
+    );
 
-      // Send collaboration invites, if any were selected — failures here
-      // shouldn't block the notebook from being published successfully.
-      if (selectedCollaborators.length > 0) {
-        try {
-          const ownerProfile = await getPingByUserId(user.$id);
-          await Promise.all(
-            selectedCollaborators.map((c) =>
-              inviteCollaborator(
-                notebook.$id,
-                title.trim(),
-                user.$id,
-                ownerProfile?.name || "",
-                ownerProfile?.handle || "anonymous",
-                c.user_id
-              )
-            )
+    // Send collaboration invites, if any were selected
+    if (selectedCollaborators.length > 0) {
+      try {
+        const ownerProfile = await getPingByUserId(user.$id);
+        
+        // Using a regular loop instead of Promise.all so we can inspect exactly which one fails
+        for (const c of selectedCollaborators) {
+          await inviteCollaborator(
+            notebook.$id,
+            title.trim(),
+            user.$id,
+            ownerProfile?.name || "",
+            ownerProfile?.handle || "anonymous",
+            c.user_id
           );
-        } catch (err) {
-          console.error("Failed to send one or more collaboration invites:", err);
         }
+      } catch (err: any) {
+        console.error("Failed to send one or more collaboration invites:", err);
+        
+        // TEMPORARY DIAGNOSTIC ALERT: Forcefully stop the code here and show the exact database rejection text
+        alert(`STOP! Invite failed with message:\n\n${err?.message || err}`);
       }
-
-      setIsPublishModalOpen(false);
-      window.location.href = `/notebooks/${notebook.$id}`;
-    } catch (err: any) {
-      console.error("CRITICAL BACKEND WRITE ERROR:", err);
-      alert(`Appwrite Error: ${err?.message || err}`);
-    } finally {
-      setPublishing(false);
     }
-  };
+
+    setIsPublishModalOpen(false);
+    window.location.href = `/notebooks/${notebook.$id}`;
+  } catch (err: any) {
+    console.error("CRITICAL BACKEND WRITE ERROR:", err);
+    alert(`Appwrite Error: ${err?.message || err}`);
+  } finally {
+    setPublishing(false);
+  }
+};
 
   return (
     <main className="min-h-[calc(100vh-56px)] bg-neutral-50/40 pb-20">

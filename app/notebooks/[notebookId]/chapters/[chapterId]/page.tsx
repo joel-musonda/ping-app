@@ -37,7 +37,7 @@ export default function ChapterWorkspacePage() {
   const [notebookId, setNotebookId] = useState<string | null>(null);
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(true);
-  const [isOwner, setIsOwner] = useState(false);
+  const [canEdit, setCanEdit] = useState(false); // Changed from isOwner to canEdit permissions flag
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Reader Telemetry State
@@ -71,7 +71,7 @@ export default function ChapterWorkspacePage() {
       },
     },
     onUpdate: ({ editor }) => {
-      if (!isOwner) return;
+      // Allow saving updates if user has edit permissions
       setStatus("Saving...");
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => {
@@ -79,6 +79,23 @@ export default function ChapterWorkspacePage() {
       }, 1200);
     },
   });
+
+  // Keep editor onUpdate callback up-to-date with current permissions state
+  useEffect(() => {
+    if (!editor) return;
+    
+    // We update the onUpdate option dynamically so it has the correct reference to canEdit status
+    editor.setOptions({
+      onUpdate: ({ editor }) => {
+        if (!canEdit) return; // Prevent autosave fires if user doesn't have permissions
+        setStatus("Saving...");
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        timeoutRef.current = setTimeout(() => {
+          saveContent(editor.getJSON());
+        }, 1200);
+      }
+    });
+  }, [editor, canEdit]);
 
   useEffect(() => {
     let cancelled = false;
@@ -104,11 +121,17 @@ export default function ChapterWorkspacePage() {
           if (cancelled) return;
 
           setCurrentUser(user);
-          const absoluteOwner = !!user && user.$id === notebook.owner_id;
-          setIsOwner(absoluteOwner);
+          
+          // A user can edit if they are the original owner OR included in collaborator_ids
+          const dynamicEditAccess = !!user && (
+            user.$id === notebook.owner_id || 
+            (notebook.collaborator_ids && notebook.collaborator_ids.includes(user.$id))
+          );
+          
+          setCanEdit(dynamicEditAccess);
 
           // Configure operational modes context state rules
-          if (absoluteOwner) {
+          if (dynamicEditAccess) {
             editor?.setEditable(true);
             setLoading(false);
             return;
@@ -121,7 +144,6 @@ export default function ChapterWorkspacePage() {
             user ? checkIsLiked(user.$id, chapterId) : Promise.resolve(null),
             getCommentsForChapter(chapterId),
           ]);
-          
           if (cancelled) return;
           setLikeCount(count);
           setLikeId(likedId);
@@ -133,7 +155,7 @@ export default function ChapterWorkspacePage() {
           }
         } catch (err) {
           console.error("Workspace initialization block anomaly:", err);
-          setIsOwner(false);
+          setCanEdit(false);
         }
       })
       .catch((err) => {
@@ -162,7 +184,7 @@ export default function ChapterWorkspacePage() {
   };
 
   const handleTitleBlur = async () => {
-    if (!isOwner) return;
+    if (!canEdit) return;
     try {
       setStatus("Saving...");
       await updateChapter(chapterId, { title: title.trim() });
@@ -176,7 +198,7 @@ export default function ChapterWorkspacePage() {
   // Image insertion pipeline utilizing the precise Appwrite configuration logic from page.tsx
   const addLocalImageViaUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !editor) return;
+    if (!file || !editor || !canEdit) return;
 
     setStatus("Uploading image...");
     try {
@@ -193,6 +215,7 @@ export default function ChapterWorkspacePage() {
   };
 
   const handlePublishAndReturn = async () => {
+    if (!canEdit) return;
     setStatus("Finalizing sync...");
     try {
       // Direct snapshot check to commit title string modifications prior to layout teardown
@@ -200,7 +223,6 @@ export default function ChapterWorkspacePage() {
         title: title.trim() || "Untitled Chapter",
         content_json: JSON.stringify(editor?.getJSON() ?? {})
       });
-      
       // Smooth programmatic return route back to notebook preview canvas
       if (notebookId) {
         window.location.href = `/notebooks/${notebookId}`;
@@ -258,8 +280,8 @@ export default function ChapterWorkspacePage() {
     );
   }
 
-  // --- RENDER BLOCK A: AUTHOR WORKSPACE MODE (NO REACTION TRAILING NODES) ---
-  if (isOwner) {
+  // --- RENDER BLOCK A: EDITABLE WORKSPACE MODE (NOW ACCESSIBLE BY BOTH OWNER & COLLABORATORS) ---
+  if (canEdit) {
     return (
       <main className="min-h-[calc(100vh-56px)] bg-neutral-50/40 pb-20">
         <input 

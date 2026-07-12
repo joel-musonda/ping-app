@@ -12,7 +12,7 @@ import {
 import { useRouter, usePathname } from "next/navigation";
 import {
   Search, Bell, Plus, User, Book, Database, Heart, Settings,
-  Paintbrush, LogOut, ArrowLeftRight, Home, Info, AlertCircle, Trash2, UserPlus, X, Flame, Check
+  Paintbrush, LogOut, ArrowLeftRight, Home, Info, AlertCircle, Trash2, UserPlus, X, Flame, Check, BarChart3
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -232,9 +232,6 @@ export default function Navbar() {
     </div>
   );
 
-  // Shared renderer for a single notification row — used in both the desktop
-  // dropdown and the mobile bottom-sheet panel so the accept/decline logic
-  // only needs to live in one place.
   const NotificationRow = ({ notif }: { notif: any }) => (
     <div className="p-3 flex items-start justify-between gap-2.5 hover:bg-[#161b22] transition group">
       <div className="flex gap-2 min-w-0">
@@ -256,13 +253,13 @@ export default function Navbar() {
           {notif.type === "collab_invite" ? (
             <div className="flex gap-2 mt-1.5">
               <button
-                onClick={(e) => handleInviteResponse(notif.chapter_id, true, notif.$id, e)}
+                onClick={(e) => handleInviteResponse(notif.invite_id, true, notif.$id, e)}
                 className="flex items-center gap-1 text-[10px] font-semibold bg-green-600/20 text-green-400 border border-green-800 rounded px-2 py-1 hover:bg-green-600/30 transition"
               >
                 <Check className="w-3 h-3" /> Accept
               </button>
               <button
-                onClick={(e) => handleInviteResponse(notif.chapter_id, false, notif.$id, e)}
+                onClick={(e) => handleInviteResponse(notif.invite_id, false, notif.$id, e)}
                 className="flex items-center gap-1 text-[10px] font-semibold bg-red-600/20 text-red-400 border border-red-800 rounded px-2 py-1 hover:bg-red-600/30 transition"
               >
                 <X className="w-3 h-3" /> Decline
@@ -437,6 +434,14 @@ export default function Navbar() {
                         <button className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs rounded-md text-left text-[#c9d1d9] hover:bg-[#21262d] hover:text-white transition">
                           <Heart className="w-3.5 h-3.5 text-[#8b949e]" />
                           <span>Community</span>
+                        </button>
+                      </Link>
+                      
+                      {/* ANALYTICS DASHBOARD LINK */}
+                      <Link href="/analytics" onClick={() => setProfileOpen(false)}>
+                        <button className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs rounded-md text-left text-[#c9d1d9] hover:bg-[#21262d] hover:text-white transition">
+                          <BarChart3 className="w-3.5 h-3.5 text-[#8b949e]" />
+                          <span>Analytics</span>
                         </button>
                       </Link>
                     </div>
