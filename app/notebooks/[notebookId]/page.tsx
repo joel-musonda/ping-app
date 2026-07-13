@@ -9,8 +9,9 @@ import {
   notifyLike, notifyComment,
 } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
-import { Book, Plus, MoreVertical, Edit2, MessageSquare, Clock, FileText, Globe, Menu, X, Heart, Send, Trash2, Users } from "lucide-react";
+import { Book, Plus, Edit2, MessageSquare, FileText, Menu, X, Heart, Send, Trash2, Users, MessageSquarePlus, Lock, Eye } from "lucide-react";
 import ChapterContent from "@/components/ChapterContent";
+import HoverCard from "@/components/HoverCard";
 
 function NotebookPageSkeleton() {
   return (
@@ -34,8 +35,6 @@ function NotebookPageSkeleton() {
           <div className="h-3 bg-neutral-100 rounded w-full" />
           <div className="h-3 bg-neutral-100 rounded w-full" />
           <div className="h-3 bg-neutral-100 rounded w-5/6" />
-          <div className="h-3 bg-neutral-100 rounded w-full" />
-          <div className="h-3 bg-neutral-100 rounded w-2/3" />
         </div>
       </div>
     </main>
@@ -57,8 +56,6 @@ export default function NotebookPage() {
   const [isOwner, setIsOwner] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
 
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -66,9 +63,19 @@ export default function NotebookPage() {
   const [likeId, setLikeId] = useState<string | null>(null);
   const [likeCount, setLikeCount] = useState(0);
   const [likeLoading, setLikeLoading] = useState(false);
+  
+  // Discussion & Annotations System
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState("");
+  const [isPrivateNote, setIsPrivateNote] = useState(false);
   const [postingComment, setPostingComment] = useState(false);
+  const [selectedTextQuote, setSelectedTextQuote] = useState("");
+  const [annotationMenuPos, setAnnotationMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const [flashedCommentId, setFlashedCommentId] = useState<string | null>(null);
+  
+  const contentWrapperRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const commentElementsRef = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   const loadData = async () => {
     try {
@@ -88,8 +95,12 @@ export default function NotebookPage() {
         getCurrentUser(),
         getPingByUserId(nb.owner_id),
       ]);
-      setIsOwner(!!user && user.$id === nb.owner_id);
-      setCanEdit(!!user && (user.$id === nb.owner_id || (nb.collaborator_ids && nb.collaborator_ids.includes(user.$id))));
+      
+      const ownerCheck = !!user && user.$id === nb.owner_id;
+      const editorCheck = !!user && (user.$id === nb.owner_id || (nb.collaborator_ids && nb.collaborator_ids.includes(user.$id)));
+      
+      setIsOwner(ownerCheck);
+      setCanEdit(editorCheck);
       setAuthorProfile(author);
 
       if (nb.collaborator_ids && nb.collaborator_ids.length > 0) {
@@ -108,16 +119,6 @@ export default function NotebookPage() {
   useEffect(() => {
     loadData();
   }, [notebookId]);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   useEffect(() => {
     if (!selectedChapter) return;
@@ -143,12 +144,60 @@ export default function NotebookPage() {
       setLikeCount(count);
       setLikeId(likedId);
       setComments(chapterComments);
+      setSelectedTextQuote("");
+      setAnnotationMenuPos(null);
     })();
 
     return () => {
       cancelled = true;
     };
   }, [selectedChapter]);
+
+  // Track text selections precisely at the fine block element layer
+  const handleSelectionTracking = () => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || !selection.toString().trim()) {
+      setAnnotationMenuPos(null);
+      return;
+    }
+
+    const text = selection.toString().trim();
+    
+    // Ensure we are reading nodes strictly locked within our container context
+    if (contentWrapperRef.current && contentWrapperRef.current.contains(selection.anchorNode)) {
+      const range = selection.getRangeAt(0);
+      
+      // Secondary boundary safety check to prevent accidental jumping selections
+      const startContainer = range.startContainer.parentElement;
+      const endContainer = range.endContainer.parentElement;
+      
+      if (startContainer && endContainer) {
+        const rect = range.getBoundingClientRect();
+        
+        setAnnotationMenuPos({
+          top: rect.top + window.scrollY - 46, // Aligns popover perfectly right over text line
+          left: rect.left + window.scrollX + rect.width / 2,
+        });
+        setSelectedTextQuote(text);
+      }
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener("mouseup", handleSelectionTracking);
+    document.addEventListener("keyup", handleSelectionTracking);
+    return () => {
+      document.removeEventListener("mouseup", handleSelectionTracking);
+      document.removeEventListener("keyup", handleSelectionTracking);
+    };
+  }, []);
+
+  const triggerAnnotationDraft = () => {
+    setAnnotationMenuPos(null);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  };
 
   const handleNewChapter = async () => {
     if (!canEdit) return; 
@@ -157,7 +206,7 @@ export default function NotebookPage() {
       const nextOrder = chapters.length;
       const chapter = await createChapter(
         notebookId,
-        currentUser.$id, // FIXED: Using active user session ID instead of notebook owner_id
+        currentUser.$id, 
         notebook.is_public,
         "Untitled chapter",
         "",
@@ -207,11 +256,11 @@ export default function NotebookPage() {
             selectedChapter.$id
           );
         } catch (err) {
-          console.error("Failed to send like notification:", err);
+          console.error(err);
         }
       }
     } catch (err) {
-      console.error("Failed to toggle like:", err);
+      console.error(err);
     } finally {
       setLikeLoading(false);
     }
@@ -225,17 +274,24 @@ export default function NotebookPage() {
     if (!newComment.trim()) return;
 
     setPostingComment(true);
+    
+    const prefixScope = isPrivateNote ? "[private:true]" : "[private:false]";
+    const quotePayload = selectedTextQuote ? `[quote:${selectedTextQuote}]` : "";
+    const totalPayload = `${prefixScope}${quotePayload} ${newComment.trim()}`;
+
     try {
       const comment = await createComment(
         selectedChapter.$id,
         currentUser.$id,
         currentUserProfile?.handle || "anonymous",
-        newComment.trim(),
+        totalPayload,
         currentUserProfile?.name || "",
         currentUserProfile?.avatar_url || ""
       );
       setComments((prev) => [comment, ...prev]);
       setNewComment("");
+      setSelectedTextQuote("");
+      setIsPrivateNote(false);
 
       try {
         await notifyComment(
@@ -246,10 +302,10 @@ export default function NotebookPage() {
           selectedChapter.$id
         );
       } catch (err) {
-        console.error("Failed to send comment notification:", err);
+        console.error(err);
       }
     } catch (err) {
-      console.error("Failed to post comment:", err);
+      console.error(err);
     } finally {
       setPostingComment(false);
     }
@@ -260,8 +316,38 @@ export default function NotebookPage() {
       await deleteComment(commentId);
       setComments((prev) => prev.filter((c) => c.$id !== commentId));
     } catch (err) {
-      console.error("Failed to delete comment:", err);
+      console.error(err);
     }
+  };
+
+  const parseAnnotationMeta = (rawStr: string) => {
+    let text = rawStr || "";
+    let isPrivate = false;
+    let quote: string | null = null;
+
+    if (text.startsWith("[private:true]")) {
+      isPrivate = true;
+      text = text.replace("[private:true]", "");
+    } else if (text.startsWith("[private:false]")) {
+      text = text.replace("[private:false]", "");
+    }
+
+    const quoteMatch = text.match(/^\[quote:(.*?)\]\s([\s\S]*)$/);
+    if (quoteMatch) {
+      quote = quoteMatch[1];
+      text = quoteMatch[2];
+    }
+
+    return { isPrivate, quote, bodyText: text.trim() };
+  };
+
+  const jumpToCommentSection = (commentId: string) => {
+    setFlashedCommentId(commentId);
+    const target = commentElementsRef.current[commentId];
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    setTimeout(() => setFlashedCommentId(null), 2000);
   };
 
   if (loading) return <NotebookPageSkeleton />;
@@ -269,24 +355,70 @@ export default function NotebookPage() {
 
   const currentTitle = viewMode === "chapter" && selectedChapter ? selectedChapter.title : notebook.title;
 
-  const AuthorByline = () => (
-    <a
-      href={authorProfile ? `/${authorProfile.handle}` : "#"}
-      className="flex items-center gap-2 text-xs text-neutral-500 font-medium hover:text-neutral-900 transition w-fit"
-    >
-      <div className="w-5 h-5 rounded-full bg-neutral-900 text-white text-[9px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden">
-        {authorProfile?.avatar_url ? (
-          <img src={authorProfile.avatar_url} alt="" className="w-full h-full object-cover" />
-        ) : (
-          authorProfile?.handle?.charAt(0) || "?"
-        )}
+  const visibleComments = comments.filter((c) => {
+    const { isPrivate } = parseAnnotationMeta(c.content);
+    if (!isPrivate) return true;
+    return canEdit || (currentUser && currentUser.$id === c.user_id);
+  });
+
+  const AuthorByline = () => {
+    if (!authorProfile) return null;
+    return (
+      <HoverCard handle={authorProfile.handle}>
+        <a
+          href={`/${authorProfile.handle}`}
+          className="flex items-center gap-2 text-xs text-neutral-500 font-medium hover:text-neutral-900 transition w-fit"
+        >
+          <div className="w-5 h-5 rounded-full bg-neutral-900 text-white text-[9px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden">
+            {authorProfile?.avatar_url ? (
+              <img src={authorProfile.avatar_url} alt="" className="w-full h-full object-cover" />
+            ) : (
+              authorProfile?.handle?.charAt(0) || "?"
+            )}
+          </div>
+          <span>{authorProfile?.name || `@${authorProfile?.handle}`}</span>
+        </a>
+      </HoverCard>
+    );
+  };
+
+  const CollaborationStack = () => {
+    if (collaboratorProfiles.length === 0) return null;
+    return (
+      <div className="flex flex-wrap items-center gap-x-2 text-xs text-neutral-400 font-medium">
+        <Users className="w-3 h-3 text-neutral-400" />
+        <span>with</span>
+        {collaboratorProfiles.map((collab, index) => (
+          <span key={collab.$id} className="text-neutral-600 font-medium flex items-center">
+            <HoverCard handle={collab.handle}>
+              <a 
+                href={`/${collab.handle}`} 
+                className="hover:text-neutral-900 hover:underline transition"
+              >
+                {collab.name || `@${collab.handle}`}
+              </a>
+            </HoverCard>
+            {index < collaboratorProfiles.length - 1 && <span className="mr-1">,</span>}
+          </span>
+        ))}
       </div>
-      <span>{authorProfile?.name || `@${authorProfile?.handle || "unknown"}`}</span>
-    </a>
-  );
+    );
+  };
 
   return (
     <main className="w-full min-h-[calc(100vh-56px)] h-[calc(100vh-56px)] bg-white text-neutral-900 overflow-hidden flex relative">
+
+      {/* Medium Popover Context Trigger */}
+      {annotationMenuPos && (
+        <button
+          style={{ top: annotationMenuPos.top, left: annotationMenuPos.left }}
+          onClick={triggerAnnotationDraft}
+          className="absolute z-50 -translate-x-1/2 bg-neutral-950 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-xl flex items-center gap-1.5 hover:bg-neutral-900 transition animate-in fade-in zoom-in-95 duration-100 border border-neutral-800"
+        >
+          <MessageSquarePlus className="w-3.5 h-3.5 text-green-400" />
+          <span>Annotate</span>
+        </button>
+      )}
 
       <div className="md:hidden absolute top-0 left-0 right-0 z-30 flex items-center gap-3 px-4 h-12 border-b border-neutral-200 bg-white/95 backdrop-blur-sm">
         <button
@@ -398,13 +530,8 @@ export default function NotebookPage() {
                 </div>
               );
             })}
-
-            {chapters.length === 0 && (
-              <p className="text-xs text-neutral-400 italic p-2">No chapters published yet.</p>
-            )}
           </nav>
         </div>
-
       </div>
 
       <div className="flex-1 flex flex-col h-full bg-white overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pt-12 md:pt-0">
@@ -416,136 +543,75 @@ export default function NotebookPage() {
                 <h2 className="text-2xl font-bold tracking-tight text-neutral-900 leading-tight">
                   {notebook.title}
                 </h2>
-                
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1.5">
                   <AuthorByline />
-                  
-                  {collaboratorProfiles.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-x-2 text-xs text-neutral-400 font-medium">
-                      <Users className="w-3 h-3 text-neutral-400" />
-                      <span>with</span>
-                      {collaboratorProfiles.map((collab, index) => (
-                        <span key={collab.$id} className="text-neutral-600 font-medium">
-                          <a 
-                            href={`/${collab.handle}`} 
-                            className="hover:text-neutral-900 hover:underline transition"
-                          >
-                            {collab.name || `@${collab.handle}`}
-                          </a>
-                          {index < collaboratorProfiles.length - 1 && <span className="mr-1">,</span>}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 text-xs text-neutral-400 font-medium mt-1">
-                  <Globe className="w-3.5 h-3.5" />
-                  <span>Main Repository Overview</span>
+                  <CollaborationStack />
                 </div>
               </div>
             </div>
-
             <div className="flex-1 text-sm text-neutral-800 leading-relaxed font-normal whitespace-pre-wrap break-words">
-              {notebook.description || (
-                <p className="italic text-neutral-400">This notebook does not have an extended overview description yet.</p>
-              )}
+              {notebook.description || <p className="italic text-neutral-400">No extended description yet.</p>}
             </div>
           </div>
         )}
 
         {viewMode === "chapter" && selectedChapter && (
           <div className="max-w-2xl w-full mx-auto px-6 md:px-12 pt-6 pb-24 md:pb-10 flex flex-col min-h-full">
-
             <div className="flex justify-between items-start gap-6 border-b border-neutral-100 pb-4 mb-6 relative">
               <div className="space-y-2">
                 <h2 className="text-2xl font-bold tracking-tight text-neutral-900 leading-tight">
                   {selectedChapter.title || "Untitled chapter"}
                 </h2>
-                
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1.5">
                   <AuthorByline />
-                  
-                  {collaboratorProfiles.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-x-2 text-xs text-neutral-400 font-medium">
-                      <Users className="w-3 h-3 text-neutral-400" />
-                      <span>with</span>
-                      {collaboratorProfiles.map((collab, index) => (
-                        <span key={collab.$id} className="text-neutral-600 font-medium">
-                          <a 
-                            href={`/${collab.handle}`} 
-                            className="hover:text-neutral-900 hover:underline transition"
-                          >
-                            {collab.name || `@${collab.handle}`}
-                          </a>
-                          {index < collaboratorProfiles.length - 1 && <span className="mr-1">,</span>}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <CollaborationStack />
                 </div>
-
-                <div className="flex items-center gap-2 text-xs text-neutral-400 font-medium mt-1">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>
-                    {selectedChapter.$createdAt
-                      ? new Date(selectedChapter.$createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
-                      : "Draft stage"}
-                  </span>
-                </div>
-              </div>
-
-              <div className="relative" ref={menuRef}>
-                <button
-                  onClick={() => setMenuOpen(!menuOpen)}
-                  className="p-1.5 rounded-md hover:bg-neutral-100 text-neutral-500 hover:text-neutral-900 transition"
-                >
-                  <MoreVertical className="w-4 h-4" />
-                </button>
-
-                {menuOpen && (
-                  <div className="absolute right-0 mt-1 w-40 rounded-lg border border-neutral-200 bg-white shadow-lg py-1 z-20 animate-in fade-in slide-in-from-top-1 duration-100">
-                    {canEdit ? (
-                      <button
-                        onClick={() => {
-                          setMenuOpen(false);
-                          router.push(`/notebooks/${notebookId}/chapters/${selectedChapter.$id}`);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-neutral-700 hover:bg-neutral-50 transition font-medium"
-                      >
-                        <Edit2 className="w-3.5 h-3.5 text-neutral-400" />
-                        <span>Edit Chapter</span>
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setMenuOpen(false);
-                          navigator.clipboard.writeText(window.location.href);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-neutral-700 hover:bg-neutral-50 transition font-medium"
-                      >
-                        <span>Copy Link</span>
-                      </button>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
 
-            <div className="flex-1">
-              <ChapterContent contentJson={selectedChapter.content_json} />
+            {/* Document Body Wrapper with Selection Overrides */}
+            <div 
+              className="flex-1 relative selection:bg-green-100/90 selection:text-neutral-900" 
+              ref={contentWrapperRef}
+            >
+              <div className="prose prose-neutral max-w-none text-neutral-800 tracking-normal leading-relaxed">
+                <ChapterContent contentJson={selectedChapter.content_json} />
+              </div>
+              
+              {/* Side Margin Annotations Tracker */}
+              <div className="absolute top-0 -right-6 md:-right-12 flex flex-col gap-2 select-none h-full border-l border-neutral-100/60 pl-2">
+                {visibleComments.map((c) => {
+                  const { quote, isPrivate } = parseAnnotationMeta(c.content);
+                  if (!quote) return null;
+                  return (
+                    <button
+                      key={`anchor-${c.$id}`}
+                      onClick={() => jumpToCommentSection(c.$id)}
+                      className={`p-1.5 rounded-full border transition-all duration-200 flex items-center justify-center shadow-sm hover:scale-105 group/anchor ${
+                        isPrivate 
+                          ? "bg-purple-50 border-purple-200 text-purple-600 hover:bg-purple-100" 
+                          : "bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                      }`}
+                      title={isPrivate ? "Private Note" : `Annotation: "${quote}"`}
+                    >
+                      {isPrivate ? (
+                        <Lock className="w-3 h-3" />
+                      ) : (
+                        <MessageSquare className="w-3 h-3 text-gray-600 shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="mt-16 pt-8 border-t border-neutral-200 bg-white">
-
               <div className="flex items-center gap-2 mb-8">
                 <button
                   onClick={handleLikeToggle}
                   disabled={likeLoading}
                   className={`flex items-center gap-1.5 text-sm rounded-full px-3 py-1.5 border transition-colors ${
-                    likeId
-                      ? "bg-red-50 border-red-200 text-red-600"
-                      : "bg-white border-neutral-300 text-neutral-600 hover:border-neutral-400"
+                    likeId ? "bg-red-50 border-red-200 text-red-600" : "bg-white border-neutral-300 text-neutral-600 hover:border-neutral-400"
                   }`}
                 >
                   <Heart className={`w-4 h-4 ${likeId ? "fill-red-500 text-red-500" : ""}`} />
@@ -556,85 +622,139 @@ export default function NotebookPage() {
               <div className="flex items-center gap-2 mb-4">
                 <MessageSquare className="w-4 h-4 text-neutral-900" />
                 <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-900">
-                  Discussion Feed
+                  Discussions
                 </h3>
                 <span className="text-[10px] bg-neutral-100 text-neutral-600 font-bold px-1.5 py-0.5 rounded-full">
-                  {comments.length}
+                  {visibleComments.length}
                 </span>
               </div>
 
-              {comments.length === 0 ? (
+              {visibleComments.length === 0 ? (
                 <div className="space-y-4 text-center py-6 border border-dashed border-neutral-100 rounded-xl bg-neutral-50/40 mb-6">
-                  <p className="text-xs text-neutral-400 italic">No responses written for this section yet.</p>
+                  <p className="text-xs text-neutral-400 italic">Be the first to comment.</p>
                 </div>
               ) : (
                 <div className="space-y-4 mb-6">
-                  {comments.map((c) => (
-                    <div key={c.$id} className="flex gap-3 items-start group">
-                      <div className="w-7 h-7 rounded-full bg-neutral-900 text-white text-[10px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden">
-                        {c.avatar_url ? (
-                          <img src={c.avatar_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          c.handle?.charAt(0) || "?"
+                  {visibleComments.map((c) => {
+                    const { quote, isPrivate, bodyText } = parseAnnotationMeta(c.content);
+                    const isFlashed = flashedCommentId === c.$id;
+
+                    return (
+                      <div 
+                        key={c.$id} 
+                        ref={(el) => { commentElementsRef.current[c.$id] = el; }}
+                        className={`flex gap-3 items-start group p-3 rounded-xl transition-all duration-500 border ${
+                          isFlashed 
+                            ? "bg-neutral-50 border-neutral-300 scale-[1.01] shadow-sm" 
+                            : "bg-transparent border-transparent"
+                        }`}
+                      >
+                        <HoverCard handle={c.handle}>
+                          <div className="w-7 h-7 rounded-full bg-neutral-900 text-white text-[10px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden cursor-pointer">
+                            {c.avatar_url ? <img src={c.avatar_url} alt="" className="w-full h-full object-cover" /> : c.handle?.charAt(0) || "?"}
+                          </div>
+                        </HoverCard>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <HoverCard handle={c.handle}>
+                              <span className="text-xs font-bold text-neutral-900 cursor-pointer hover:underline">
+                                {c.name || `@${c.handle}`}
+                              </span>
+                            </HoverCard>
+                            
+                            {isPrivate && (
+                              <span className="flex items-center gap-1 text-[9px] bg-purple-50 text-purple-700 font-semibold px-1.5 py-0.5 rounded border border-purple-100 uppercase tracking-wide select-none">
+                                <Lock className="w-2.5 h-2.5" />
+                                <span>Private Note</span>
+                              </span>
+                            )}
+                          </div>
+
+                          {quote && (
+                            <div className="mt-1.5 text-[11px] bg-green-50/40 text-neutral-700 border border-green-150 rounded-md p-2 mb-1.5 font-medium border-l-2 border-l-green-400 max-w-full">
+                              <span className="italic">"{quote}"</span>
+                            </div>
+                          )}
+
+                          <p className="text-xs text-neutral-700 mt-1 leading-relaxed">{bodyText}</p>
+                        </div>
+                        {currentUser?.$id === c.user_id && (
+                          <button
+                            onClick={() => handleDeleteComment(c.$id)}
+                            className="p-1 rounded text-neutral-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition shrink-0"
+                            title="Delete comment"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-neutral-900">{c.name || `@${c.handle}`}</span>
-                          <span className="text-[10px] text-neutral-400">@{c.handle}</span>
-                        </div>
-                        <p className="text-xs text-neutral-700 mt-0.5">{c.content}</p>
-                      </div>
-                      {currentUser?.$id === c.user_id && (
-                        <button
-                          onClick={() => handleDeleteComment(c.$id)}
-                          className="p-1 rounded text-neutral-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition shrink-0"
-                          title="Delete comment"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
-              <div className="flex gap-3 items-start py-15">
+              {/* Input Area */}
+              <div className="flex gap-3 items-start py-4">
                 <div className="w-7 h-7 rounded-full bg-neutral-900 text-white text-[10px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden">
-                  {currentUserProfile?.avatar_url ? (
-                    <img src={currentUserProfile.avatar_url} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    currentUserProfile?.handle?.charAt(0) || "U"
-                  )}
+                  {currentUserProfile?.avatar_url ? <img src={currentUserProfile.avatar_url} alt="" className="w-full h-full object-cover" /> : currentUserProfile?.handle?.charAt(0) || "U"}
                 </div>
-                <div className="flex-1 space-y-2 py-2">
+                <div className="flex-1 space-y-2">
+                  
+                  {selectedTextQuote && (
+                    <div className="flex items-center justify-between gap-4 bg-black-50/40 border border-green-200/60 rounded-lg px-3 py-2 text-xs">
+                      <div className="flex items-center gap-2 text-neutral-600 truncate">
+                        <MessageSquarePlus className="w-3.5 h-3.5 text-black/50 shrink-0" />
+                        <span className="italic truncate text-neutral-700 font-medium">
+                          Annotating selection: "{selectedTextQuote}"
+                        </span>
+                      </div>
+                      <button onClick={() => setSelectedTextQuote("")} className="p-1 rounded hover:bg-black text-neutral-400 hover:text-neutral-700 transition">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+
                   <textarea
+                    ref={textareaRef}
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
-                    placeholder={currentUser ? "Write a response or feedback snippet..." : "Log in to comment"}
+                    placeholder={currentUser ? "Write a public response or leave an annotated feedback note..." : "Log in to post annotations"}
                     disabled={!currentUser}
-                    className="w-full p-2.5 min-h-[72px] rounded-lg border border-neutral-200 text-xs focus:outline-none focus:border-neutral-400 resize-none placeholder:text-neutral-400 transition disabled:opacity-50"
+                    className="w-full p-2.5 min-h-[80px] rounded-lg border border-neutral-200 text-xs focus:outline-none focus:border-neutral-400 resize-none placeholder:text-neutral-400 transition disabled:opacity-50"
                   />
-                  <div className="flex justify-end">
+                  
+                  <div className="flex items-center justify-between">
+                    {currentUser ? (
+                      <button
+                        type="button"
+                        onClick={() => setIsPrivateNote(!isPrivateNote)}
+                        className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-md border transition ${
+                          isPrivateNote 
+                            ? "bg-gray border-purple-200 text-black shadow-sm" 
+                            : "bg-white border-neutral-200 text-neutral-500 hover:bg-neutral-50"
+                        }`}
+                      >
+                        {isPrivateNote ? <Lock className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                        <span>{isPrivateNote ? "Private comment" : "Public Comment"}</span>
+                      </button>
+                    ) : <div />}
+
                     <button
                       onClick={handlePostComment}
                       disabled={postingComment || !newComment.trim()}
                       className="h-7 px-3 bg-neutral-900 hover:bg-neutral-800 text-white rounded-md text-xs font-medium shadow-sm transition flex items-center gap-1.5 disabled:opacity-50"
                     >
-                      <Send className="w-3 h-3 " />
-                      {postingComment ? "Posting..." : "Respond"}
+                      <Send className="w-3 h-3" />
+                      {postingComment ? "Submitting..." : "Respond"}
                     </button>
                   </div>
                 </div>
               </div>
 
             </div>
-
           </div>
         )}
-
       </div>
-
     </main>
   );
 }

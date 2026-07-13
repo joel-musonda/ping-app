@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getPublicNotebooks, getPingByUserId, getNotebookEngagement } from "@/lib/appwrite";
 import { Heart, MessageCircle, Book, ArrowUpRight, Folder, Flame, X } from "lucide-react";
+import HoverCard from "@/components/HoverCard";
 
 function FeedCardSkeleton() {
   return (
@@ -52,7 +53,12 @@ function TrendingList({ loading, trendingNotebooks }: { loading: boolean; trendi
             <a href={`/notebooks/${nb.$id}`} className="block text-xs font-bold text-neutral-900 hover:underline leading-snug truncate">
               {nb.title}
             </a>
-            <p className="text-[11px] text-neutral-400 font-medium">by @{nb.authorHandle}</p>
+            <p className="text-[11px] text-neutral-400 font-medium">
+              by{" "}
+              <HoverCard handle={nb.authorHandle}>
+                <span className="text-neutral-500 font-semibold">@{nb.authorHandle}</span>
+              </HoverCard>
+            </p>
           </div>
         </li>
       ))}
@@ -64,7 +70,6 @@ function HomePageInner() {
   const [notebooks, setNotebooks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [trendingSheetOpen, setTrendingSheetOpen] = useState(false);
-
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -78,7 +83,6 @@ function HomePageInner() {
               getNotebookEngagement(nb.$id),
             ]);
 
-            // Hydrate collaborator metadata profiles for the inline avatar stack layout
             let collaboratorProfiles: any[] = [];
             if (nb.collaborator_ids && nb.collaborator_ids.length > 0) {
               const profiles = await Promise.all(
@@ -105,7 +109,6 @@ function HomePageInner() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Opens the trending sheet when navigated to via /?trending=1 (from the mobile bottom nav)
   useEffect(() => {
     if (searchParams.get("trending") === "1") {
       setTrendingSheetOpen(true);
@@ -154,38 +157,48 @@ function HomePageInner() {
                       <div className="flex items-center gap-2 mb-2.5 relative z-10 text-xs flex-wrap">
                         <div className="flex items-center -space-x-1.5 overflow-hidden shrink-0">
                           {/* Owner Profile Picture */}
-                          <div className="w-5 h-5 rounded-full bg-neutral-900 text-white text-[9px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden border border-white shadow-sm">
-                            {nb.authorAvatar ? (
-                              <img src={nb.authorAvatar} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              nb.authorHandle.charAt(0)
-                            )}
-                          </div>
+                          <HoverCard handle={nb.authorHandle}>
+                            <div className="w-5 h-5 rounded-full bg-neutral-900 text-white text-[9px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden border border-white shadow-sm cursor-pointer">
+                              {nb.authorAvatar ? (
+                                <img src={nb.authorAvatar} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                nb.authorHandle.charAt(0)
+                              )}
+                            </div>
+                          </HoverCard>
 
                           {/* Dynamic Collaborator Pictures List stacked inline side by side */}
                           {nb.collaboratorProfiles && nb.collaboratorProfiles.map((collab: any) => (
-                            <div 
-                              key={collab.$id}
-                              className="w-5 h-5 rounded-full bg-neutral-800 text-white text-[9px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden border border-white shadow-sm"
-                              title={`Collaborator: @${collab.handle}`}
-                            >
-                              {collab.avatar_url ? (
-                                <img src={collab.avatar_url} alt="" className="w-full h-full object-cover" />
-                              ) : (
-                                collab.handle?.charAt(0) || "?"
-                              )}
-                            </div>
+                            <HoverCard key={collab.$id} handle={collab.handle}>
+                              <div 
+                                className="w-5 h-5 rounded-full bg-neutral-800 text-white text-[9px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden border border-white shadow-sm cursor-pointer"
+                                title={`Collaborator: @${collab.handle}`}
+                              >
+                                {collab.avatar_url ? (
+                                  <img src={collab.avatar_url} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  collab.handle?.charAt(0) || "?"
+                                )}
+                              </div>
+                            </HoverCard>
                           ))}
                         </div>
 
                         {/* Owner Metadata Texts Only */}
-                        <span className="font-semibold text-neutral-800 hover:underline cursor-pointer ml-0.5">
-                          {nb.authorName}
-                        </span>
-                        <span className="text-neutral-400 font-normal">@{nb.authorHandle}</span>
+                        <HoverCard handle={nb.authorHandle}>
+                          <span className="font-semibold text-neutral-800 hover:underline cursor-pointer ml-0.5">
+                            {nb.authorName}
+                          </span>
+                        </HoverCard>
+                        
+                        <HoverCard handle={nb.authorHandle}>
+                          <span className="text-neutral-400 font-normal hover:underline cursor-pointer">@{nb.authorHandle}</span>
+                        </HoverCard>
+                        
                         <span className="text-neutral-300 select-none">·</span>
                         <span className="text-neutral-400">
-                          {nb.$createdAt ? new Date(nb.$createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Just now'}
+                          {nb.$createdAt ?
+                            new Date(nb.$createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Just now'}
                         </span>
                       </div>
 
@@ -209,10 +222,12 @@ function HomePageInner() {
                           <Heart className="w-3.5 h-3.5 text-neutral-400 group-hover/btn:text-rose-500 transition-colors" />
                           <span>{nb.likeCount}</span>
                         </button>
+                        
                         <button className="flex items-center gap-1.5 hover:text-neutral-900 transition-colors group/btn py-1">
                           <MessageCircle className="w-3.5 h-3.5 text-neutral-400 group-hover/btn:text-blue-500 transition-colors" />
                           <span>{nb.commentCount}</span>
                         </button>
+                        
                         <div className="flex items-center gap-1 text-[10px] text-neutral-400 bg-neutral-50 px-2 py-0.5 rounded border border-neutral-200/60 font-semibold uppercase tracking-wider ml-auto">
                           <Book className="w-3 h-3 text-neutral-400" />
                           <span>{nb.chapterCount} {nb.chapterCount === 1 ? "chapter" : "chapters"}</span>
@@ -220,14 +235,10 @@ function HomePageInner() {
                       </div>
                     </div>
 
-                    {/* Cover image thumbnail — protected from text overrunning via shrink-0 */}
+                    {/* Cover image thumbnail */}
                     {nb.cover_image_url && (
                       <div className="w-20 h-20 sm:w-28 sm:h-28 shrink-0 rounded-lg overflow-hidden bg-neutral-100 border border-neutral-200 self-start mt-1">
-                        <img
-                          src={nb.cover_image_url}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
+                        <img src={nb.cover_image_url} alt="" className="w-full h-full object-cover" />
                       </div>
                     )}
                   </div>
@@ -260,7 +271,7 @@ function HomePageInner() {
 
       </div>
 
-      {/* MOBILE: Backdrop + Bottom Sheet — opened from the bottom nav's Trending tab */}
+      {/* MOBILE: Backdrop + Bottom Sheet */}
       {trendingSheetOpen && (
         <>
           <div
