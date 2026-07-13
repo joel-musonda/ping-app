@@ -16,7 +16,7 @@ export const PINGS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_PINGS_COLLEC
 export const NOTEBOOKS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_NOTEBOOKS_COLLECTION_ID!;
 export const CHAPTERS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_CHAPTERS_COLLECTION_ID!;      
 export const storage = new Storage(client);
-export const IMAGES_BUCKET_ID = process.env.NEXT_PUBLIC_APPWRITE_IMAGES_BUCKET_ID!;
+export const IMAGES_BUCKET_ID = "6a494a7e003a27f563bc";
 export async function createPingProfile(userId: string, handle: string) {
   return await databases.createDocument(
     DATABASE_ID,

@@ -125,7 +125,7 @@ export default function AnalyticsPage() {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-neutral-900" />
-            <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-400">Workspace Insights</h2>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-400">Notebook Insights</h2>
           </div>
           <h1 className="text-xl font-bold tracking-tight text-neutral-900">Performance Analytics</h1>
         </div>
