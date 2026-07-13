@@ -11,11 +11,12 @@ import {
 } from "@/lib/appwrite";
 import { useRouter, usePathname } from "next/navigation";
 import {
-  Search, Bell, Plus, User, Book, Database, Heart, Settings,
+  Search, Bell, Plus, User, Book, Heart, Settings,
   Paintbrush, LogOut, ArrowLeftRight, Home, Info, AlertCircle, Trash2, UserPlus, X, Flame, Check, BarChart3
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import HoverCard from "@/components/HoverCard";
 
 export default function Navbar() {
   const [profileData, setProfileData] = useState<{
@@ -199,15 +200,21 @@ export default function Navbar() {
             <div className="mb-1">
               <p className="px-3 py-1 text-[10px] font-bold text-[#8b949e] uppercase">People</p>
               {searchResults.pings.map((p) => (
-                <a
+                <div
                   key={p.$id}
-                  href={`/${p.handle}`}
-                  onClick={handleSearchResultClick}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-md hover:bg-[#21262d] text-xs transition"
                 >
-                  <User className="w-3.5 h-3.5 text-[#8b949e]" />
-                  <span className="text-white">@{p.handle}</span>
-                </a>
+                  <User className="w-3.5 h-3.5 text-[#8b949e] shrink-0" />
+                  <HoverCard handle={p.handle}>
+                    <a
+                      href={`/${p.handle}`}
+                      onClick={handleSearchResultClick}
+                      className="text-white font-medium"
+                    >
+                      @{p.handle}
+                    </a>
+                  </HoverCard>
+                </div>
               ))}
             </div>
           )}
@@ -239,8 +246,10 @@ export default function Navbar() {
           <UserPlus className="w-3 h-3 text-blue-400" />
         </div>
         <div className="flex flex-col min-w-0 text-xs">
-          <p className="text-[#c9d1d9] font-medium break-words">
-            <span className="text-white font-bold">@{notif.sender_handle}</span>{" "}
+          <div className="text-[#c9d1d9] font-medium break-words">
+            <HoverCard handle={notif.sender_handle}>
+              <span className="text-white font-bold cursor-pointer hover:underline">@{notif.sender_handle}</span>
+            </HoverCard>{" "}
             {notif.type === "like"
               ? "liked your chapter."
               : notif.type === "comment"
@@ -248,7 +257,7 @@ export default function Navbar() {
               : notif.type === "collab_invite"
               ? "invited you to collaborate on a notebook."
               : "started following you."}
-          </p>
+          </div>
 
           {notif.type === "collab_invite" ? (
             <div className="flex gap-2 mt-1.5">
@@ -437,7 +446,6 @@ export default function Navbar() {
                         </button>
                       </Link>
                       
-                      {/* ANALYTICS DASHBOARD LINK */}
                       <Link href="/analytics" onClick={() => setProfileOpen(false)}>
                         <button className="w-full flex items-center gap-2.5 px-3 py-1.5 text-xs rounded-md text-left text-[#c9d1d9] hover:bg-[#21262d] hover:text-white transition">
                           <BarChart3 className="w-3.5 h-3.5 text-[#8b949e]" />
