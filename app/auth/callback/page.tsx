@@ -3,14 +3,36 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { getPingByUserId, createPingProfile } from "@/lib/appwrite"; // Import database helpers
 
 export default function AuthCallbackPage() {
   const router = useRouter();
 
   useEffect(() => {
     getCurrentUser()
-      .then((user) => {
+      .then(async (user) => {
         if (user) {
+          try {
+            // Check if this logged-in user already has a database profile
+            const profile = await getPingByUserId(user.$id);
+            
+            if (!profile) {
+              // If they don't have a profile (new Google/GitHub signup), create a starter one
+              const starterHandle = user.email ? user.email.split("@")[0] : `user_${user.$id.slice(0, 8)}`;
+              await createPingProfile(user.$id, starterHandle);
+            }
+          } catch (profileError) {
+            console.error("Profile check/creation failed:", profileError);
+            // If the error is simply "not found", create it
+            try {
+              const starterHandle = user.email ? user.email.split("@")[0] : `user_${user.$id.slice(0, 8)}`;
+              await createPingProfile(user.$id, starterHandle);
+            } catch (createError) {
+              console.error("Critical: Failed to auto-create profile", createError);
+            }
+          }
+          
+          // Now they have both an Auth account and a Database profile document!
           router.push("/onboarding");
         } else {
           router.push("/login");
