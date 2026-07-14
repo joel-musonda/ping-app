@@ -1,4 +1,4 @@
-import { account, databases, DATABASE_ID, PINGS_COLLECTION_ID, createPingProfile } from "@/lib/appwrite";
+import { account } from "@/lib/appwrite"; // Removed unused database/profile imports
 import { ID, OAuthProvider } from "appwrite";
 
 export async function signUp(email: string, password: string) {
@@ -8,13 +8,16 @@ export async function signUp(email: string, password: string) {
     // no active session, that's fine
   }
 
+  // 1. Create the Appwrite Auth user
   const user = await account.create(ID.unique(), email, password);
+  
+  // 2. Log them in to establish an active session (required to trigger verification)
   await account.createEmailPasswordSession(email, password);
 
-  const starterHandle = email.split("@")[0];
-  await createPingProfile(user.$id, starterHandle);
+  // 🚨 DATABASE WRITE REMOVED! 
+  // The profile document will now ONLY be created when they submit the Onboarding form.
 
-  return starterHandle;
+  return user;
 }
 
 export async function logIn(email: string, password: string) {
@@ -80,6 +83,7 @@ export async function sendPasswordRecovery(email: string) {
 export async function confirmPasswordRecovery(userId: string, secret: string, password: string) {
   return await account.updateRecovery(userId, secret, password);
 }
+
 export async function sendEmailVerification() {
   const redirectUrl = `${window.location.origin}/verify-email`;
   return await account.createVerification(redirectUrl);
