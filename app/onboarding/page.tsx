@@ -3,14 +3,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { databases, DATABASE_ID, PINGS_COLLECTION_ID, createPingProfile } from "@/lib/appwrite";
+import { databases, DATABASE_ID, PINGS_COLLECTION_ID } from "@/lib/appwrite";
 import { Query } from "appwrite";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { sendEmailVerification } from "@/lib/auth";
-import { Mail } from "lucide-react";
-import { Check, AlertCircle, Camera, User } from "lucide-react";
+import { Mail, Check, AlertCircle, Camera, User } from "lucide-react";
 
 export default function OnboardingPage() {
   const [user, setUser] = useState<any>(null);
@@ -25,6 +24,7 @@ export default function OnboardingPage() {
   const [uploadError, setUploadError] = useState("");
   const [resending, setResending] = useState(false);
   const [resendStatus, setResendStatus] = useState("");
+  const [checkingVerification, setCheckingVerification] = useState(true);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -44,34 +44,45 @@ export default function OnboardingPage() {
   };
 
   useEffect(() => {
-    async function loadDraftProfile() {
-      const activeUser = await getCurrentUser();
-      if (!activeUser) {
-        router.push("/login");
-        return;
-      }
-      setUser(activeUser);
+    async function loadProfileState() {
+      try {
+        const activeUser = await getCurrentUser();
+        if (!activeUser) {
+          router.push("/login");
+          return;
+        }
+        setUser(activeUser);
 
-      const res = await databases.listDocuments(DATABASE_ID, PINGS_COLLECTION_ID, [
-        Query.equal("user_id", activeUser.$id),
-      ]);
+        // Fetch user's profile if it exists in the database
+        const res = await databases.listDocuments(DATABASE_ID, PINGS_COLLECTION_ID, [
+          Query.equal("user_id", activeUser.$id),
+        ]);
 
-      if (res.documents.length > 0) {
-        const doc = res.documents[0];
-        setProfileDoc(doc);
-        setHandle(doc.handle);
-        setName(doc.name || "");
-        setBio(doc.bio || "");
-        setAvatarDataUrl(doc.avatar_url || "");
-      } else {
-        // No profile exists yet (first-time OAuth user) — create a draft one now
-        const starterHandle = activeUser.email.split("@")[0];
-        const newDoc = await createPingProfile(activeUser.$id, starterHandle);
-        setProfileDoc(newDoc);
-        setHandle(newDoc.handle);
+        if (res.documents.length > 0) {
+          const doc = res.documents[0];
+          setProfileDoc(doc);
+          setHandle(doc.handle);
+          setName(doc.name || "");
+          setBio(doc.bio || "");
+          setAvatarDataUrl(doc.avatar_url || "");
+          
+          // If already onboarded, redirect immediately
+          if (doc.onboarded) {
+            router.push(`/${doc.handle}`);
+            return;
+          }
+        } else {
+          // Safe fallback handle stored locally in component state (no Database write yet!)
+          const starterHandle = activeUser.email ? activeUser.email.split("@")[0].replace(/[^a-z0-9_]/g, "") : "";
+          setHandle(starterHandle);
+        }
+      } catch (err) {
+        console.error("Error loading onboarding state:", err);
+      } finally {
+        setCheckingVerification(false);
       }
     }
-    loadDraftProfile();
+    loadProfileState();
   }, [router]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -92,10 +103,8 @@ export default function OnboardingPage() {
 
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
-
         ctx.drawImage(img, 0, 0, MAX_WIDTH, MAX_HEIGHT);
         const compressedBase64 = canvas.toDataURL("image/jpeg", 0.6);
-
         if (compressedBase64.length > 5000) {
           setUploadError("Image is too complex or large. Please choose a simpler avatar icon.");
           return;
@@ -145,30 +154,48 @@ export default function OnboardingPage() {
 
   const handleCompleteSetup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profileDoc || !isAvailable || submitting) return;
+    if (!user || !isAvailable || submitting) return;
+
+    // Direct API Security check to prevent unverified email form bypasses
+    if (!user.emailVerification) {
+      alert("Please verify your email address before finalizing your account.");
+      return;
+    }
 
     setSubmitting(true);
     const finalizedHandle = handle.toLowerCase().replace(/[^a-z0-9_]/g, "");
 
     try {
-      await databases.updateDocument(DATABASE_ID, PINGS_COLLECTION_ID, profileDoc.$id, {
-        handle: finalizedHandle,
-        name: name,
-        bio: bio,
-        avatar_url: avatarDataUrl,
-        onboarded: true,
-      });
-
+      if (profileDoc) {
+        // Safe: Update existing draft document
+        await databases.updateDocument(DATABASE_ID, PINGS_COLLECTION_ID, profileDoc.$id, {
+          handle: finalizedHandle,
+          name: name,
+          bio: bio,
+          avatar_url: avatarDataUrl,
+          onboarded: true,
+        });
+      } else {
+        // Safe: Write directly to the Database ONLY when they complete the onboard flow
+        await databases.createDocument(DATABASE_ID, PINGS_COLLECTION_ID, "unique()", {
+          user_id: user.$id,
+          handle: finalizedHandle,
+          name: name,
+          bio: bio,
+          avatar_url: avatarDataUrl,
+          onboarded: true,
+        });
+      }
       router.push(`/${finalizedHandle}`);
     } catch (err) {
-      console.error("Failed to complete profile onboarding update:", err);
+      console.error("Failed to write onboarded user to Database:", err);
+      setUploadError("Could not save your profile. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Still loading the user/profile
-  if (!user || !profileDoc) {
+  if (checkingVerification || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <p className="text-sm font-medium text-neutral-400 animate-pulse">Preparing configuration workspace...</p>
@@ -176,9 +203,7 @@ export default function OnboardingPage() {
     );
   }
 
-  // Block onboarding until the user's email is verified.
-  // OAuth users (Google/GitHub) are pre-verified by the provider, so this
-  // only actually gates email/password signups.
+  // Absolute email verification check blocks profile database creation
   if (!user.emailVerification) {
     return (
       <main className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
@@ -211,14 +236,25 @@ export default function OnboardingPage() {
 
         <div className="flex flex-col items-center text-center">
           <div className="relative group cursor-pointer mb-3" onClick={triggerFileSelect}>
-            <div className="w-20 h-20 rounded-full bg-neutral-100 border border-neutral-200 flex items-center justify-center overflow-hidden transition group-hover:opacity-90 relative shadow-inner">
+            {/* Dashed outer border visual container */}
+            <div className="w-24 h-24 rounded-full bg-neutral-100 border-2 border-dashed border-neutral-300 hover:border-neutral-900 flex items-center justify-center overflow-hidden transition relative shadow-inner">
               {avatarDataUrl ? (
                 <img src={avatarDataUrl} alt="Avatar Preview" className="w-full h-full object-cover" />
               ) : (
-                <User className="w-8 h-8 text-neutral-400" />
+                <div className="flex flex-col items-center justify-center text-neutral-400">
+                  <User className="w-8 h-8" />
+                </div>
               )}
-              <div className="absolute inset-0 bg-neutral-900/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition duration-200">
-                <Camera className="w-5 h-5 text-white" />
+              {/* Semi-transparent camera overlay which is obvious and darkens on hover */}
+              <div className={`absolute inset-0 flex flex-col items-center justify-center transition-all duration-200 ${
+                avatarDataUrl 
+                  ? "bg-black/40 opacity-0 group-hover:opacity-100" 
+                  : "bg-neutral-900/5 hover:bg-neutral-900/10 opacity-100"
+              }`}>
+                <Camera className={`w-6 h-6 transition-transform group-hover:scale-110 ${avatarDataUrl ? 'text-white' : 'text-neutral-500'}`} />
+                {!avatarDataUrl && (
+                  <span className="text-[9px] font-semibold tracking-wider uppercase mt-1 text-neutral-500">Upload</span>
+                )}
               </div>
             </div>
           </div>
@@ -232,7 +268,7 @@ export default function OnboardingPage() {
           />
 
           <h1 className="text-xl font-bold tracking-tight text-neutral-900">Set up your profile</h1>
-          <p className="text-xs text-neutral-500 mt-1">Tap the icon above to upload your profile photo.</p>
+          <p className="text-xs text-neutral-500 mt-1">Provide an avatar and unique username handle to get started.</p>
 
           {uploadError && (
             <p className="text-red-500 text-[11px] font-medium bg-red-50 border border-red-100 p-2 rounded-md mt-2 max-w-xs">
