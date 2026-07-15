@@ -73,7 +73,8 @@ export default function OnboardingPage() {
           }
         } else {
           // Safe fallback handle stored locally in component state (no Database write yet!)
-          const starterHandle = activeUser.email ? activeUser.email.split("@")[0].replace(/[^a-z0-9_]/g, "") : "";
+          const starterHandle = activeUser.email ? 
+            activeUser.email.split("@")[0].replace(/[^a-z0-9_]/g, "") : "";
           setHandle(starterHandle);
         }
       } catch (err) {
@@ -106,7 +107,7 @@ export default function OnboardingPage() {
         ctx.drawImage(img, 0, 0, MAX_WIDTH, MAX_HEIGHT);
         const compressedBase64 = canvas.toDataURL("image/jpeg", 0.6);
         if (compressedBase64.length > 5000) {
-          setUploadError("Image is too complex or large. Please choose a simpler avatar icon.");
+          setUploadError("Image is too large. Please choose a simpler avatar icon.");
           return;
         }
 
@@ -267,8 +268,8 @@ export default function OnboardingPage() {
             className="hidden"
           />
 
-          <h1 className="text-xl font-bold tracking-tight text-neutral-900">Set up your profile</h1>
-          <p className="text-xs text-neutral-500 mt-1">Provide an avatar and unique username handle to get started.</p>
+          <h1 className="text-xl font-bold tracking-tight text-neutral-900">Set up your Ping</h1>
+          <p className="text-xs text-neutral-500 mt-1">Provide an avatar and unique username to get started.</p>
 
           {uploadError && (
             <p className="text-red-500 text-[11px] font-medium bg-red-50 border border-red-100 p-2 rounded-md mt-2 max-w-xs">
@@ -284,7 +285,7 @@ export default function OnboardingPage() {
             <Input
               id="name"
               type="text"
-              placeholder="e.g. Joel Musonda"
+              placeholder="Choongo Justine"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="border-neutral-200 bg-white focus-visible:ring-neutral-400 text-sm h-9"

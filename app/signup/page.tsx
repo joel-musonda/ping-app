@@ -56,7 +56,7 @@ export default function SignupPage() {
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Create your account</h1>
           <p className="text-sm text-neutral-500 mt-1">
-            Get started with Ping today.
+            Bold ideas change the world. Share yours on Ping
           </p>
         </div>
 
@@ -66,7 +66,7 @@ export default function SignupPage() {
             <Input
               id="email"
               type="email"
-              placeholder="name@example.com"
+              placeholder="name@ping.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="bg-white border-neutral-300 text-neutral-900 focus-visible:ring-neutral-400"
