@@ -103,21 +103,21 @@ export default function SettingsClient() {
       setSaveStatus("Saved successfully");
     } catch (err) {
       console.error("Failed to save profile:", err);
-      setSaveStatus("Failed to save — check console");
+      setSaveStatus("Failed to save — Try again later ");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteNotebook = async (notebookId: string) => {
-    if (!confirm("Delete this notebook and all its chapters? This can't be undone.")) return;
+    if (!confirm("Are you sure you want to Delete this notebook and all its chapters? This can't be undone.")) return;
     setDeletingNotebookId(notebookId);
     try {
       await deleteNotebookCascade(notebookId);
       setNotebooks((prev) => prev.filter((nb) => nb.$id !== notebookId));
     } catch (err) {
       console.error("Failed to delete notebook:", err);
-      alert("Failed to delete notebook — check console");
+      alert("Failed to delete notebook — Try again later");
     } finally {
       setDeletingNotebookId(null);
     }
@@ -222,7 +222,7 @@ export default function SettingsClient() {
             <input
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              placeholder="e.g. Kitwe, Zambia"
+              placeholder="Lusaka, Zambia"
               className="w-full border border-neutral-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-neutral-400"
             />
           </div>

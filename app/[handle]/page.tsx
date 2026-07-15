@@ -278,7 +278,7 @@ export default function PingProfilePage() {
                     <div className="flex items-center gap-2">
                       <Link className="w-4 h-4 text-neutral-400" />
                       <a
-                        href={ping.github.startsWith("http") ? ping.github : `https://github.com/${ping.github.replace('@', '')}`}
+                        href={ping.github.startsWith("http") ? ping.github : `https://${ping.github.replace('@', '')}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-neutral-900 hover:underline break-all"
@@ -291,7 +291,7 @@ export default function PingProfilePage() {
                     <div className="flex items-center gap-2">
                       <Link className="w-4 h-4 text-neutral-400 " />
                       <a
-                        href={ping.twitter.startsWith("http") ? ping.twitter : `https://twitter.com/${ping.twitter.replace('@', '')}`}
+                        href={ping.twitter.startsWith("http") ? ping.twitter : `https://${ping.twitter.replace('@', '')}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-neutral-900 hover:underline break-all"
