@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Ping",
-  description: "Bold Ideas change the world. Share yours with Ping.",
+  description: "Bold Ideas change the world. Share yours on Ping.",
 };
 
 export default function RootLayout({
@@ -30,7 +30,14 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-white">
         <Navbar />
-        {children}
+        {/* 
+          This layout container guarantees that every subpage has 
+          enough bottom padding on mobile to never be hidden behind 
+          the 16-pixel (64px) mobile bottom bar, resetting cleanly on desktop views.
+        */}
+        <div className="flex-1 pb-16 md:pb-0">
+          {children}
+        </div>
       </body>
     </html>
   );
