@@ -582,8 +582,6 @@ export default function Navbar() {
           </div>
         </div>
       )}
-
-      {!loading && profileData && <div className="md:hidden h-16" />}
     </>
   );
 }
