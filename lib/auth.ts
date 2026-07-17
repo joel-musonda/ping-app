@@ -14,7 +14,7 @@ export async function signUp(email: string, password: string) {
   // 2. Log them in to establish an active session (required to trigger verification)
   await account.createEmailPasswordSession(email, password);
 
-  // 🚨 DATABASE WRITE REMOVED! 
+  //  DATABASE WRITE REMOVED! 
   // The profile document will now ONLY be created when they submit the Onboarding form.
 
   return user;

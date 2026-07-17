@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   databases,
@@ -381,67 +381,117 @@ export default function PingProfilePage() {
             </div> 
 
             <div className="p-4 bg-white border border-neutral-200 rounded-xl overflow-x-auto [scrollbar-width:thin]">
-              <div className="min-w-[620px] space-y-1">
-                <div className="flex gap-1 text-[10px] font-medium text-neutral-400 mb-1 pl-7">
-                  <span className="w-10">Jun/Jul</span>
-                  <span className="w-10">Aug</span>
-                  <span className="w-10">Sep</span>
-                  <span className="w-10">Oct</span>
-                  <span className="w-10">Nov</span>
-                  <span className="w-10">Dec</span>
-                  <span className="w-10">Jan</span>
-                  <span className="w-10">Feb</span>
-                  <span className="w-10">Mar</span>
-                  <span className="w-10">Apr</span>
-                  <span className="w-10">May</span>
-                  <span className="w-10">Jun</span>
-                  <span className="w-10">Jul</span>
-                </div>
+              <div className="min-w-[620px] select-none">
                 {(() => {
                   const today = new Date();
-                  const todayDayOfWeek = today.getDay(); // 0=Sun ... 6=Sat
+                  const totalWeeks = 53; 
 
-                  const currentWeekSunday = new Date(today);
-                  currentWeekSunday.setDate(today.getDate() - todayDayOfWeek);
+                  // Calculate the start date of the matrix grid (Sunday, 52 weeks ago)
+                  const gridStartDate = new Date(today);
+                  gridStartDate.setDate(today.getDate() - (totalWeeks - 1) * 7);
+                  gridStartDate.setDate(gridStartDate.getDate() - gridStartDate.getDay());
 
-                  const totalWeeks = 50;
-                  const firstWeekSunday = new Date(currentWeekSunday);
-                  firstWeekSunday.setDate(currentWeekSunday.getDate() - (totalWeeks - 1) * 7);
+                  // 1. Build the matrix data
+                  const weeks = Array.from({ length: totalWeeks }).map((_, weekIndex) => {
+                    return Array.from({ length: 7 }).map((_, dayIndex) => {
+                      const date = new Date(gridStartDate);
+                      date.setDate(gridStartDate.getDate() + weekIndex * 7 + dayIndex);
+                      const dateStr = date.toISOString().split("T")[0];
+                      return {
+                        date,
+                        dateStr,
+                        isActive: activityDates.has(dateStr),
+                        isFuture: date > today,
+                      };
+                    });
+                  });
 
-                  const rows = [
-                    { label: "Mon", dayOfWeek: 1 },
-                    { label: "Wed", dayOfWeek: 3 },
-                    { label: "Fri", dayOfWeek: 5 },
+                  // 2. Determine month labels and align them
+                  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                  const monthLabels: { text: string; weekColIndex: number }[] = [];
+                  let lastMonthName = "";
+
+                  weeks.forEach((week, weekIndex) => {
+                    const midDayDate = week[3].date;
+                    const currentMonthName = months[midDayDate.getMonth()];
+                    
+                    if (currentMonthName !== lastMonthName) {
+                      monthLabels.push({ text: currentMonthName, weekColIndex: weekIndex });
+                      lastMonthName = currentMonthName;
+                    }
+                  });
+
+                  // 3. Perfect matching 7-day row alignment
+                  const dayLabels = [
+                    { label: "", index: 0 },
+                    { label: "M", index: 1 },
+                    { label: "", index: 2 },
+                    { label: "W", index: 3 },
+                    { label: "", index: 4 },
+                    { label: "F", index: 5 },
+                    { label: "", index: 6 },
                   ];
 
+                  return (
+                    <div className="flex flex-col gap-1.5">
+                      {/* Months Header Line */}
+                      <div className="flex relative h-4 mb-0.5 text-[10px] font-medium text-neutral-400">
+                        {/* Spacing width matches the day label column (w-4) plus the new gap (gap-2.5 = 10px) */}
+                        <div className="w-[26px] shrink-0" />
+                        <div className="flex gap-[3.5px] relative w-full">
+                          {monthLabels.map((ml, i) => {
+                            const leftOffset = ml.weekColIndex * 13.5; // (w-2.5 cell = 10px) + (gap = 3.5px)
+                            return (
+                              <span 
+                                key={i} 
+                                className="absolute text-[10px]" 
+                                style={{ left: `${leftOffset}px` }}
+                              >
+                                {ml.text}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
 
-                  return rows.map(({ label, dayOfWeek }) => (
-                    <div key={label} className="flex items-center gap-1">
-                      <span className="w-6 text-[9px] text-neutral-400 font-medium text-left select-none">
-                        {label}
-                      </span>
+                      {/* Day Grid Matrix Layout with clear horizontal gap */}
+                      <div className="flex gap-2.5">
+                        {/* Vertical Days Row Label Column - strictly matching vertical cell spacing */}
+                        <div className="flex flex-col gap-[3.5px] w-4 shrink-0 select-none">
+                          {dayLabels.map((dl, idx) => (
+                            <span 
+                              key={idx} 
+                              className="h-2.5 text-[9px] text-neutral-400 font-medium flex items-center justify-start leading-none"
+                            >
+                              {dl.label}
+                            </span>
+                          ))}
+                        </div>
 
-                      {Array.from({ length: totalWeeks }).map((_, weekIndex) => {
-                        const cellDate = new Date(firstWeekSunday);
-                        cellDate.setDate(firstWeekSunday.getDate() + weekIndex * 7 + dayOfWeek);
-
-                        const dateStr = cellDate.toISOString().split("T")[0];
-                        const isActive = activityDates.has(dateStr);
-                        const isFuture = cellDate > today;
-
-                        return (
-                          <span
-                            key={weekIndex}
-                            title={dateStr}
-                            className="w-2.5 h-2.5 rounded-[2px] block shrink-0 transition-colors"
-                            style={{
-                              backgroundColor: loading || isFuture ? "#F4F4F5" : isActive ? "#A2CFFE" : "#F4F4F5",
-                            }}
-                          />
-                        );
-                      })}
+                        {/* Grid columns */}
+                        <div className="flex gap-[3.5px]">
+                          {weeks.map((week, weekIdx) => (
+                            <div key={weekIdx} className="flex flex-col gap-[3.5px]">
+                              {week.map((day, dayIdx) => (
+                                <span
+                                  key={dayIdx}
+                                  title={day.dateStr}
+                                  className="w-2.5 h-2.5 rounded-[1.5px] block shrink-0 transition-colors"
+                                  style={{
+                                    backgroundColor: loading || day.isFuture 
+                                      ? "#F4F4F5" 
+                                      : day.isActive 
+                                        ? "#2563EB" 
+                                        : "#F4F4F5",
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  ));
+                  );
                 })()}
               </div>
             </div>
