@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getCurrentUser, sendEmailVerification } from "@/lib/auth";
-import { databases, DATABASE_ID, PINGS_COLLECTION_ID } from "@/lib/appwrite";
+import { databases, account, DATABASE_ID, PINGS_COLLECTION_ID } from "@/lib/appwrite";
 import { Query } from "appwrite";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -45,11 +45,23 @@ export default function OnboardingPage() {
   useEffect(() => {
     async function loadProfileState() {
       try {
-        const activeUser = await getCurrentUser();
+        let activeUser = await getCurrentUser();
         if (!activeUser) {
           router.push("/login");
           return;
         }
+
+        // Re-fetch user session if email verification state hasn't synced locally yet
+        if (!activeUser.emailVerification) {
+          try {
+            const freshUser = await account.get();
+            activeUser = freshUser;
+          } catch {
+            router.push("/login");
+            return;
+          }
+        }
+
         setUser(activeUser);
 
         // Fetch user's profile if it exists in the database
@@ -64,20 +76,21 @@ export default function OnboardingPage() {
           setName(doc.name || "");
           setBio(doc.bio || "");
           setAvatarDataUrl(doc.avatar_url || "");
-          
+
           // If already onboarded, redirect immediately
-          if (doc.onboarded) {
+          if (doc.onboarded && activeUser.emailVerification) {
             router.push(`/${doc.handle}`);
             return;
           }
         } else {
-          // Safe fallback handle stored locally in component state
-          const starterHandle = activeUser.email ? 
-            activeUser.email.split("@")[0].replace(/[^a-z0-9_]/g, "") : "";
+          const starterHandle = activeUser.email
+            ? activeUser.email.split("@")[0].replace(/[^a-z0-9_]/g, "")
+            : "";
           setHandle(starterHandle);
         }
       } catch (err) {
         console.error("Error loading onboarding state:", err);
+        router.push("/login");
       } finally {
         setCheckingVerification(false);
       }
@@ -93,7 +106,6 @@ export default function OnboardingPage() {
     const reader = new FileReader();
 
     reader.onload = (event) => {
-      // Use window.Image to prevent TypeScript collision with Next.js Image
       const img = new window.Image();
       img.onload = () => {
         const canvas = document.createElement("canvas");
@@ -193,55 +205,77 @@ export default function OnboardingPage() {
     }
   };
 
+  // Skeleton Loader screen while loading configuration
   if (checkingVerification || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <p className="text-sm font-medium text-neutral-400 animate-pulse">Preparing configuration workspace...</p>
-      </div>
+      <main className="min-h-screen bg-neutral-50 flex items-center justify-center p-4 sm:p-6">
+        <div className="w-full max-w-sm sm:max-w-md bg-white border border-neutral-200 shadow-sm rounded-2xl p-6 sm:p-8 space-y-6 animate-pulse">
+          <div className="flex flex-col items-center text-center space-y-3">
+            <div className="w-24 h-24 rounded-full bg-neutral-200" />
+            <div className="h-6 w-3/5 bg-neutral-200 rounded-md" />
+            <div className="h-4 w-4/5 bg-neutral-100 rounded-md" />
+          </div>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <div className="h-3 w-1/4 bg-neutral-200 rounded-md" />
+              <div className="h-9 w-full bg-neutral-100 rounded-lg" />
+            </div>
+            <div className="space-y-2">
+              <div className="h-3 w-1/3 bg-neutral-200 rounded-md" />
+              <div className="h-9 w-full bg-neutral-100 rounded-lg" />
+            </div>
+            <div className="space-y-2">
+              <div className="h-3 w-1/4 bg-neutral-200 rounded-md" />
+              <div className="h-24 w-full bg-neutral-100 rounded-lg" />
+            </div>
+            <div className="h-10 w-full bg-neutral-200 rounded-xl pt-2" />
+          </div>
+        </div>
+      </main>
     );
   }
 
   // Email verification check screen
   if (!user.emailVerification) {
     return (
-      <main className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
-        <div className="max-w-sm w-full bg-white border border-neutral-200 shadow-sm rounded-2xl p-6 md:p-8 text-center space-y-4">
-          <div className="w-14 h-14 mx-auto rounded-full bg-neutral-100 flex items-center justify-center">
-            <Mail className="w-6 h-6 text-neutral-500" />
+      <main className="min-h-screen bg-neutral-50 flex items-center justify-center p-4 sm:p-6">
+        <div className="w-full max-w-xs sm:max-w-sm bg-white border border-neutral-200 shadow-sm rounded-2xl p-6 sm:p-8 text-center space-y-4">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-full bg-neutral-100 flex items-center justify-center">
+            <Mail className="w-5 h-5 sm:w-6 sm:h-6 text-neutral-500" />
           </div>
-          <h1 className="text-lg font-bold text-neutral-900">Verify your email</h1>
-          <p className="text-sm text-neutral-500">
+          <h1 className="text-base sm:text-lg font-bold text-neutral-900">Verify your email</h1>
+          <p className="text-xs sm:text-sm text-neutral-500 leading-relaxed">
             We sent a verification link to{" "}
-            <span className="font-medium text-neutral-900">{user.email}</span>. Click it to
+            <span className="font-medium text-neutral-900 break-all">{user.email}</span>. Click it to
             continue setting up your profile.
           </p>
 
           <Button
             onClick={handleResendVerification}
             disabled={resending}
-            className="w-full bg-[#3892D0] hover:bg-[#2c7ab2] active:bg-[#236494] text-white font-medium text-sm h-10 rounded-xl shadow-xs transition-colors mt-2"
+            className="w-full bg-[#3892D0] hover:bg-[#2c7ab2] active:bg-[#236494] text-white font-medium text-xs sm:text-sm h-10 rounded-xl shadow-xs transition-colors mt-2"
           >
             {resending ? "Sending..." : "Resend verification email"}
           </Button>
 
-          {resendStatus && <p className="text-xs text-neutral-400 pt-1">{resendStatus}</p>}
+          {resendStatus && <p className="text-xs text-neutral-400 pt-1 leading-snug">{resendStatus}</p>}
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white border border-neutral-200 shadow-sm rounded-2xl p-6 md:p-8 space-y-6">
+    <main className="min-h-screen bg-neutral-50 flex items-center justify-center p-4 sm:p-6">
+      <div className="w-full max-w-sm sm:max-w-md bg-white border border-neutral-200 shadow-sm rounded-2xl p-6 sm:p-8 space-y-6">
 
         <div className="flex flex-col items-center text-center">
           <div className="relative group cursor-pointer mb-3" onClick={triggerFileSelect}>
-            <div className="w-24 h-24 rounded-full bg-neutral-100 border-2 border-dashed border-neutral-300 hover:border-neutral-900 flex items-center justify-center overflow-hidden transition relative shadow-inner">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-neutral-100 border-2 border-dashed border-neutral-300 hover:border-neutral-900 flex items-center justify-center overflow-hidden transition relative shadow-inner">
               {avatarDataUrl ? (
                 <img src={avatarDataUrl} alt="Avatar Preview" className="w-full h-full object-cover" />
               ) : (
                 <div className="flex flex-col items-center justify-center text-neutral-400">
-                  <User className="w-8 h-8" />
+                  <User className="w-7 h-7 sm:w-8 sm:h-8" />
                 </div>
               )}
               <div className={`absolute inset-0 flex flex-col items-center justify-center transition-all duration-200 ${
@@ -249,9 +283,9 @@ export default function OnboardingPage() {
                   ? "bg-black/40 opacity-0 group-hover:opacity-100" 
                   : "bg-neutral-900/5 hover:bg-neutral-900/10 opacity-100"
               }`}>
-                <Camera className={`w-6 h-6 transition-transform group-hover:scale-110 ${avatarDataUrl ? 'text-white' : 'text-neutral-500'}`} />
+                <Camera className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform group-hover:scale-110 ${avatarDataUrl ? 'text-white' : 'text-neutral-500'}`} />
                 {!avatarDataUrl && (
-                  <span className="text-[9px] font-semibold tracking-wider uppercase mt-1 text-neutral-500">Upload</span>
+                  <span className="text-[8px] sm:text-[9px] font-semibold tracking-wider uppercase mt-1 text-neutral-500">Upload</span>
                 )}
               </div>
             </div>
@@ -265,7 +299,7 @@ export default function OnboardingPage() {
             className="hidden"
           />
 
-          <h1 className="text-xl font-bold tracking-tight text-neutral-900">Set up your Ping</h1>
+          <h1 className="text-lg sm:text-xl font-bold tracking-tight text-neutral-900">Set up your Ping</h1>
           <p className="text-xs text-neutral-500 mt-1">Provide an avatar and unique username to get started.</p>
 
           {uploadError && (
@@ -285,7 +319,7 @@ export default function OnboardingPage() {
               placeholder="Choongo Justine"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="border-neutral-200 bg-white focus-visible:ring-neutral-400 text-sm h-9"
+              className="border-neutral-200 bg-white focus-visible:ring-neutral-400 text-xs sm:text-sm h-9"
               required
             />
           </div>
@@ -306,14 +340,14 @@ export default function OnboardingPage() {
               )}
             </div>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400 select-none">@</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs sm:text-sm text-neutral-400 select-none">@</span>
               <Input
                 id="handle"
                 type="text"
                 placeholder="username"
                 value={handle}
                 onChange={(e) => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
-                className="pl-7 border-neutral-200 bg-white focus-visible:ring-neutral-400 text-sm h-9"
+                className="pl-7 border-neutral-200 bg-white focus-visible:ring-neutral-400 text-xs sm:text-sm h-9"
                 required
               />
             </div>
@@ -327,14 +361,14 @@ export default function OnboardingPage() {
               placeholder="Tell us a little bit about yourself, what you're building, or your interests..."
               value={bio}
               onChange={(e) => setBio(e.target.value)}
-              className="w-full rounded-md border border-neutral-200 bg-white p-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-400 focus:border-neutral-400 shadow-sm resize-none transition-all"
+              className="w-full rounded-md border border-neutral-200 bg-white p-2.5 text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-400 focus:border-neutral-400 shadow-xs resize-none transition-all"
             />
           </div>
 
           <Button
             type="submit"
             disabled={submitting || isAvailable !== true}
-            className="w-full bg-neutral-900 hover:bg-neutral-800 text-white font-medium text-sm h-10 shadow-sm transition-colors mt-2"
+            className="w-full bg-neutral-900 hover:bg-neutral-800 text-white font-medium text-xs sm:text-sm h-10 shadow-xs transition-colors mt-2"
           >
             {submitting ? "Creating your workspace..." : "Finish Onboarding"}
           </Button>
