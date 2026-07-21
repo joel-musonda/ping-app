@@ -3,10 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { logIn, signInWithGoogle, signInWithGithub } from "@/lib/auth";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Button, Checkbox } from "@heroui/react";
 import Image from "next/image";
 
 function LoginForm() {
@@ -50,89 +47,110 @@ function LoginForm() {
   };
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen bg-white text-neutral-900 px-4">
-      <div className="w-full max-w-sm p-6 bg-white rounded-xl border border-neutral-200 shadow-sm">
+    <main className="flex flex-col items-center justify-center min-h-screen bg-slate-50/50 text-neutral-900 px-4">
+      {/* Container card */}
+      <div className="w-full max-w-sm p-8 bg-white rounded-2xl border border-neutral-200/80 shadow-2xl shadow-neutral-200/70">
 
+        {/* Header Section */}
         <div className="flex flex-col items-center mb-6 text-center">
-          <div className="mb-4">
+          <div className="mb-4 transition-transform hover:scale-105">
             <Image
               src="/logo.png"
               alt="Ping Logo"
-              width={80}
-              height={80}
+              width={72}
+              height={72}
               className="object-contain"
               priority
             />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Log in to your account</h1>
-          <p className="text-sm text-neutral-500 mt-1">
+          <h1 className="text-2xl font-bold tracking-tight text-neutral-900">
+            Log in to your account
+          </h1>
+          <p className="text-xs text-neutral-500 mt-1.5">
             Welcome back! Please enter your details.
           </p>
         </div>
 
+        {/* Form Section */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="email" className="text-neutral-700 font-medium">Email</Label>
-            <Input
+            <label htmlFor="email" className="text-xs font-semibold text-neutral-700">
+              Email
+            </label>
+            <input
               id="email"
               type="email"
               placeholder="name@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="bg-white border-neutral-300 text-neutral-900 focus-visible:ring-neutral-400"
               required
+              className="w-full h-11 px-3.5 text-sm text-neutral-900 placeholder:text-neutral-400 bg-white border border-neutral-200 rounded-xl outline-none hover:border-neutral-300 focus:border-[#3892D0] focus:ring-2 focus:ring-[#3892D0]/30 transition-all"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="password" className="text-neutral-700 font-medium">Password</Label>
-            <Input
+            <label htmlFor="password" className="text-xs font-semibold text-neutral-700">
+              Password
+            </label>
+            <input
               id="password"
               type="password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-white border-neutral-300 text-neutral-900 focus-visible:ring-neutral-400"
               required
+              className="w-full h-11 px-3.5 text-sm text-neutral-900 placeholder:text-neutral-400 bg-white border border-neutral-200 rounded-xl outline-none hover:border-neutral-300 focus:border-[#3892D0] focus:ring-2 focus:ring-[#3892D0]/30 transition-all"
             />
           </div>
 
-          <div className="flex items-center justify-between text-sm">
-            <label className="flex items-center gap-2 cursor-pointer text-neutral-600 select-none">
-              <Checkbox className="border-neutral-300 data-[state=checked]:bg-neutral-900 data-[state=checked]:border-neutral-900" />
+          {/* Remember Me & Forgot Password */}
+          <div className="flex items-center justify-between text-xs pt-1">
+            <Checkbox
+             
+              className="text-xs text-neutral-600 font-medium select-none"
+            >
               Remember for 30 days
-            </label>
-            <a href="/forgot-password" className="text-xs font-semibold text-neutral-400 hover:text-neutral-950 transition ml-auto">
+            </Checkbox>
+            <a
+              href="/forgot-password"
+              className="font-semibold text-neutral-500 hover:text-neutral-900 transition-colors"
+            >
               Forgot password?
             </a>
           </div>
 
+          {/* Error Banner */}
           {error && (
-            <p className="text-red-500 text-xs font-medium bg-red-50 p-2 rounded-md border border-red-100">
+            <div className="text-red-600 text-xs font-medium bg-red-50/80 p-3 rounded-xl border border-red-200/60 leading-relaxed">
               {error}
-            </p>
+            </div>
           )}
 
+          {/* Primary Submit Button */}
           <Button
             type="submit"
-            disabled={loading}
-            className="w-full bg-neutral-900 hover:bg-neutral-800 text-white font-medium shadow-sm transition-colors mt-2"
+            isPending={loading}
+            className="w-full bg-[#3892D0] hover:bg-[#2b7bb5] active:bg-[#226697] text-white font-semibold shadow-sm text-sm h-11 rounded-xl transition-all mt-1"
           >
             {loading ? "Signing in..." : "Sign in"}
           </Button>
 
-          <div className="relative flex py-2 items-center">
+          {/* Divider */}
+          <div className="relative flex py-1 items-center">
             <div className="flex-grow border-t border-neutral-200"></div>
-            <span className="flex-shrink mx-4 text-xs uppercase text-neutral-400 font-semibold tracking-wider">or continue with</span>
+            <span className="flex-shrink mx-3 text-[10px] uppercase text-neutral-400 font-bold tracking-wider">
+              or continue with
+            </span>
             <div className="flex-grow border-t border-neutral-200"></div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          {/* OAuth Buttons */}
+          <div className="grid grid-cols-2 gap-2.5">
             <Button
               type="button"
               variant="outline"
               onClick={() => signInWithGoogle()}
-              className="flex items-center justify-center gap-2 border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700 font-medium shadow-sm"
+              className="flex items-center justify-center gap-2 border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-800 font-medium text-xs h-10 rounded-xl shadow-sm"
             >
               <Image src="/google.png" alt="Google" width={16} height={16} />
               Google
@@ -142,7 +160,7 @@ function LoginForm() {
               type="button"
               variant="outline"
               onClick={() => signInWithGithub()}
-              className="flex items-center justify-center gap-2 border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700 font-medium shadow-sm"
+              className="flex items-center justify-center gap-2 border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-800 font-medium text-xs h-10 rounded-xl shadow-sm"
             >
               <Image src="/github.png" alt="GitHub" width={16} height={16} />
               GitHub
@@ -150,9 +168,13 @@ function LoginForm() {
           </div>
         </form>
 
-        <p className="text-center text-sm text-neutral-500 mt-6">
+        {/* Footer Link */}
+        <p className="text-center text-xs text-neutral-500 mt-6">
           Don&apos;t have an account?{" "}
-          <a href="/signup" className="text-neutral-900 font-semibold hover:underline">
+          <a
+            href="/signup"
+            className="text-neutral-900 font-bold hover:underline"
+          >
             Sign up
           </a>
         </p>

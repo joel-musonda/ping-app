@@ -2,13 +2,12 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, sendEmailVerification } from "@/lib/auth";
 import { databases, DATABASE_ID, PINGS_COLLECTION_ID } from "@/lib/appwrite";
 import { Query } from "appwrite";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { sendEmailVerification } from "@/lib/auth";
 import { Mail, Check, AlertCircle, Camera, User } from "lucide-react";
 
 export default function OnboardingPage() {
@@ -72,7 +71,7 @@ export default function OnboardingPage() {
             return;
           }
         } else {
-          // Safe fallback handle stored locally in component state (no Database write yet!)
+          // Safe fallback handle stored locally in component state
           const starterHandle = activeUser.email ? 
             activeUser.email.split("@")[0].replace(/[^a-z0-9_]/g, "") : "";
           setHandle(starterHandle);
@@ -94,7 +93,8 @@ export default function OnboardingPage() {
     const reader = new FileReader();
 
     reader.onload = (event) => {
-      const img = new Image();
+      // Use window.Image to prevent TypeScript collision with Next.js Image
+      const img = new window.Image();
       img.onload = () => {
         const canvas = document.createElement("canvas");
         const MAX_WIDTH = 120;
@@ -157,7 +157,6 @@ export default function OnboardingPage() {
     e.preventDefault();
     if (!user || !isAvailable || submitting) return;
 
-    // Direct API Security check to prevent unverified email form bypasses
     if (!user.emailVerification) {
       alert("Please verify your email address before finalizing your account.");
       return;
@@ -168,7 +167,6 @@ export default function OnboardingPage() {
 
     try {
       if (profileDoc) {
-        // Safe: Update existing draft document
         await databases.updateDocument(DATABASE_ID, PINGS_COLLECTION_ID, profileDoc.$id, {
           handle: finalizedHandle,
           name: name,
@@ -177,7 +175,6 @@ export default function OnboardingPage() {
           onboarded: true,
         });
       } else {
-        // Safe: Write directly to the Database ONLY when they complete the onboard flow
         await databases.createDocument(DATABASE_ID, PINGS_COLLECTION_ID, "unique()", {
           user_id: user.$id,
           handle: finalizedHandle,
@@ -204,7 +201,7 @@ export default function OnboardingPage() {
     );
   }
 
-  // Absolute email verification check blocks profile database creation
+  // Email verification check screen
   if (!user.emailVerification) {
     return (
       <main className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
@@ -218,14 +215,16 @@ export default function OnboardingPage() {
             <span className="font-medium text-neutral-900">{user.email}</span>. Click it to
             continue setting up your profile.
           </p>
-          <button
+
+          <Button
             onClick={handleResendVerification}
             disabled={resending}
-            className="text-sm font-medium text-neutral-900 underline disabled:opacity-50"
+            className="w-full bg-[#3892D0] hover:bg-[#2c7ab2] active:bg-[#236494] text-white font-medium text-sm h-10 rounded-xl shadow-xs transition-colors mt-2"
           >
             {resending ? "Sending..." : "Resend verification email"}
-          </button>
-          {resendStatus && <p className="text-xs text-neutral-400">{resendStatus}</p>}
+          </Button>
+
+          {resendStatus && <p className="text-xs text-neutral-400 pt-1">{resendStatus}</p>}
         </div>
       </main>
     );
@@ -237,7 +236,6 @@ export default function OnboardingPage() {
 
         <div className="flex flex-col items-center text-center">
           <div className="relative group cursor-pointer mb-3" onClick={triggerFileSelect}>
-            {/* Dashed outer border visual container */}
             <div className="w-24 h-24 rounded-full bg-neutral-100 border-2 border-dashed border-neutral-300 hover:border-neutral-900 flex items-center justify-center overflow-hidden transition relative shadow-inner">
               {avatarDataUrl ? (
                 <img src={avatarDataUrl} alt="Avatar Preview" className="w-full h-full object-cover" />
@@ -246,7 +244,6 @@ export default function OnboardingPage() {
                   <User className="w-8 h-8" />
                 </div>
               )}
-              {/* Semi-transparent camera overlay which is obvious and darkens on hover */}
               <div className={`absolute inset-0 flex flex-col items-center justify-center transition-all duration-200 ${
                 avatarDataUrl 
                   ? "bg-black/40 opacity-0 group-hover:opacity-100" 

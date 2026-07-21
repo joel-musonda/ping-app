@@ -27,14 +27,10 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-white">
         <Navbar />
-        {/* 
-          This layout container guarantees that every subpage has 
-          enough bottom padding on mobile to never be hidden behind 
-          the 16-pixel (64px) mobile bottom bar, resetting cleanly on desktop views.
-        */}
         <div className="flex-1 pb-16 md:pb-0">
           {children}
         </div>
