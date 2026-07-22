@@ -320,14 +320,15 @@ export default function SettingsClient() {
                     <span className="text-sm font-medium text-neutral-900 truncate">{nb.title}</span>
                     {!nb.is_public && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
                   </div>
-                  <Button
-                    onPress={() => setNotebookToDelete(nb)}
-                    isDisabled={deletingNotebookId === nb.$id}
-                    className="p-1.5 rounded-md text-neutral-400 hover:text-red-500 hover:bg-red-50 transition shrink-0 disabled:opacity-50 h-auto min-w-0 bg-transparent border-0 shadow-none"
-                    title="Delete notebook"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div title="Delete notebook" className="inline-block">
+                    <Button
+                      onPress={() => setNotebookToDelete(nb)}
+                      isDisabled={deletingNotebookId === nb.$id}
+                      className="p-1.5 rounded-md text-neutral-400 hover:text-red-500 hover:bg-red-50 transition shrink-0 disabled:opacity-50 h-auto min-w-0 bg-transparent border-0 shadow-none"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
