@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   databases,
   DATABASE_ID,
   PINGS_COLLECTION_ID,
+  FOLLOWS_COLLECTION_ID,
   getNotebooksForUser,
   checkIsFollowing,
   followUser,
@@ -16,8 +17,9 @@ import {
 } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
 import { Query } from "appwrite";
-import { Book, MapPin, Link2, Users, FileText, Lock, Link} from "lucide-react";
+import { Book, MapPin, Link2, Users, FileText, Lock, Link } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Modal, Button, Avatar, ListBox, Label, Description } from "@heroui/react";
 
 function ProfileSkeleton() {
   return (
@@ -78,6 +80,12 @@ export default function PingProfilePage() {
   const [followingCount, setFollowingCount] = useState(0);
   const [activityDates, setActivityDates] = useState<Set<string>>(new Set());
 
+  // Modal State for Followers & Following Lists
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<"followers" | "following">("followers");
+  const [userList, setUserList] = useState<any[]>([]);
+  const [listLoading, setListLoading] = useState(false);
+
   useEffect(() => {
     if (!handle) return;
     let cancelled = false;
@@ -119,7 +127,6 @@ export default function PingProfilePage() {
         setFollowerCount(followers);
         setFollowingCount(following);
 
-        // Map real creation timestamps into string tokens to feed the streak matrix cells
         const datesSet = new Set<string>();
         nbs.forEach((nb: any) => {
           if (nb.$createdAt) {
@@ -174,6 +181,47 @@ export default function PingProfilePage() {
     }
   };
 
+  const handleOpenModal = async (type: "followers" | "following") => {
+    if (!ping?.user_id) return;
+    setModalType(type);
+    setModalOpen(true);
+    setListLoading(true);
+    try {
+      if (type === "followers") {
+        const res = await databases.listDocuments(DATABASE_ID, FOLLOWS_COLLECTION_ID, [
+          Query.equal("following_id", ping.user_id),
+        ]);
+        const followerUserIds = res.documents.map((d: any) => d.follower_id);
+        if (followerUserIds.length > 0) {
+          const pingsRes = await databases.listDocuments(DATABASE_ID, PINGS_COLLECTION_ID, [
+            Query.equal("user_id", followerUserIds),
+          ]);
+          setUserList(pingsRes.documents);
+        } else {
+          setUserList([]);
+        }
+      } else {
+        const res = await databases.listDocuments(DATABASE_ID, FOLLOWS_COLLECTION_ID, [
+          Query.equal("follower_id", ping.user_id),
+        ]);
+        const followingUserIds = res.documents.map((d: any) => d.following_id);
+        if (followingUserIds.length > 0) {
+          const pingsRes = await databases.listDocuments(DATABASE_ID, PINGS_COLLECTION_ID, [
+            Query.equal("user_id", followingUserIds),
+          ]);
+          setUserList(pingsRes.documents);
+        } else {
+          setUserList([]);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load user list:", err);
+      setUserList([]);
+    } finally {
+      setListLoading(false);
+    }
+  };
+
   if (!loading && !ping) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] bg-white text-center p-4">
@@ -193,12 +241,14 @@ export default function PingProfilePage() {
             <ProfileSkeleton />
           ) : (
             <>
+              {/* High-Quality Profile Avatar */}
               <div className="w-32 h-32 md:w-40 md:h-40 bg-neutral-100 rounded-full border border-neutral-200 overflow-hidden flex items-center justify-center shrink-0 shadow-sm relative">
                 {ping?.avatar_url ? (
                   <img
                     src={ping.avatar_url}
                     alt={`${ping?.name || handle}'s avatar`}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover rounded-full"
+                    loading="eager"
                     decoding="async"
                   />
                 ) : (
@@ -215,7 +265,7 @@ export default function PingProfilePage() {
                 <p className="text-sm font-medium text-neutral-400">@{ping?.handle}</p>
               </div>
 
-              {isOwnProfile ? (
+                            {isOwnProfile ? (
                 <button
                   onClick={() => router.push("/settings")}
                   className="w-full bg-white hover:bg-neutral-50 border border-neutral-200 text-neutral-900 text-sm font-medium py-2 px-4 rounded-md shadow-sm transition-colors shrink-0 cursor-pointer"
@@ -236,18 +286,26 @@ export default function PingProfilePage() {
                 </button>
               )}
 
+
               <p className="text-sm text-neutral-700 leading-relaxed pt-1 shrink-0 break-words whitespace-pre-wrap">
                 {ping?.bio || "Hello There, Welcome to my Ping"}
               </p>
 
+              {/* Clickable Follow Stats */}
               <div className="flex items-center gap-3 text-xs text-neutral-600 pt-1 shrink-0">
-                <div className="flex items-center gap-1 hover:text-neutral-900 cursor-pointer">
+                <div 
+                  onClick={() => handleOpenModal("followers")}
+                  className="flex items-center gap-1 hover:text-neutral-900 cursor-pointer"
+                >
                   <Users className="w-3.5 h-3.5 text-neutral-400" />
                   <span className="font-bold text-neutral-900">{followerCount}</span>
                   <span>followers</span>
                 </div>
                 <span>·</span>
-                <div className="flex items-center gap-1 hover:text-neutral-900 cursor-pointer">
+                <div 
+                  onClick={() => handleOpenModal("following")}
+                  className="flex items-center gap-1 hover:text-neutral-900 cursor-pointer"
+                >
                   <span className="font-bold text-neutral-900">{followingCount}</span>
                   <span>following</span>
                 </div>
@@ -369,7 +427,7 @@ export default function PingProfilePage() {
             )}
           </div>
 
-          {/* Activity Streak Matrix Panel — driven by real notebook creation dates */}
+          {/* Activity Streak Matrix Panel */}
           <div className="space-y-4 pt-4 border-t border-neutral-100 shrink-0">
             <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Activity</h3>
 
@@ -386,12 +444,10 @@ export default function PingProfilePage() {
                   const today = new Date();
                   const totalWeeks = 53; 
 
-                  // Calculate the start date of the matrix grid (Sunday, 52 weeks ago)
                   const gridStartDate = new Date(today);
                   gridStartDate.setDate(today.getDate() - (totalWeeks - 1) * 7);
                   gridStartDate.setDate(gridStartDate.getDate() - gridStartDate.getDay());
 
-                  // 1. Build the matrix data
                   const weeks = Array.from({ length: totalWeeks }).map((_, weekIndex) => {
                     return Array.from({ length: 7 }).map((_, dayIndex) => {
                       const date = new Date(gridStartDate);
@@ -406,7 +462,6 @@ export default function PingProfilePage() {
                     });
                   });
 
-                  // 2. Determine month labels and align them
                   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
                   const monthLabels: { text: string; weekColIndex: number }[] = [];
                   let lastMonthName = "";
@@ -421,7 +476,6 @@ export default function PingProfilePage() {
                     }
                   });
 
-                  // 3. Perfect matching 7-day row alignment
                   const dayLabels = [
                     { label: "", index: 0 },
                     { label: "M", index: 1 },
@@ -434,13 +488,11 @@ export default function PingProfilePage() {
 
                   return (
                     <div className="flex flex-col gap-1.5">
-                      {/* Months Header Line */}
                       <div className="flex relative h-4 mb-0.5 text-[10px] font-medium text-neutral-400">
-                        {/* Spacing width matches the day label column (w-4) plus the new gap (gap-2.5 = 10px) */}
                         <div className="w-[26px] shrink-0" />
                         <div className="flex gap-[3.5px] relative w-full">
                           {monthLabels.map((ml, i) => {
-                            const leftOffset = ml.weekColIndex * 13.5; // (w-2.5 cell = 10px) + (gap = 3.5px)
+                            const leftOffset = ml.weekColIndex * 13.5;
                             return (
                               <span 
                                 key={i} 
@@ -454,9 +506,7 @@ export default function PingProfilePage() {
                         </div>
                       </div>
 
-                      {/* Day Grid Matrix Layout with clear horizontal gap */}
                       <div className="flex gap-2.5">
-                        {/* Vertical Days Row Label Column - strictly matching vertical cell spacing */}
                         <div className="flex flex-col gap-[3.5px] w-4 shrink-0 select-none">
                           {dayLabels.map((dl, idx) => (
                             <span 
@@ -468,7 +518,6 @@ export default function PingProfilePage() {
                           ))}
                         </div>
 
-                        {/* Grid columns */}
                         <div className="flex gap-[3.5px]">
                           {weeks.map((week, weekIdx) => (
                             <div key={weekIdx} className="flex flex-col gap-[3.5px]">
@@ -500,6 +549,57 @@ export default function PingProfilePage() {
         </div>
 
       </div>
+
+      {/* HeroUI Followers / Following Modal */}
+      <Modal isOpen={modalOpen} onOpenChange={setModalOpen}>
+        <Modal.Backdrop>
+          <Modal.Container>
+            <Modal.Dialog className="sm:max-w-[400px]">
+              <Modal.CloseTrigger />
+              <Modal.Header>
+                <Modal.Heading className="text-sm font-bold capitalize">
+                  {modalType}
+                </Modal.Heading>
+              </Modal.Header>
+              <Modal.Body className="max-h-[360px] overflow-y-auto px-1">
+                {listLoading ? (
+                  <div className="py-8 text-center text-xs text-neutral-400 italic">Loading users...</div>
+                ) : userList.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-neutral-400">No {modalType} found.</div>
+                ) : (
+                  <ListBox aria-label="Users list" selectionMode="none" className="w-full flex flex-col gap-1">
+                    {userList.map((u) => (
+                      <ListBox.Item 
+                        key={u.$id || u.user_id} 
+                        id={u.$id || u.user_id} 
+                        textValue={u.name || u.handle}
+                        className="cursor-pointer hover:bg-neutral-100 rounded-xl p-2.5 transition-colors flex items-center gap-3 outline-none"
+                        onAction={() => {
+                          setModalOpen(false);
+                          router.push(`/${u.handle}`);
+                        }}
+                      >
+                        <Avatar size="sm" className="w-9 h-9 shrink-0 rounded-full overflow-hidden border border-neutral-200">
+                          <Avatar.Image
+                            alt={u.name || u.handle}
+                            src={u.avatar_url || ""}
+                            className="object-cover w-full h-full"
+                          />
+                          <Avatar.Fallback>{(u.handle || "U").charAt(0).toUpperCase()}</Avatar.Fallback>
+                        </Avatar>
+                        <div className="flex flex-col min-w-0">
+                          <Label className="font-bold text-xs text-neutral-900 truncate">{u.name || u.handle}</Label>
+                          <Description className="text-[11px] text-neutral-500 truncate">@{u.handle}</Description>
+                        </div>
+                      </ListBox.Item>
+                    ))}
+                  </ListBox>
+                )}
+              </Modal.Body>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
     </main>
   );
 }

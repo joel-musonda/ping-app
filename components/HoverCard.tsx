@@ -21,8 +21,12 @@ export default function HoverCard({ handle, children }: HoverCardProps) {
   const [data, setData] = useState<{ ping: any; followerCount: number } | null>(null);
   const [mounted, setMounted] = useState(false);
   
-  // Track viewport positioning coordinates
-  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  // Track viewport positioning coordinates and vertical placement mode
+  const [coords, setCoords] = useState({ 
+    top: 0, 
+    left: 0, 
+    verticalPlacement: "top" as "top" | "bottom" 
+  });
   
   const triggerRef = useRef<HTMLSpanElement>(null);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -39,11 +43,32 @@ export default function HoverCard({ handle, children }: HoverCardProps) {
   const updatePosition = () => {
     if (triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
-      // Position the card right above the hovered handle text, accounting for page scroll
-      setCoords({
-        top: rect.top + window.scrollY - 8, // 8px spacing gap above text
-        left: rect.left + window.scrollX,
-      });
+      const cardWidth = 256; // w-64 is 256px
+      const estimatedHeight = 220; // Estimated max height of the hover card
+      
+      let left = rect.left + window.scrollX;
+      let top = rect.top + window.scrollY - 8; // 8px gap above text by default
+      let verticalPlacement: "top" | "bottom" = "top";
+
+      // 1. Horizontal Boundary Check (X.com style shift/clamp)
+      // If the card goes past the right edge of the viewport
+      if (rect.left + cardWidth > window.innerWidth - 16) {
+        // Align the right edge of the card with the right edge of the trigger element
+        left = rect.right + window.scrollX - cardWidth;
+      }
+
+      // Ensure it doesn't overflow past the left side of the screen
+      if (left < window.scrollX + 16) {
+        left = window.scrollX + 16;
+      }
+
+      // 2. Vertical Boundary Check (Flip to bottom if close to top of screen)
+      if (rect.top < estimatedHeight + 16) {
+        verticalPlacement = "bottom";
+        top = rect.bottom + window.scrollY + 8; // 8px gap below trigger text
+      }
+
+      setCoords({ top, left, verticalPlacement });
     }
   };
 
@@ -96,11 +121,11 @@ export default function HoverCard({ handle, children }: HoverCardProps) {
   // The floating visual element that mounts into the body portal
   const cardContent = (
     <div 
-      className="absolute z-[9999] w-64 p-4 rounded-xl bg-[#0d1117] border border-[#30363d] shadow-2xl text-[#c9d1d9] animate-in fade-in slide-in-from-bottom-2 duration-150 cursor-default"
+      className="absolute z-[9999] w-64 p-4 rounded-xl bg-[#0d1117] border border-[#30363d] shadow-2xl text-[#c9d1d9] animate-in fade-in duration-150 cursor-default"
       style={{
         top: `${coords.top}px`,
         left: `${coords.left}px`,
-        transform: "translateY(-100%)", // Shift card completely above the calculation coordinates
+        transform: coords.verticalPlacement === "top" ? "translateY(-100%)" : "none",
       }}
       onMouseEnter={() => {
         if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);

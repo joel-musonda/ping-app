@@ -555,3 +555,10 @@ export async function searchPingsByHandle(query: string) {
   ]);
   return res.documents;
 }
+export async function deleteChapter(chapterId: string) {
+  return await databases.deleteDocument(
+    process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
+    process.env.NEXT_PUBLIC_APPWRITE_CHAPTERS_COLLECTION_ID!,
+    chapterId
+  );
+}

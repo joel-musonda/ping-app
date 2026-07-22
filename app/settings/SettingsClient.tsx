@@ -9,7 +9,8 @@ import {
   getNotebooksForUser,
   deleteNotebookCascade,
 } from "@/lib/appwrite";
-import { Camera, User, Trash2, AlertTriangle, Book, Lock } from "lucide-react";
+import { Camera, User, Trash2, AlertTriangle, Book, Lock, Info, X } from "lucide-react";
+import { Button, toast } from "@heroui/react";
 
 export default function SettingsClient() {
   const router = useRouter();
@@ -30,10 +31,15 @@ export default function SettingsClient() {
 
   const [notebooks, setNotebooks] = useState<any[]>([]);
   const [deletingNotebookId, setDeletingNotebookId] = useState<string | null>(null);
+  const [notebookToDelete, setNotebookToDelete] = useState<any | null>(null);
 
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+
+  // Modal visibility states
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -73,13 +79,32 @@ export default function SettingsClient() {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement("canvas");
-        const MAX = 120;
-        canvas.width = MAX;
-        canvas.height = MAX;
+        const MAX = 400;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX) {
+            height *= MAX / width;
+            width = MAX;
+          }
+        } else {
+          if (height > MAX) {
+            width *= MAX / height;
+            height = MAX;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
-        ctx.drawImage(img, 0, 0, MAX, MAX);
-        setAvatarDataUrl(canvas.toDataURL("image/jpeg", 0.6));
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(img, 0, 0, width, height);
+
+        setAvatarDataUrl(canvas.toDataURL("image/jpeg", 0.9));
       };
       img.src = event.target?.result as string;
     };
@@ -101,25 +126,36 @@ export default function SettingsClient() {
         avatar_url: avatarDataUrl,
       });
       setSaveStatus("Saved successfully");
+      toast("Profile updated", {
+        description: "Your profile changes have been saved successfully.",
+      });
     } catch (err) {
       console.error("Failed to save profile:", err);
       setSaveStatus("Failed to save — Try again later ");
+      toast("Save failed", {
+        description: "Failed to save profile changes. Please try again.",
+      });
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteNotebook = async (notebookId: string) => {
-    if (!confirm("Are you sure you want to Delete this notebook and all its chapters? This can't be undone.")) return;
     setDeletingNotebookId(notebookId);
     try {
       await deleteNotebookCascade(notebookId);
       setNotebooks((prev) => prev.filter((nb) => nb.$id !== notebookId));
+      toast("Notebook deleted", {
+        description: "The notebook and all its chapters have been permanently deleted.",
+      });
     } catch (err) {
       console.error("Failed to delete notebook:", err);
-      alert("Failed to delete notebook — Try again later");
+      toast("Deletion failed", {
+        description: "Failed to delete notebook — Try again later",
+      });
     } finally {
       setDeletingNotebookId(null);
+      setNotebookToDelete(null);
     }
   };
 
@@ -153,6 +189,7 @@ export default function SettingsClient() {
       setDeleteError(err.message || "Something went wrong. Please try again.");
     } finally {
       setDeletingAccount(false);
+      setShowDeleteAccountModal(false);
     }
   };
 
@@ -255,13 +292,13 @@ export default function SettingsClient() {
           </div>
 
           <div className="flex items-center gap-3 pt-1">
-            <button
-              onClick={handleSaveProfile}
-              disabled={saving}
-              className="bg-neutral-900 hover:bg-neutral-800 text-white text-sm font-medium px-4 py-2 rounded-md disabled:opacity-50 transition"
+            <Button
+              onPress={() => setShowSaveModal(true)}
+              isDisabled={saving}
+              className="bg-neutral-900 hover:bg-neutral-800 text-white text-sm font-medium px-4 py-2 rounded-md disabled:opacity-50 transition h-auto min-w-0"
             >
               {saving ? "Saving..." : "Save Changes"}
-            </button>
+            </Button>
             {saveStatus && <span className="text-xs text-neutral-500">{saveStatus}</span>}
           </div>
         </section>
@@ -283,14 +320,14 @@ export default function SettingsClient() {
                     <span className="text-sm font-medium text-neutral-900 truncate">{nb.title}</span>
                     {!nb.is_public && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
                   </div>
-                  <button
-                    onClick={() => handleDeleteNotebook(nb.$id)}
-                    disabled={deletingNotebookId === nb.$id}
-                    className="p-1.5 rounded-md text-neutral-400 hover:text-red-500 hover:bg-red-50 transition shrink-0 disabled:opacity-50"
+                  <Button
+                    onPress={() => setNotebookToDelete(nb)}
+                    isDisabled={deletingNotebookId === nb.$id}
+                    className="p-1.5 rounded-md text-neutral-400 hover:text-red-500 hover:bg-red-50 transition shrink-0 disabled:opacity-50 h-auto min-w-0 bg-transparent border-0 shadow-none"
                     title="Delete notebook"
                   >
                     <Trash2 className="w-4 h-4" />
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
@@ -319,16 +356,118 @@ export default function SettingsClient() {
 
           {deleteError && <p className="text-xs text-red-500">{deleteError}</p>}
 
-          <button
-            onClick={handleDeleteAccount}
-            disabled={deleteConfirmText !== "DELETE" || deletingAccount}
-            className="bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-md disabled:opacity-40 transition"
+          <Button
+            onPress={() => setShowDeleteAccountModal(true)}
+            isDisabled={deleteConfirmText !== "DELETE" || deletingAccount}
+            className="bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-md disabled:opacity-40 transition h-auto min-w-0"
           >
             {deletingAccount ? "Deleting..." : "Delete My Account"}
-          </button>
+          </Button>
         </section>
 
       </div>
+
+      {/* Save Changes Confirmation Modal */}
+      {showSaveModal && (
+        <div className="fixed inset-0 z-50 bg-neutral-950/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-neutral-200 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                <Info className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-neutral-900">Save profile changes?</h3>
+                <p className="text-xs text-neutral-500 mt-0.5">Are you sure you want to update your profile information?</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                onClick={() => setShowSaveModal(false)}
+                className="px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100 rounded-lg transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowSaveModal(false);
+                  handleSaveProfile();
+                }}
+                className="px-3 py-1.5 text-xs font-medium bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg transition"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Notebook Confirmation Modal */}
+      {notebookToDelete && (
+        <div className="fixed inset-0 z-50 bg-neutral-950/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-neutral-200 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-neutral-900">Delete notebook permanently?</h3>
+                <p className="text-xs text-neutral-500 mt-0.5">
+                  This will permanently delete <strong>{notebookToDelete.title}</strong> and all of its chapters.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                onClick={() => setNotebookToDelete(null)}
+                className="px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100 rounded-lg transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteNotebook(notebookToDelete.$id)}
+                disabled={deletingNotebookId === notebookToDelete.$id}
+                className="px-3 py-1.5 text-xs font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition disabled:opacity-50"
+              >
+                {deletingNotebookId === notebookToDelete.$id ? "Deleting..." : "Delete Notebook"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteAccountModal && (
+        <div className="fixed inset-0 z-50 bg-neutral-950/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-neutral-200 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-neutral-900">Delete account permanently?</h3>
+                <p className="text-xs text-neutral-500 mt-0.5">
+                  This will permanently delete your profile, notebooks, and chapters. This action cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                onClick={() => setShowDeleteAccountModal(false)}
+                className="px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100 rounded-lg transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount}
+                className="px-3 py-1.5 text-xs font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition disabled:opacity-50"
+              >
+                {deletingAccount ? "Deleting..." : "Delete Account"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

@@ -47,9 +47,9 @@ function LoginForm() {
   };
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen bg-slate-50/50 text-neutral-900 px-4">
+    <main className="flex flex-col items-center justify-center min-h-[100dvh] w-full bg-slate-50/50 text-neutral-900 p-4 sm:p-6">
       {/* Container card */}
-      <div className="w-full max-w-sm p-8 bg-white rounded-2xl border border-neutral-200/80 shadow-2xl shadow-neutral-200/70">
+      <div className="w-full max-w-sm p-6 sm:p-8 bg-white rounded-2xl border border-neutral-200/80 shadow-2xl shadow-neutral-200/70 my-auto">
 
         {/* Header Section */}
         <div className="flex flex-col items-center mb-6 text-center">
@@ -63,7 +63,7 @@ function LoginForm() {
               priority
             />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-neutral-900">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900">
             Log in to your account
           </h1>
           <p className="text-xs text-neutral-500 mt-1.5">
@@ -106,7 +106,6 @@ function LoginForm() {
           {/* Remember Me & Forgot Password */}
           <div className="flex items-center justify-between text-xs pt-1">
             <Checkbox
-             
               className="text-xs text-neutral-600 font-medium select-none"
             >
               Remember for 30 days

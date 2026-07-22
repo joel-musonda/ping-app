@@ -5,8 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
+import Link from "@tiptap/extension-link";
 import ImageExtension from "@tiptap/extension-image";
 import TextAlign from "@tiptap/extension-text-align";
+import { toast } from "@heroui/react";
 import {
   getChapter,
   updateChapter,
@@ -25,8 +27,9 @@ import {
 import { getCurrentUser } from "@/lib/auth";
 import { 
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
-  Heading2, List, ImageIcon, ArrowLeft, Check, CloudLightning, 
-  Bookmark, MessageSquare, Trash2, Heart 
+  Heading2, List, ImageIcon, ArrowLeft, CloudLightning, 
+  Bookmark, MessageSquare, Trash2, Heart, Link as LinkIcon, Quote, Code,
+  AlignLeft, AlignCenter, AlignRight, X, Upload
 } from "lucide-react";
 
 export default function ChapterWorkspacePage() {
@@ -37,8 +40,12 @@ export default function ChapterWorkspacePage() {
   const [notebookId, setNotebookId] = useState<string | null>(null);
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(true);
-  const [canEdit, setCanEdit] = useState(false); // Changed from isOwner to canEdit permissions flag
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [canEdit, setCanEdit] = useState(false);
+
+  // Preview Image & Onboarding Card State
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [uploadingPreview, setUploadingPreview] = useState(false);
 
   // Reader Telemetry State
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -50,15 +57,20 @@ export default function ChapterWorkspacePage() {
   const [postingComment, setPostingComment] = useState(false);
   const [currentUserHandle, setCurrentUserHandle] = useState<string | null>(null);
 
-  // Initialize Tiptap core editor matching your notebook environment layout exactly
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
       StarterKit.configure({ underline: false }),
       Underline,
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: "text-blue-600 underline cursor-pointer",
+        },
+      }),
       ImageExtension.configure({
         HTMLAttributes: {
-          class: "rounded-xl border max-h-[400px] w-auto mx-auto my-4 object-cover shadow-sm",
+          class: "rounded-xl border max-h-[300px] sm:max-h-[400px] w-auto mx-auto my-4 object-cover shadow-sm",
         },
       }),
       TextAlign.configure({
@@ -67,35 +79,10 @@ export default function ChapterWorkspacePage() {
     ],
     editorProps: {
       attributes: {
-        class: "prose focus:outline-none min-h-[450px] max-w-none text-neutral-800",
+        class: "prose focus:outline-none min-h-[350px] sm:min-h-[450px] max-w-none text-neutral-800",
       },
     },
-    onUpdate: ({ editor }) => {
-      // Allow saving updates if user has edit permissions
-      setStatus("Saving...");
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(() => {
-        saveContent(editor.getJSON());
-      }, 1200);
-    },
   });
-
-  // Keep editor onUpdate callback up-to-date with current permissions state
-  useEffect(() => {
-    if (!editor) return;
-    
-    // We update the onUpdate option dynamically so it has the correct reference to canEdit status
-    editor.setOptions({
-      onUpdate: ({ editor }) => {
-        if (!canEdit) return; // Prevent autosave fires if user doesn't have permissions
-        setStatus("Saving...");
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        timeoutRef.current = setTimeout(() => {
-          saveContent(editor.getJSON());
-        }, 1200);
-      }
-    });
-  }, [editor, canEdit]);
 
   useEffect(() => {
     let cancelled = false;
@@ -105,8 +92,10 @@ export default function ChapterWorkspacePage() {
         if (cancelled) return;
         setTitle(chapter.title);
         setNotebookId(chapter.notebook_id);
+        if (chapter.preview_image_url) {
+          setPreviewImageUrl(chapter.preview_image_url);
+        }
 
-        // Load initial content array securely into the Tiptap context editor shell
         if (editor && chapter.content_json) {
           try {
             editor.commands.setContent(JSON.parse(chapter.content_json));
@@ -122,7 +111,6 @@ export default function ChapterWorkspacePage() {
 
           setCurrentUser(user);
           
-          // A user can edit if they are the original owner OR included in collaborator_ids
           const dynamicEditAccess = !!user && (
             user.$id === notebook.owner_id || 
             (notebook.collaborator_ids && notebook.collaborator_ids.includes(user.$id))
@@ -130,14 +118,12 @@ export default function ChapterWorkspacePage() {
           
           setCanEdit(dynamicEditAccess);
 
-          // Configure operational modes context state rules
           if (dynamicEditAccess) {
             editor?.setEditable(true);
             setLoading(false);
             return;
           }
 
-          // Reader View fallback logic remains intact if visited externally
           editor?.setEditable(false);
           const [count, likedId, chapterComments] = await Promise.all([
             getLikeCount(chapterId),
@@ -173,29 +159,18 @@ export default function ChapterWorkspacePage() {
     };
   }, [chapterId, editor]);
 
-  const saveContent = async (json: object) => {
-    try {
-      await updateChapter(chapterId, { content_json: JSON.stringify(json) });
-      setStatus("Saved");
-    } catch (err) {
-      console.error(err);
-      setStatus("Failed");
+  const setLink = () => {
+    if (!editor) return;
+    const previousUrl = editor.getAttributes("link").href;
+    const url = window.prompt("Enter URL:", previousUrl);
+    if (url === null) return;
+    if (url === "") {
+      editor.chain().focus().extendMarkRange("link").unsetLink().run();
+      return;
     }
+    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   };
 
-  const handleTitleBlur = async () => {
-    if (!canEdit) return;
-    try {
-      setStatus("Saving...");
-      await updateChapter(chapterId, { title: title.trim() });
-      setStatus("Saved");
-    } catch (err) {
-      console.error(err);
-      setStatus("Failed");
-    }
-  };
-
-  // Image insertion pipeline utilizing the precise Appwrite configuration logic from page.tsx
   const addLocalImageViaUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !editor || !canEdit) return;
@@ -207,23 +182,40 @@ export default function ChapterWorkspacePage() {
       
       editor.chain().focus().setImage({ src: publicUrl }).run();
       e.target.value = ''; 
-      setStatus("Saved");
+      setStatus("");
     } catch (err) {
       console.error("Image insertion failure:", err);
       setStatus("Failed");
     }
   };
 
-  const handlePublishAndReturn = async () => {
-    if (!canEdit) return;
-    setStatus("Finalizing sync...");
+  const handlePreviewImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingPreview(true);
     try {
-      // Direct snapshot check to commit title string modifications prior to layout teardown
+      const fileId = await uploadNotebookCoverImage(file);
+      const publicUrl = getNotebookCoverImageUrl(fileId);
+      setPreviewImageUrl(publicUrl);
+      toast("Preview image uploaded successfully");
+    } catch (err) {
+      console.error("Preview image upload failed:", err);
+      toast("Failed to upload preview image");
+    } finally {
+      setUploadingPreview(false);
+    }
+  };
+
+  const executePublish = async () => {
+    setStatus("Publishing payload...");
+    try {
       await updateChapter(chapterId, { 
         title: title.trim() || "Untitled Chapter",
-        content_json: JSON.stringify(editor?.getJSON() ?? {})
+        content_json: JSON.stringify(editor?.getJSON() ?? {}),
+        preview_image_url: previewImageUrl || ""
       });
-      // Smooth programmatic return route back to notebook preview canvas
+      toast("Successfully uploaded a chapter");
       if (notebookId) {
         window.location.href = `/notebooks/${notebookId}`;
       } else {
@@ -235,7 +227,11 @@ export default function ChapterWorkspacePage() {
     }
   };
 
-  // Standard interactive event hooks for public feed streams
+  const handlePublishClick = () => {
+    if (!canEdit) return;
+    setShowPreviewModal(true);
+  };
+
   const handleLikeToggle = async () => {
     if (!currentUser) return router.push("/login");
     setLikeLoading(true);
@@ -280,10 +276,10 @@ export default function ChapterWorkspacePage() {
     );
   }
 
-  // --- RENDER BLOCK A: EDITABLE WORKSPACE MODE (NOW ACCESSIBLE BY BOTH OWNER & COLLABORATORS) ---
+  // --- RENDER BLOCK A: EDITABLE WORKSPACE MODE ---
   if (canEdit) {
     return (
-      <main className="min-h-[calc(100vh-56px)] bg-neutral-50/40 pb-20">
+      <main className="min-h-[calc(100vh-56px)] bg-neutral-50/40 pb-16 sm:pb-20 relative">
         <input 
           type="file" 
           accept="image/*" 
@@ -292,50 +288,126 @@ export default function ChapterWorkspacePage() {
           onChange={addLocalImageViaUpload} 
         />
 
-        {/* STICKY WORKSPACE CONTROLS HEADER */}
-        <div className="sticky top-0 z-30 bg-white border-b border-neutral-200 px-4 py-3 shadow-sm">
-          <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
-            
-            <button 
-              onClick={() => router.back()}
-              className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-500 transition"
-              title="Back"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
+        <input 
+          type="file" 
+          accept="image/*" 
+          id="chapter-preview-image-upload" 
+          className="hidden" 
+          onChange={handlePreviewImageUpload} 
+        />
 
-            {/* Micro Layout Typography Action Hub */}
-            <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-lg">
-              <button onClick={() => editor?.chain().focus().toggleBold().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition"><Bold className="w-4 h-4" /></button>
-              <button onClick={() => editor?.chain().focus().toggleItalic().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition"><Italic className="w-4 h-4" /></button>
-              <button onClick={() => editor?.chain().focus().toggleUnderline().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition"><UnderlineIcon className="w-4 h-4" /></button>
-              <button onClick={() => editor?.chain().focus().toggleStrike().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition"><Strikethrough className="w-4 h-4" /></button>
-              <div className="w-px h-4 bg-neutral-200 mx-1" />
-              <button onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition"><Heading2 className="w-4 h-4" /></button>
-              <button onClick={() => editor?.chain().focus().toggleBulletList().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition"><List className="w-4 h-4" /></button>
-              <div className="w-px h-4 bg-neutral-200 mx-1" />
-              <label htmlFor="tiptap-chapter-image-upload" className="p-1.5 rounded-md text-neutral-600 hover:bg-white cursor-pointer transition"><ImageIcon className="w-4 h-4" /></label>
+        {/* RESPONSIVE OPTIONAL PREVIEW IMAGE ONBOARDING MODAL */}
+        {showPreviewModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-xl space-y-4 sm:space-y-5 animate-in fade-in zoom-in-95 duration-150 my-auto">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-black text-neutral-900 uppercase tracking-wider">Chapter Preview Image</h3>
+                <button 
+                  onClick={() => setShowPreviewModal(false)}
+                  className="p-1 rounded-lg text-neutral-400 hover:bg-neutral-100 transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <p className="text-xs text-neutral-500 leading-relaxed">
+                Add an optional cover image for your chapter card display in the library feed. You can skip this if you prefer.
+              </p>
+
+              {previewImageUrl ? (
+                <div className="relative rounded-xl overflow-hidden border border-neutral-200 h-36 sm:h-40 bg-neutral-50">
+                  <img src={previewImageUrl} alt="Preview" className="w-full h-full object-cover" />
+                  <button 
+                    onClick={() => setPreviewImageUrl(null)}
+                    className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white p-1 rounded-full text-xs transition"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <label 
+                  htmlFor="chapter-preview-image-upload"
+                  className="border-2 border-dashed border-neutral-200 hover:border-neutral-300 rounded-xl h-32 sm:h-36 flex flex-col items-center justify-center gap-2 cursor-pointer bg-neutral-50/50 transition group"
+                >
+                  <div className="p-2 rounded-full bg-white shadow-sm text-neutral-500 group-hover:scale-105 transition">
+                    <Upload className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs font-semibold text-neutral-600">
+                    {uploadingPreview ? "Uploading preview..." : "Upload optional preview image"}
+                  </span>
+                </label>
+              )}
+
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2 border-t border-neutral-100">
+                <button
+                  onClick={() => setShowPreviewModal(false)}
+                  className="w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-lg text-xs font-semibold text-neutral-600 hover:bg-neutral-100 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowPreviewModal(false);
+                    executePublish();
+                  }}
+                  className="w-full sm:w-auto px-5 py-2.5 sm:py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition"
+                >
+                  Confirm & Publish
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* STICKY MOBILE-RESPONSIVE WORKSPACE CONTROLS HEADER */}
+        <div className="sticky top-0 z-30 bg-white border-b border-neutral-200 px-3 sm:px-4 py-2.5 sm:py-3 shadow-sm">
+          <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
+            
+            <div className="flex items-center justify-between sm:justify-start gap-2">
+              <button 
+                onClick={() => router.back()}
+                className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-500 transition shrink-0"
+                title="Back"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+
+              {/* Extended Horizontally Scrollable Formatting Controls on Mobile */}
+              <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-lg overflow-x-auto no-scrollbar scrollbar-none max-w-full shrink-0">
+                <button onClick={() => editor?.chain().focus().toggleBold().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Bold"><Bold className="w-4 h-4" /></button>
+                <button onClick={() => editor?.chain().focus().toggleItalic().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Italic"><Italic className="w-4 h-4" /></button>
+                <button onClick={() => editor?.chain().focus().toggleUnderline().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Underline"><UnderlineIcon className="w-4 h-4" /></button>
+                <button onClick={() => editor?.chain().focus().toggleStrike().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Strikethrough"><Strikethrough className="w-4 h-4" /></button>
+                <div className="w-px h-4 bg-neutral-200 mx-0.5 shrink-0" />
+                <button onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Heading"><Heading2 className="w-4 h-4" /></button>
+                <button onClick={() => editor?.chain().focus().toggleBulletList().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Bullet List"><List className="w-4 h-4" /></button>
+                <button onClick={setLink} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Add Link"><LinkIcon className="w-4 h-4" /></button>
+                <button onClick={() => editor?.chain().focus().toggleBlockquote().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Quote"><Quote className="w-4 h-4" /></button>
+                <button onClick={() => editor?.chain().focus().toggleCode().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Code"><Code className="w-4 h-4" /></button>
+                <div className="w-px h-4 bg-neutral-200 mx-0.5 shrink-0" />
+                <button onClick={() => editor?.chain().focus().setTextAlign('left').run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Align Left"><AlignLeft className="w-4 h-4" /></button>
+                <button onClick={() => editor?.chain().focus().setTextAlign('center').run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Align Center"><AlignCenter className="w-4 h-4" /></button>
+                <button onClick={() => editor?.chain().focus().setTextAlign('right').run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Align Right"><AlignRight className="w-4 h-4" /></button>
+                <div className="w-px h-4 bg-neutral-200 mx-0.5 shrink-0" />
+                <label htmlFor="tiptap-chapter-image-upload" className="p-1.5 rounded-md text-neutral-600 hover:bg-white cursor-pointer transition shrink-0" title="Upload Image"><ImageIcon className="w-4 h-4" /></label>
+              </div>
             </div>
 
-            {/* Cloud Sync Signal Tracker & Finalization Engine */}
-            <div className="flex items-center gap-4">
+            {/* Cloud Sync Signal Tracker & Fully Responsive Blue Publish Button */}
+            <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 pt-1 sm:pt-0 border-t sm:border-t-0 border-neutral-100 sm:border-none">
               <div className="hidden sm:flex items-center gap-1.5 text-xs text-neutral-400 font-medium">
-                {status === "Saved" ? (
-                  <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
-                    <Check className="w-3 h-3" /> Sync Completed
-                  </span>
-                ) : status === "Saving..." || status === "Uploading image..." ? (
+                {status === "Publishing payload..." ? (
                   <span className="flex items-center gap-1 text-amber-500 animate-pulse">
-                    <CloudLightning className="w-3 h-3" /> Syncing payload...
+                    <CloudLightning className="w-3 h-3" /> Publishing...
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1 text-neutral-400"><Bookmark className="w-3 h-3" /> Changes Staged</span>
+                  <span className="flex items-center gap-1 text-neutral-400"><Bookmark className="w-3 h-3" /> Draft Ready</span>
                 )}
               </div>
 
               <button 
-                onClick={handlePublishAndReturn}
-                className="h-8 px-4 bg-neutral-900 hover:bg-neutral-800 text-white rounded-md text-xs font-semibold shadow-sm transition"
+                onClick={handlePublishClick}
+                className=" rounded-full bg-[#0084FF] hover:bg-[#0073e6] active:bg-[#0062c4] text-white h-10 sm:h-9 px-5  text-white rounded-lg text-xs font-bold shadow-md shadow-blue-500/20 transition transform active:scale-95 w-full sm:w-auto flex items-center justify-center"
               >
                 Publish Chapter
               </button>
@@ -345,16 +417,20 @@ export default function ChapterWorkspacePage() {
         </div>
 
         {/* WORKSPACE AREA */}
-        <div className="max-w-2xl mx-auto px-6 mt-10">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 mt-6 sm:mt-10">
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            onBlur={handleTitleBlur}
             placeholder="Chapter Title"
-            className="w-full bg-transparent text-3xl font-black placeholder:text-neutral-200 border-none focus:outline-none focus:ring-0 mb-6 text-neutral-900 tracking-tight"
+            className="w-full bg-transparent text-2xl sm:text-3xl font-black placeholder:text-neutral-200 border-none focus:outline-none focus:ring-0 mb-4 sm:mb-6 text-neutral-900 tracking-tight"
           />
-          <div className="bg-white border border-neutral-200 shadow-sm rounded-xl p-6 sm:p-8 min-h-[450px]">
+          <div className="relative bg-white border border-neutral-200 shadow-sm rounded-xl p-4 sm:p-8 min-h-[350px] sm:min-h-[450px]">
+            {editor && editor.isEmpty && (
+              <div className="absolute top-4 sm:top-8 left-4 sm:left-8 pointer-events-none text-neutral-400/70 font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.15)] select-none">
+                Write here
+              </div>
+            )}
             <EditorContent editor={editor} />
           </div>
         </div>
@@ -362,7 +438,7 @@ export default function ChapterWorkspacePage() {
     );
   }
 
-  // --- RENDER BLOCK B: PUBLIC READ FORMAT CANVAS (SHOWS ENGAGEMENT FEEDS) ---
+  // --- RENDER BLOCK B: PUBLIC READ FORMAT CANVAS ---
   return (
     <main className="py-6 max-w-2xl mx-auto px-4 space-y-8">
       <div className="space-y-4">
