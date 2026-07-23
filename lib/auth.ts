@@ -1,22 +1,21 @@
-import { account } from "@/lib/appwrite"; // Removed unused database/profile imports
+import { account } from "@/lib/appwrite"; 
 import { ID, OAuthProvider } from "appwrite";
 
 export async function signUp(email: string, password: string) {
   try {
     await account.deleteSession("current");
   } catch {
-    // no active session, that's fine
+
   }
 
   // 1. Create the Appwrite Auth user
   const user = await account.create(ID.unique(), email, password);
   
-  // 2. Log them in to establish an active session (required to trigger verification)
+
   await account.createEmailPasswordSession(email, password);
 
-  //  DATABASE WRITE REMOVED! 
-  // The profile document will now ONLY be created when they submit the Onboarding form.
 
+  
   return user;
 }
 
@@ -24,19 +23,20 @@ export async function logIn(email: string, password: string) {
   try {
     await account.deleteSession("current");
   } catch {
-    // no active session, that's fine
+    
   }
   await account.createEmailPasswordSession(email, password);
 }
 
 export async function logOut() {
   try {
-    await account.deleteSessions(); // clears ALL sessions for this account, not just the current one
+    await account.deleteSessions(); 
+  
   } catch {
     try {
       await account.deleteSession("current");
     } catch {
-      // already logged out, nothing to do
+      
     }
   }
 }
@@ -53,7 +53,7 @@ export async function signInWithGoogle() {
   try {
     await account.deleteSession("current");
   } catch {
-    // no active session, that's fine
+    
   }
   account.createOAuth2Session(
     OAuthProvider.Google,
@@ -66,7 +66,7 @@ export async function signInWithGithub() {
   try {
     await account.deleteSession("current");
   } catch {
-    // no active session, that's fine
+   
   }
   account.createOAuth2Session(
     OAuthProvider.Github,

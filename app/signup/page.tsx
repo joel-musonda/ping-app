@@ -38,7 +38,7 @@ export default function SignupPage() {
 
   return (
     <main className="flex flex-col items-center justify-center min-h-[100dvh] w-full bg-slate-50/50 text-neutral-900 p-4 sm:p-6">
-      {/* Container card with enhanced shadow */}
+      {/* Container card */}
       <div className="w-full max-w-sm p-6 sm:p-8 bg-white rounded-2xl border border-neutral-200/80 shadow-2xl shadow-neutral-200/70 my-auto">
         
         {/* Top Logo Section */}
@@ -70,7 +70,7 @@ export default function SignupPage() {
             <input
               id="email"
               type="email"
-              placeholder="name@ping.com"
+              placeholder="johndoe@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required

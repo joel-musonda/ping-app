@@ -67,7 +67,7 @@ function LoginForm() {
             Log in to your account
           </h1>
           <p className="text-xs text-neutral-500 mt-1.5">
-            Welcome back! Please enter your details.
+            Greatness awats! Please enter your details.
           </p>
         </div>
 
@@ -80,7 +80,7 @@ function LoginForm() {
             <input
               id="email"
               type="email"
-              placeholder="name@example.com"
+              placeholder="johndoe@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required

@@ -108,7 +108,13 @@ function HomePageInner() {
             };
           })
         );
-        setNotebooks(enriched);
+
+        // Sort notebooks so that most recently updated ones (including new chapters) appear at the top
+        const sorted = enriched.sort(
+          (a, b) => new Date(b.$updatedAt || b.$createdAt).getTime() - new Date(a.$updatedAt || a.$createdAt).getTime()
+        );
+
+        setNotebooks(sorted);
       })
       .catch((err) => console.error(err))
       .finally(() => setLoading(false));

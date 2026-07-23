@@ -293,7 +293,7 @@ export default function OnboardingPage() {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900">Profile Settings</h1>
           <p className="text-xs sm:text-sm text-neutral-500 mt-1">
-            Update your profile information and social connections.
+            Upload your profile information and social connections.
           </p>
         </div>
 
@@ -358,7 +358,7 @@ export default function OnboardingPage() {
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
               <Label htmlFor="handle" className="text-xs font-semibold text-neutral-800">
-                Unique Handle <span className="text-red-500">*</span>
+                Unique Username <span className="text-red-500">*</span>
               </Label>
               {isChecking && <span className="text-[10px] text-neutral-400 animate-pulse">Checking handle...</span>}
               {!isChecking && isAvailable === true && (
@@ -411,7 +411,7 @@ export default function OnboardingPage() {
               <Input
                 id="location"
                 type="text"
-                placeholder="San Francisco, CA or Remote"
+                placeholder="Kasama, Zambia"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 className="pl-10 bg-neutral-100/80 border-transparent focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/20 text-xs sm:text-sm h-11 rounded-2xl transition-all"
@@ -470,7 +470,7 @@ export default function OnboardingPage() {
               className="bg-[#0084FF] hover:bg-[#0073e6] active:bg-[#0062c4] text-white font-medium text-xs sm:text-sm h-11 px-6 rounded-full shadow-sm transition-all flex items-center gap-2"
             >
               <Save className="w-4 h-4" />
-              {submitting ? "Saving changes..." : "Save changes"}
+              {submitting ? "Saving changes..." : "Finish Onboarding"}
             </Button>
 
             <Button

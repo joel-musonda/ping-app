@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getPingByUserId, createPingProfile } from "@/lib/appwrite"; // Import database helpers
+import { getPingByUserId, createPingProfile } from "@/lib/appwrite"; 
 
 export default function AuthCallbackPage() {
   const router = useRouter();

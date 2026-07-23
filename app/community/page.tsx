@@ -135,9 +135,9 @@ export default function CommunityPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-15 space-y-8 bg-transparent text-neutral-900">
       <div>
-        <h1 className="text-xl font-bold tracking-tight text-neutral-900">Community Spaces</h1>
+        <h1 className="text-xl font-bold tracking-tight text-neutral-900">Community Space</h1>
         <p className="text-xs text-neutral-500 mt-1">
-          Discover and track notable authors cataloging perspectives across the distributed collective.
+          Discover and track notable authors sharing perspectives on various topics.
         </p>
       </div>
 
