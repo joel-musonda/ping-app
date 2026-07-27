@@ -1,7 +1,6 @@
 import { ImageResponse } from "next/og";
 import { getNotebook } from "@/lib/appwrite";
 
-export const runtime = "edge";
 export const alt = "Notebook Preview";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
@@ -17,13 +16,15 @@ export default async function Image({ params }: Props) {
   let description = "Sharing notes and reflections";
 
   try {
-    const notebook = await getNotebook(notebookId);
-    if (notebook) {
-      title = notebook.title || title;
-      description = notebook.snapshot || notebook.description || description;
+    if (notebookId) {
+      const notebook = await getNotebook(notebookId);
+      if (notebook) {
+        title = notebook.title || title;
+        description = notebook.snapshot || notebook.description || description;
+      }
     }
   } catch (err) {
-    console.error("Failed to load notebook for OG image:", err);
+    console.error("OG Image fetch error:", err);
   }
 
   return new ImageResponse(
@@ -41,7 +42,6 @@ export default async function Image({ params }: Props) {
           border: "16px solid #f1f5f9",
         }}
       >
-        {/* Top Header Branding */}
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
           <div
             style={{
@@ -64,7 +64,6 @@ export default async function Image({ params }: Props) {
           </span>
         </div>
 
-        {/* Center Content Title & Description */}
         <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
           <h1
             style={{
@@ -89,7 +88,6 @@ export default async function Image({ params }: Props) {
           </p>
         </div>
 
-        {/* Footer Domain Link */}
         <div style={{ fontSize: "20px", color: "#94a3b8", fontWeight: "500" }}>
           joinping.up.railway.app
         </div>
