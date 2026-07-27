@@ -10,8 +10,8 @@ import {
 } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
 import { 
-  Book, BookOpen, Plus, Edit2, MessageSquare, FileText, Menu, X, Heart, 
-  Send, Trash2, Users, MessageSquarePlus, Lock, Eye, Sparkles, CheckCircle2, ArrowRight, CornerDownRight, Reply
+  BookOpen, Plus, Edit2, MessageSquare, FileText, Menu, X, Heart, 
+  Send, Trash2, Users, MessageSquarePlus, Lock, Eye, CheckCircle2, ArrowRight, CornerDownRight, Reply
 } from "lucide-react";
 import { ScrollShadow } from "@heroui/react";
 import ChapterContent from "@/components/ChapterContent";
@@ -43,6 +43,12 @@ function NotebookPageSkeleton() {
   );
 }
 
+interface HeadingItem {
+  id: string;
+  text: string;
+  level: number;
+}
+
 export default function NotebookPage() {
   const { notebookId } = useParams<{ notebookId: string }>();
   const router = useRouter();
@@ -50,7 +56,6 @@ export default function NotebookPage() {
   const [authorProfile, setAuthorProfile] = useState<any>(null);
   const [collaboratorProfiles, setCollaboratorProfiles] = useState<any[]>([]);
   const [chapters, setChapters] = useState<any[]>([]);
-  const [chapterMetaData, setChapterMetaData] = useState<{ [key: string]: { likeCount: number; commentCount: number; author?: any } }>({});
   
   const [viewMode, setViewMode] = useState<"root" | "chapter">("root");
   const [selectedChapter, setSelectedChapter] = useState<any>(null);
@@ -68,10 +73,8 @@ export default function NotebookPage() {
   const [likeCount, setLikeCount] = useState(0);
   const [likeLoading, setLikeLoading] = useState(false);
   
-  // Toast State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Discussion & Annotations System
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState("");
   const [isPrivateNote, setIsPrivateNote] = useState(false);
@@ -80,12 +83,15 @@ export default function NotebookPage() {
   const [annotationMenuPos, setAnnotationMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [flashedCommentId, setFlashedCommentId] = useState<string | null>(null);
 
-  // Reply state
+  const [headings, setHeadings] = useState<HeadingItem[]>([]);
+  const [activeHeadingId, setActiveHeadingId] = useState<string>("");
+
   const [replyingToId, setReplyingToId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [postingReply, setPostingReply] = useState(false);
   
   const contentWrapperRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const commentSectionRef = useRef<HTMLDivElement>(null);
   const commentElementsRef = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -129,30 +135,6 @@ export default function NotebookPage() {
         setCollaboratorProfiles(profiles.filter(Boolean));
       }
 
-      const metaMap: { [key: string]: { likeCount: number; commentCount: number; author?: any } } = {};
-      await Promise.all(
-        ch.map(async (c: any) => {
-          try {
-            const [lCount, cList] = await Promise.all([
-              getLikeCount(c.$id),
-              getCommentsForChapter(c.$id),
-            ]);
-            let chAuthor = author;
-            if (c.user_id && c.user_id !== nb.owner_id) {
-              chAuthor = await getPingByUserId(c.user_id).catch(() => author);
-            }
-            metaMap[c.$id] = {
-              likeCount: lCount,
-              commentCount: cList.length,
-              author: chAuthor,
-            };
-          } catch {
-            metaMap[c.$id] = { likeCount: 0, commentCount: 0, author };
-          }
-        })
-      );
-      setChapterMetaData(metaMap);
-
       if (ch.length > 0) {
         setSelectedChapter(ch[0]);
         setViewMode("chapter");
@@ -169,6 +151,39 @@ export default function NotebookPage() {
   useEffect(() => {
     loadData();
   }, [notebookId]);
+
+  // Dynamic OpenGraph / Social Sharing Metadata update
+  useEffect(() => {
+    if (!notebook) return;
+    const title = selectedChapter ? `${selectedChapter.title} — ${notebook.title}` : notebook.title;
+    const description = notebook.snapshot || notebook.description || "Read this notebook on Nzelu AI.";
+    const image = selectedChapter?.preview_image_url || notebook.preview_image_url || "";
+
+    document.title = title;
+
+    const updateOrCreateMeta = (property: string, content: string) => {
+      if (!content) return;
+      let tag = document.querySelector(`meta[property="${property}"]`) || document.querySelector(`meta[name="${property}"]`);
+      if (!tag) {
+        tag = document.createElement("meta");
+        if (property.startsWith("og:") || property.startsWith("twitter:")) {
+          tag.setAttribute("property", property);
+        } else {
+          tag.setAttribute("name", property);
+        }
+        document.head.appendChild(tag);
+      }
+      tag.setAttribute("content", content);
+    };
+
+    updateOrCreateMeta("og:title", title);
+    updateOrCreateMeta("og:description", description);
+    if (image) updateOrCreateMeta("og:image", image);
+    updateOrCreateMeta("twitter:card", "summary_large_image");
+    updateOrCreateMeta("twitter:title", title);
+    updateOrCreateMeta("twitter:description", description);
+    if (image) updateOrCreateMeta("twitter:image", image);
+  }, [notebook, selectedChapter]);
 
   useEffect(() => {
     if (!selectedChapter) return;
@@ -194,39 +209,126 @@ export default function NotebookPage() {
     };
   }, [selectedChapter, currentUser]);
 
-  const handleSelectionTracking = () => {
-    const selection = window.getSelection();
-    if (!selection || selection.isCollapsed || !selection.toString().trim()) {
+  // Stable Table of Contents extraction (without MutationObserver infinite loops)
+  useEffect(() => {
+    if (viewMode !== "chapter" || !selectedChapter || !contentWrapperRef.current) {
+      setHeadings([]);
       return;
     }
 
-    const text = selection.toString().trim();
-    
-    if (contentWrapperRef.current && contentWrapperRef.current.contains(selection.anchorNode)) {
-      const range = selection.getRangeAt(0);
-      const startContainer = range.startContainer.parentElement;
-      const endContainer = range.endContainer.parentElement;
+    const timer = setTimeout(() => {
+      if (!contentWrapperRef.current) return;
       
-      if (startContainer && endContainer) {
+      let headingEls = Array.from(contentWrapperRef.current.querySelectorAll("h1, h2, h3, h4"));
+      
+      if (headingEls.length === 0) {
+        const paragraphs = Array.from(contentWrapperRef.current.querySelectorAll("p"));
+        const validParagraphs = paragraphs.filter(p => (p.textContent || "").trim().length > 15);
+        if (validParagraphs.length > 0) {
+          headingEls = validParagraphs.filter((_, idx) => idx === 0 || idx % Math.max(1, Math.floor(validParagraphs.length / 4)) === 0);
+        } else {
+          headingEls = paragraphs;
+        }
+      }
+
+      const items: HeadingItem[] = headingEls.map((el, index) => {
+        if (!el.id) {
+          el.id = `toc-section-${index}`;
+        }
+        const level = el.tagName === "P" ? 2 : parseInt(el.tagName.replace("H", ""), 10);
+        const textContent = el.textContent || `Section ${index + 1}`;
+        return {
+          id: el.id,
+          text: textContent.length > 45 ? textContent.slice(0, 45) + "..." : textContent,
+          level: isNaN(level) ? 2 : level,
+        };
+      });
+
+      setHeadings(items);
+      if (items.length > 0 && !activeHeadingId) {
+        setActiveHeadingId(items[0].id);
+      }
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [selectedChapter, viewMode]);
+
+  // Precise scroll tracking for active progress dash
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || viewMode !== "chapter" || headings.length === 0) return;
+
+    const handleScroll = () => {
+      setAnnotationMenuPos(null);
+
+      const containerRect = container.getBoundingClientRect();
+      let currentActive = headings[0].id;
+
+      for (const h of headings) {
+        const el = document.getElementById(h.id);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top - containerRect.top <= 160) {
+            currentActive = h.id;
+          }
+        }
+      }
+
+      if (currentActive) {
+        setActiveHeadingId(currentActive);
+      }
+    };
+
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [viewMode, headings]);
+
+  // Text selection tracking
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      const selection = window.getSelection();
+      
+      if (!selection || selection.isCollapsed || !selection.toString().trim()) {
+        setAnnotationMenuPos(null);
+        return;
+      }
+
+      if (contentWrapperRef.current && contentWrapperRef.current.contains(selection.anchorNode)) {
+        const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
         
         setAnnotationMenuPos({
-          top: rect.top + window.scrollY - 46,
-          left: rect.left + window.scrollX + rect.width / 2,
+          top: rect.top - 46,
+          left: rect.left + rect.width / 2,
         });
-        setSelectedTextQuote(text);
+        setSelectedTextQuote(selection.toString().trim());
+      } else {
+        setAnnotationMenuPos(null);
       }
+    };
+
+    document.addEventListener("selectionchange", handleSelectionChange);
+    return () => document.removeEventListener("selectionchange", handleSelectionChange);
+  }, []);
+
+  const scrollToHeading = (headingId: string) => {
+    setActiveHeadingId(headingId);
+    const el = document.getElementById(headingId);
+    const container = scrollContainerRef.current;
+    if (el && container) {
+      const containerRect = container.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      const offsetTop = elRect.top - containerRect.top + container.scrollTop - 24;
+      container.scrollTo({
+        top: offsetTop,
+        behavior: "smooth",
+      });
+    } else if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
-
-  useEffect(() => {
-    document.addEventListener("mouseup", handleSelectionTracking);
-    document.addEventListener("keyup", handleSelectionTracking);
-    return () => {
-      document.removeEventListener("mouseup", handleSelectionTracking);
-      document.removeEventListener("keyup", handleSelectionTracking);
-    };
-  }, []);
 
   const triggerAnnotationDraft = () => {
     setAnnotationMenuPos(null);
@@ -290,7 +392,9 @@ export default function NotebookPage() {
     setSelectedChapter(ch);
     setViewMode("chapter");
     setSidebarOpen(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   const handleNotebookClick = () => {
@@ -317,18 +421,12 @@ export default function NotebookPage() {
         const newLike = await likeChapter(currentUser.$id, selectedChapter.$id);
         setLikeId(newLike.$id);
         setLikeCount((c) => c + 1);
-
         try {
           await notifyLike(
-            notebook.owner_id,
-            currentUser.$id,
-            currentUserProfile?.name || "",
-            currentUserProfile?.handle || "anonymous",
-            selectedChapter.$id
+            notebook.owner_id, currentUser.$id, currentUserProfile?.name || "",
+            currentUserProfile?.handle || "anonymous", selectedChapter.$id
           );
-        } catch (err) {
-          console.error(err);
-        }
+        } catch (err) { console.error(err); }
       }
     } catch (err) {
       console.error(err);
@@ -345,37 +443,20 @@ export default function NotebookPage() {
     if (!newComment.trim()) return;
 
     setPostingComment(true);
-    
     const prefixScope = isPrivateNote ? "[private:true]" : "[private:false]";
     const quotePayload = selectedTextQuote ? `[quote:${selectedTextQuote}]` : "";
     const totalPayload = `${prefixScope}${quotePayload} ${newComment.trim()}`;
 
     try {
       const comment = await createComment(
-        selectedChapter.$id,
-        currentUser.$id,
-        currentUserProfile?.handle || "anonymous",
-        totalPayload,
-        currentUserProfile?.name || "",
-        currentUserProfile?.avatar_url || ""
+        selectedChapter.$id, currentUser.$id, currentUserProfile?.handle || "anonymous",
+        totalPayload, currentUserProfile?.name || "", currentUserProfile?.avatar_url || ""
       );
       setComments((prev) => [comment, ...prev]);
       setNewComment("");
       setSelectedTextQuote("");
       setIsPrivateNote(false);
       showToast("Comment sent successfully!");
-
-      try {
-        await notifyComment(
-          notebook.owner_id,
-          currentUser.$id,
-          currentUserProfile?.name || "",
-          currentUserProfile?.handle || "anonymous",
-          selectedChapter.$id
-        );
-      } catch (err) {
-        console.error(err);
-      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -395,12 +476,8 @@ export default function NotebookPage() {
 
     try {
       const comment = await createComment(
-        selectedChapter.$id,
-        currentUser.$id,
-        currentUserProfile?.handle || "anonymous",
-        replyPayload,
-        currentUserProfile?.name || "",
-        currentUserProfile?.avatar_url || ""
+        selectedChapter.$id, currentUser.$id, currentUserProfile?.handle || "anonymous",
+        replyPayload, currentUserProfile?.name || "", currentUserProfile?.avatar_url || ""
       );
       setComments((prev) => [comment, ...prev]);
       setReplyText("");
@@ -480,10 +557,7 @@ export default function NotebookPage() {
     if (!authorProfile) return null;
     return (
       <HoverCard handle={authorProfile.handle}>
-        <a
-          href={`/${authorProfile.handle}`}
-          className="flex items-center gap-2 text-xs text-neutral-500 font-medium hover:text-neutral-900 transition w-fit"
-        >
+        <a href={`/${authorProfile.handle}`} className="flex items-center gap-2 text-xs text-neutral-500 font-medium hover:text-neutral-900 transition w-fit">
           <div className="w-5 h-5 rounded-full bg-neutral-900 text-white text-[9px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden">
             {authorProfile?.avatar_url ? (
               <img src={authorProfile.avatar_url} alt="" className="w-full h-full object-cover" />
@@ -506,10 +580,7 @@ export default function NotebookPage() {
         {collaboratorProfiles.map((collab, index) => (
           <span key={collab.$id} className="text-neutral-600 font-medium flex items-center">
             <HoverCard handle={collab.handle}>
-              <a 
-                href={`/${collab.handle}`} 
-                className="hover:text-neutral-900 hover:underline transition"
-              >
+              <a href={`/${collab.handle}`} className="hover:text-neutral-900 hover:underline transition">
                 {collab.name || `@${collab.handle}`}
               </a>
             </HoverCard>
@@ -526,7 +597,6 @@ export default function NotebookPage() {
   return (
     <main className="w-full min-h-[calc(100vh-56px)] h-[calc(100vh-56px)] bg-white text-neutral-900 overflow-hidden flex relative">
 
-      {/* Toast Notification Banner */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-neutral-950 text-white text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom-3 duration-200 border border-neutral-800">
           <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
@@ -539,81 +609,66 @@ export default function NotebookPage() {
         <button
           style={{ top: annotationMenuPos.top, left: annotationMenuPos.left }}
           onClick={triggerAnnotationDraft}
-          className="absolute z-50 -translate-x-1/2 bg-neutral-950 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-xl flex items-center gap-1.5 hover:bg-neutral-900 transition animate-in fade-in zoom-in-95 duration-100 border border-neutral-800"
+          className="fixed z-[9999] -translate-x-1/2 bg-neutral-950 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-xl flex items-center gap-1.5 hover:bg-neutral-900 transition animate-in fade-in zoom-in-95 duration-100 border border-neutral-800"
         >
           <MessageSquarePlus className="w-3.5 h-3.5 text-green-400" />
           <span>Annotate</span>
         </button>
       )}
 
+      {/* Progress Indicator Dashes with Single-Heading Hover Tooltips */}
+      {viewMode === "chapter" && headings.length > 0 && (
+        <div className="hidden md:flex fixed right-4 top-1/2 -translate-y-1/2 z-40 items-center">
+          <div className="flex flex-col items-center gap-2 py-3 px-1.5 rounded-full hover:bg-neutral-100/70 transition-colors">
+            {headings.map((h) => {
+              const isActive = h.id === activeHeadingId;
+              return (
+                <div key={h.id} className="relative group/dash flex items-center justify-end">
+                  {/* Single heading title tooltip on hover */}
+                  <div className="absolute right-6 opacity-0 pointer-events-none group-hover/dash:opacity-100 group-hover/dash:pointer-events-auto transition-all duration-150 whitespace-nowrap bg-neutral-900 text-white text-[11px] font-medium px-2.5 py-1 rounded-md shadow-lg z-50">
+                    {h.text}
+                  </div>
+                  <button
+                    onClick={() => scrollToHeading(h.id)}
+                    className={`h-0.5 rounded-full transition-all duration-200 ${isActive ? "bg-neutral-900 h-1.5 w-5 shadow-xs" : "bg-neutral-300 hover:bg-neutral-400 w-4"}`}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="md:hidden absolute top-0 left-0 right-0 z-30 flex items-center gap-3 px-4 h-12 border-b border-neutral-200 bg-white/95 backdrop-blur-sm">
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="p-1.5 -ml-1.5 rounded-md text-neutral-600 hover:bg-neutral-100 transition"
-        >
+        <button onClick={() => setSidebarOpen(true)} className="p-1.5 -ml-1.5 rounded-md text-neutral-600 hover:bg-neutral-100 transition">
           <Menu className="w-5 h-5" />
         </button>
         <span className="text-sm font-semibold text-neutral-900 truncate">{currentTitle}</span>
       </div>
 
-      {sidebarOpen && (
-        <div
-          onClick={() => setSidebarOpen(false)}
-          className="md:hidden fixed inset-0 bg-neutral-950/40 z-40"
-        />
-      )}
+      {sidebarOpen && <div onClick={() => setSidebarOpen(false)} className="md:hidden fixed inset-0 bg-neutral-950/40 z-40" />}
 
-      {/* SIDEBAR WITH SCROLLSHADOW AT BOTTOM ONLY */}
       <div
-        className={`
-          fixed md:static top-0 left-0 h-full w-80 max-w-[85vw] border-r border-neutral-200
-          flex flex-col bg-white md:bg-neutral-50/50 shrink-0 z-50
-          transition-transform duration-200 ease-out
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0
-        `}
+        className={`fixed md:static top-0 left-0 h-full w-80 max-w-[85vw] border-r border-neutral-200 flex flex-col bg-white md:bg-neutral-50/50 shrink-0 z-50 transition-transform duration-200 ease-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
       >
         <div className="md:hidden flex justify-end p-3 shrink-0">
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="p-1.5 rounded-md text-neutral-500 hover:bg-neutral-100 transition"
-          >
+          <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-md text-neutral-500 hover:bg-neutral-100 transition">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div
-          onClick={handleNotebookClick}
-          className={`p-5 border-b border-neutral-200/80 cursor-pointer transition-colors group/hero shrink-0 ${
-            viewMode === "root" || (selectedChapter && chapters[0]?.$id === selectedChapter.$id) ? "bg-white" : "bg-transparent hover:bg-neutral-100/40"
-          }`}
-        >
+        <div onClick={handleNotebookClick} className={`p-5 border-b border-neutral-200/80 cursor-pointer transition-colors group/hero shrink-0 ${viewMode === "root" || (selectedChapter && chapters[0]?.$id === selectedChapter.$id) ? "bg-white" : "bg-transparent hover:bg-neutral-100/40"}`}>
           <div className="flex items-center gap-2 text-neutral-400 mb-1.5">
             <BookOpen className="w-3.5 h-3.5 text-neutral-500" />
-            <span className="text-[10px] font-bold uppercase tracking-wider group-hover/hero:text-neutral-600 transition-colors">
-              Notebook
-            </span>
+            <span className="text-[10px] font-bold uppercase tracking-wider group-hover/hero:text-neutral-600 transition-colors">Notebook</span>
           </div>
-
-          <h1 className="text-base font-black tracking-tight text-neutral-900 leading-snug group-hover/hero:text-neutral-800">
-            {notebook.title}
-          </h1>
-
+          <h1 className="text-base font-black tracking-tight text-neutral-900 leading-snug group-hover/hero:text-neutral-800">{notebook.title}</h1>
           <p className="text-xs text-neutral-500 font-normal italic mt-1.5 leading-relaxed line-clamp-2">
             {notebook.snapshot || notebook.description || "Click to open the first chapter."}
           </p>
-
           <div className="mt-4" />
-
           {canEdit && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleNewChapter();
-              }}
-              disabled={creating}
-              style={{ backgroundColor: "#0084FF" }}
-              className="w-full h-8 text-white rounded-md text-xs font-semibold flex items-center justify-center gap-1.5 transition shadow-sm disabled:opacity-50 hover:opacity-90"
-            >
+            <button onClick={(e) => { e.stopPropagation(); handleNewChapter(); }} disabled={creating} style={{ backgroundColor: "#0084FF" }} className="w-full h-8 text-white rounded-md text-xs font-semibold flex items-center justify-center gap-1.5 transition shadow-sm disabled:opacity-50 hover:opacity-90">
               <Plus className="w-3.5 h-3.5" />
               <span>{creating ? "Creating..." : "Add Chapter"}</span>
             </button>
@@ -621,24 +676,13 @@ export default function NotebookPage() {
         </div>
 
         <div className="flex-1 overflow-hidden flex flex-col p-4">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block mb-3 pl-1 shrink-0">
-            Chapters Index ({chapters.length})
-          </span>
-
+          <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block mb-3 pl-1 shrink-0">Chapters ({chapters.length})</span>
           <ScrollShadow visibility="bottom" className="flex-1 max-h-full pr-1 space-y-2">
             <nav className="space-y-2 pb-6">
               {chapters.map((ch) => {
                 const isActive = viewMode === "chapter" && selectedChapter?.$id === ch.$id;
                 return (
-                  <div 
-                    key={ch.$id} 
-                    onClick={() => handleSelectChapter(ch)}
-                    className={`w-full relative group/item p-2.5 rounded-xl border transition-all cursor-pointer flex items-center gap-3 ${
-                      isActive
-                        ? "bg-white text-neutral-900 border-neutral-300 shadow-sm"
-                        : "bg-white/60 hover:bg-white text-neutral-700 border-neutral-200/80 shadow-2xs hover:border-neutral-300"
-                    }`}
-                  >
+                  <div key={ch.$id} onClick={() => handleSelectChapter(ch)} className={`w-full relative group/item p-2.5 rounded-xl border transition-all cursor-pointer flex items-center gap-3 ${isActive ? "bg-white text-neutral-900 border-neutral-300 shadow-sm" : "bg-white/60 hover:bg-white text-neutral-700 border-neutral-200/80 shadow-2xs hover:border-neutral-300"}`}>
                     <div className="w-9 h-9 rounded-lg bg-neutral-100 border border-neutral-200/70 overflow-hidden flex items-center justify-center shrink-0">
                       {ch.preview_image_url ? (
                         <img src={ch.preview_image_url} alt="" className="w-full h-full object-cover" />
@@ -648,28 +692,16 @@ export default function NotebookPage() {
                         </div>
                       )}
                     </div>
-
-                    <div className="flex-1 min-w-0 pr-10">
+                    <div className="flex-1 min-w-0 pr-16 md:pr-10">
                       <h4 className="text-xs font-bold text-neutral-900 truncate">{ch.title || "Untitled chapter"}</h4>
                     </div>
 
                     {canEdit && (
-                      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/notebooks/${notebookId}/chapters/${ch.$id}`);
-                          }}
-                          className="p-1.5 rounded-md bg-white border border-neutral-200 shadow-sm text-neutral-600 hover:text-neutral-900 transition"
-                          title="Edit Chapter"
-                        >
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover/item:opacity-100 transition-opacity bg-white md:bg-transparent md:shadow-none p-1 md:p-0 rounded-md">
+                        <button onClick={(e) => { e.stopPropagation(); router.push(`/notebooks/${notebookId}/chapters/${ch.$id}`); }} className="p-1.5 rounded-md md:bg-white md:border border-neutral-200 shadow-sm text-neutral-600 hover:text-neutral-900 transition" title="Edit Chapter">
                           <Edit2 className="w-3 h-3" />
                         </button>
-                        <button
-                          onClick={(e) => handleDeleteChapter(ch.$id, e)}
-                          className="p-1.5 rounded-md bg-white border border-neutral-200 shadow-sm text-neutral-400 hover:text-rose-600 transition"
-                          title="Delete Chapter"
-                        >
+                        <button onClick={(e) => handleDeleteChapter(ch.$id, e)} className="p-1.5 rounded-md md:bg-white md:border border-neutral-200 shadow-sm text-neutral-400 hover:text-rose-600 transition" title="Delete Chapter">
                           <Trash2 className="w-3 h-3" />
                         </button>
                       </div>
@@ -682,28 +714,21 @@ export default function NotebookPage() {
         </div>
       </div>
 
-      {/* MAIN CONTENT AREA WITH SCROLLSHADOW AT BOTTOM ONLY */}
-      <ScrollShadow visibility="bottom" className="flex-1 flex flex-col h-full bg-white overflow-y-auto pt-12 md:pt-0">
-
-        {/* ROOT VIEW */}
+      <ScrollShadow ref={scrollContainerRef} visibility="bottom" className="flex-1 flex flex-col h-full bg-white overflow-y-auto pt-12 md:pt-0">
         {viewMode === "root" && (
           <div className="max-w-3xl w-full mx-auto px-6 md:px-12 pt-6 pb-24 md:pb-10 flex flex-col min-h-full">
             <div className="flex justify-between items-start gap-6 border-b border-neutral-100 pb-4 mb-6 relative">
               <div className="space-y-2">
-                <h2 className="text-2xl font-bold tracking-tight text-neutral-900 leading-tight">
-                  {notebook.title}
-                </h2>
+                <h2 className="text-2xl font-bold tracking-tight text-neutral-900 leading-tight">{notebook.title}</h2>
                 <div className="flex flex-col gap-1.5">
                   <AuthorByline />
                   <CollaborationStack />
                 </div>
               </div>
             </div>
-
             <div className="text-sm text-neutral-800 leading-relaxed font-normal whitespace-pre-wrap break-words mb-8">
               {notebook.description || <p className="italic text-neutral-400">No extended description yet.</p>}
             </div>
-
             <div className="space-y-4 pt-4 border-t border-neutral-100">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-black uppercase tracking-wider text-neutral-400 flex items-center gap-1.5">
@@ -711,37 +736,22 @@ export default function NotebookPage() {
                   <span>Chapters Index ({chapters.length})</span>
                 </h3>
                 {canEdit && (
-                  <button
-                    onClick={handleNewChapter}
-                    disabled={creating}
-                    style={{ color: "#0084FF" }}
-                    className="text-xs font-bold hover:opacity-80 flex items-center gap-1 transition"
-                  >
+                  <button onClick={handleNewChapter} disabled={creating} style={{ color: "#0084FF" }} className="text-xs font-bold hover:opacity-80 flex items-center gap-1 transition">
                     <Plus className="w-3.5 h-3.5" />
                     <span>New chapter</span>
                   </button>
                 )}
               </div>
-
               {chapters.length === 0 ? (
                 <div className="border border-dashed border-neutral-200 rounded-2xl p-8 text-center space-y-3 bg-neutral-50/50">
                   <p className="text-xs text-neutral-500 italic">No chapters published in this notebook yet.</p>
-                  {canEdit && (
-                    <button
-                      onClick={handleNewChapter}
-                      style={{ backgroundColor: "#0084FF" }}
-                      className="px-4 py-2 text-white rounded-lg text-xs font-semibold shadow-sm transition hover:opacity-90"
-                    >
-                      Create First Chapter
-                    </button>
-                  )}
+                  {canEdit && <button onClick={handleNewChapter} style={{ backgroundColor: "#0084FF" }} className="px-4 py-2 text-white rounded-lg text-xs font-semibold shadow-sm transition hover:opacity-90">Create First Chapter</button>}
                 </div>
               ) : null}
             </div>
           </div>
         )}
 
-        {/* CHAPTER VIEW */}
         {viewMode === "chapter" && selectedChapter && (
           <div className="max-w-2xl w-full mx-auto px-6 md:px-12 pt-6 pb-24 md:pb-10 flex flex-col min-h-full">
             <div className="flex justify-between items-start gap-6 border-b border-neutral-100 pb-4 mb-6 relative">
@@ -759,16 +769,11 @@ export default function NotebookPage() {
               </div>
             </div>
 
-            {/* Document Body Wrapper with Persistent Selection Highlights */}
-            <div 
-              className="flex-1 relative selection:bg-green-100/90 selection:text-neutral-900" 
-              ref={contentWrapperRef}
-            >
+            <div className="flex-1 relative selection:bg-green-100/90 selection:text-neutral-900" ref={contentWrapperRef}>
               <div className="prose prose-neutral max-w-none text-neutral-800 tracking-normal leading-relaxed">
                 <ChapterContent contentJson={selectedChapter.content_json} />
               </div>
               
-              {/* Side Margin Annotations Tracker */}
               <div className="absolute top-0 -right-6 md:-right-12 flex flex-col gap-2 select-none h-full border-l border-neutral-100/60 pl-2">
                 {visibleComments.map((c) => {
                   const { quote, isPrivate } = parseAnnotationMeta(c.content);
@@ -777,57 +782,31 @@ export default function NotebookPage() {
                     <button
                       key={`anchor-${c.$id}`}
                       onClick={() => jumpToCommentSection(c.$id)}
-                      className={`p-1.5 rounded-full border transition-all duration-200 flex items-center justify-center shadow-sm hover:scale-105 group/anchor ${
-                        isPrivate 
-                          ? "bg-purple-50 border-purple-200 text-purple-600 hover:bg-purple-100" 
-                          : "bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                      }`}
+                      className={`p-1.5 rounded-full border transition-all duration-200 flex items-center justify-center shadow-sm hover:scale-105 group/anchor ${isPrivate ? "bg-purple-50 border-purple-200 text-purple-600 hover:bg-purple-100" : "bg-green-50 border-green-200 text-green-700 hover:bg-green-100"}`}
                       title={isPrivate ? "Private Note" : `Annotation: "${quote}"`}
                     >
-                      {isPrivate ? (
-                        <Lock className="w-3 h-3" />
-                      ) : (
-                        <MessageSquare className="w-3 h-3 text-neutral-600 shrink-0" />
-                      )}
+                      {isPrivate ? <Lock className="w-3 h-3" /> : <MessageSquare className="w-3 h-3 text-neutral-600 shrink-0" />}
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Prominent Next Chapter Card Banner */}
             {nextChapter && (
-              <div 
-                onClick={() => handleSelectChapter(nextChapter)}
-                className="mt-16 p-5 rounded-2xl bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/80 cursor-pointer transition group flex items-center justify-between gap-4 shadow-2xs"
-              >
+              <div onClick={() => handleSelectChapter(nextChapter)} className="mt-16 p-5 rounded-2xl bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/80 cursor-pointer transition group flex items-center justify-between gap-4 shadow-2xs">
                 <div className="space-y-1 min-w-0">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block">
-                    Up Next Chapter
-                  </span>
-                  <h4 className="text-sm font-bold text-neutral-900 group-hover:text-neutral-950 transition truncate">
-                    {nextChapter.title || "Untitled chapter"}
-                  </h4>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block">Up Next Chapter</span>
+                  <h4 className="text-sm font-bold text-neutral-900 group-hover:text-neutral-950 transition truncate">{nextChapter.title || "Untitled chapter"}</h4>
                 </div>
-                <div 
-                  style={{ backgroundColor: "#0084FF" }}
-                  className="w-9 h-9 rounded-xl text-white flex items-center justify-center shrink-0 group-hover:translate-x-1 transition-transform"
-                >
+                <div style={{ backgroundColor: "#0084FF" }} className="w-9 h-9 rounded-xl text-white flex items-center justify-center shrink-0 group-hover:translate-x-1 transition-transform">
                   <ArrowRight className="w-4 h-4" />
                 </div>
               </div>
             )}
 
-            {/* Comments & Discussions Section */}
             <div ref={commentSectionRef} className="mt-12 pt-8 border-t border-neutral-200 bg-white scroll-mt-6">
               <div className="flex items-center gap-2 mb-8">
-                <button
-                  onClick={handleLikeToggle}
-                  disabled={likeLoading}
-                  className={`flex items-center gap-1.5 text-sm rounded-full px-3 py-1.5 border transition-colors ${
-                    likeId ? "bg-red-50 border-red-200 text-red-600" : "bg-white border-neutral-300 text-neutral-600 hover:border-neutral-400"
-                  }`}
-                >
+                <button onClick={handleLikeToggle} disabled={likeLoading} className={`flex items-center gap-1.5 text-sm rounded-full px-3 py-1.5 border transition-colors ${likeId ? "bg-red-50 border-red-200 text-red-600" : "bg-white border-neutral-300 text-neutral-600 hover:border-neutral-400"}`}>
                   <Heart className={`w-4 h-4 ${likeId ? "fill-red-500 text-red-500" : ""}`} />
                   <span>{likeCount}</span>
                 </button>
@@ -835,12 +814,8 @@ export default function NotebookPage() {
 
               <div className="flex items-center gap-2 mb-6">
                 <MessageSquare className="w-4 h-4 text-neutral-900" />
-                <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-900">
-                  Discussions
-                </h3>
-                <span className="text-[10px] bg-neutral-100 text-neutral-600 font-bold px-1.5 py-0.5 rounded-full">
-                  {visibleComments.length}
-                </span>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-900">Discussions</h3>
+                <span className="text-[10px] bg-neutral-100 text-neutral-600 font-bold px-1.5 py-0.5 rounded-full">{visibleComments.length}</span>
               </div>
 
               {topLevelComments.length === 0 ? (
@@ -856,15 +831,7 @@ export default function NotebookPage() {
 
                     return (
                       <div key={c.$id} className="space-y-3">
-                        {/* Parent Comment Card */}
-                        <div 
-                          ref={(el) => { commentElementsRef.current[c.$id] = el; }}
-                          className={`flex gap-3 items-start group p-4 rounded-2xl transition-all duration-500 border bg-white ${
-                            isFlashed 
-                              ? "border-blue-300 shadow-md ring-2 ring-blue-100" 
-                              : "border-neutral-200/80 hover:border-neutral-300 shadow-2xs"
-                          }`}
-                        >
+                        <div ref={(el) => { commentElementsRef.current[c.$id] = el; }} className={`flex gap-3 items-start group p-4 rounded-2xl transition-all duration-500 border bg-white ${isFlashed ? "border-blue-300 shadow-md ring-2 ring-blue-100" : "border-neutral-200/80 hover:border-neutral-300 shadow-2xs"}`}>
                           <HoverCard handle={c.handle}>
                             <div className="w-8 h-8 rounded-full bg-neutral-900 text-white text-[11px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden cursor-pointer shadow-sm">
                               {c.avatar_url ? <img src={c.avatar_url} alt="" className="w-full h-full object-cover" /> : c.handle?.charAt(0) || "?"}
@@ -875,11 +842,8 @@ export default function NotebookPage() {
                             <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
                               <div className="flex items-center gap-2">
                                 <HoverCard handle={c.handle}>
-                                  <span className="text-xs font-bold text-neutral-900 cursor-pointer hover:underline">
-                                    {c.name || `@${c.handle}`}
-                                  </span>
+                                  <span className="text-xs font-bold text-neutral-900 cursor-pointer hover:underline">{c.name || `@${c.handle}`}</span>
                                 </HoverCard>
-                                
                                 {isPrivate && (
                                   <span className="flex items-center gap-1 text-[9px] bg-purple-50 text-purple-700 font-semibold px-1.5 py-0.5 rounded border border-purple-100 uppercase tracking-wide select-none">
                                     <Lock className="w-2.5 h-2.5" />
@@ -888,23 +852,15 @@ export default function NotebookPage() {
                                 )}
                               </div>
 
-                              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="flex items-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                 {currentUser && (
-                                  <button
-                                    onClick={() => setReplyingToId(replyingToId === c.$id ? null : c.$id)}
-                                    style={{ color: "#0084FF" }}
-                                    className="text-[11px] font-semibold hover:opacity-80 flex items-center gap-1 transition"
-                                  >
+                                  <button onClick={() => setReplyingToId(replyingToId === c.$id ? null : c.$id)} style={{ color: "#0084FF" }} className="text-[11px] font-semibold hover:opacity-80 flex items-center gap-1 transition">
                                     <Reply className="w-3 h-3" />
                                     <span>Reply</span>
                                   </button>
                                 )}
                                 {currentUser?.$id === c.user_id && (
-                                  <button
-                                    onClick={() => handleDeleteComment(c.$id)}
-                                    className="p-1 rounded text-neutral-400 hover:text-rose-600 transition"
-                                    title="Delete comment"
-                                  >
+                                  <button onClick={() => handleDeleteComment(c.$id)} className="p-1 rounded text-neutral-400 hover:text-rose-600 transition" title="Delete comment">
                                     <Trash2 className="w-3.5 h-3.5" />
                                   </button>
                                 )}
@@ -921,41 +877,25 @@ export default function NotebookPage() {
                           </div>
                         </div>
 
-                        {/* Replies Thread */}
                         {replies.length > 0 && (
                           <div className="pl-6 md:pl-10 space-y-3 border-l-2 border-neutral-100 ml-4">
                             {replies.map((reply) => {
                               const replyMeta = parseAnnotationMeta(reply.content);
                               const isReplyFlashed = flashedCommentId === reply.$id;
-
                               return (
-                                <div
-                                  key={reply.$id}
-                                  ref={(el) => { commentElementsRef.current[reply.$id] = el; }}
-                                  className={`flex gap-3 items-start group p-3.5 rounded-xl border bg-neutral-50/60 transition-all duration-300 ${
-                                    isReplyFlashed ? "border-blue-300 shadow-sm bg-blue-50/20" : "border-neutral-200/60"
-                                  }`}
-                                >
+                                <div key={reply.$id} ref={(el) => { commentElementsRef.current[reply.$id] = el; }} className={`flex gap-3 items-start group p-3.5 rounded-xl border bg-neutral-50/60 transition-all duration-300 ${isReplyFlashed ? "border-blue-300 shadow-sm bg-blue-50/20" : "border-neutral-200/60"}`}>
                                   <HoverCard handle={reply.handle}>
                                     <div className="w-7 h-7 rounded-full bg-neutral-900 text-white text-[10px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden cursor-pointer">
                                       {reply.avatar_url ? <img src={reply.avatar_url} alt="" className="w-full h-full object-cover" /> : reply.handle?.charAt(0) || "?"}
                                     </div>
                                   </HoverCard>
-
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
                                       <HoverCard handle={reply.handle}>
-                                        <span className="text-xs font-bold text-neutral-900 cursor-pointer hover:underline">
-                                          {reply.name || `@${reply.handle}`}
-                                        </span>
+                                        <span className="text-xs font-bold text-neutral-900 cursor-pointer hover:underline">{reply.name || `@${reply.handle}`}</span>
                                       </HoverCard>
-
                                       {currentUser?.$id === reply.user_id && (
-                                        <button
-                                          onClick={() => handleDeleteComment(reply.$id)}
-                                          className="p-1 rounded text-neutral-400 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition"
-                                          title="Delete reply"
-                                        >
+                                        <button onClick={() => handleDeleteComment(reply.$id)} className="p-1 rounded text-neutral-400 hover:text-rose-600 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition" title="Delete reply">
                                           <Trash2 className="w-3 h-3" />
                                         </button>
                                       )}
@@ -968,7 +908,6 @@ export default function NotebookPage() {
                           </div>
                         )}
 
-                        {/* Reply Input Box */}
                         {replyingToId === c.$id && (
                           <div className="pl-6 md:pl-10 ml-4 pt-1 animate-in fade-in duration-200">
                             <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-xl space-y-2.5">
@@ -976,27 +915,10 @@ export default function NotebookPage() {
                                 <CornerDownRight className="w-3 h-3 text-[#0084FF]" />
                                 <span>Replying to {c.name || `@${c.handle}`}</span>
                               </div>
-                              <textarea
-                                value={replyText}
-                                onChange={(e) => setReplyText(e.target.value)}
-                                placeholder="Write a reply..."
-                                className="w-full p-2.5 min-h-[60px] rounded-lg border border-neutral-200 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-[#0084FF] resize-none placeholder:text-neutral-400 transition"
-                              />
+                              <textarea value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Write a reply..." className="w-full p-2.5 min-h-[60px] rounded-lg border border-neutral-200 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-[#0084FF] resize-none placeholder:text-neutral-400 transition" />
                               <div className="flex items-center justify-end gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => { setReplyingToId(null); setReplyText(""); }}
-                                  className="px-2.5 py-1 text-xs font-semibold text-neutral-500 hover:text-neutral-800 transition"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handlePostReply(c.$id)}
-                                  disabled={postingReply || !replyText.trim()}
-                                  style={{ backgroundColor: "#0084FF" }}
-                                  className="h-7 px-3 text-white rounded-md text-xs font-medium shadow-sm transition flex items-center gap-1.5 disabled:opacity-50 hover:opacity-90"
-                                >
+                                <button type="button" onClick={() => { setReplyingToId(null); setReplyText(""); }} className="px-2.5 py-1 text-xs font-semibold text-neutral-500 hover:text-neutral-800 transition">Cancel</button>
+                                <button type="button" onClick={() => handlePostReply(c.$id)} disabled={postingReply || !replyText.trim()} style={{ backgroundColor: "#0084FF" }} className="h-7 px-3 text-white rounded-md text-xs font-medium shadow-sm transition flex items-center gap-1.5 disabled:opacity-50 hover:opacity-90">
                                   <Send className="w-3 h-3" />
                                   {postingReply ? "Posting..." : "Reply"}
                                 </button>
@@ -1010,65 +932,37 @@ export default function NotebookPage() {
                 </div>
               )}
 
-              {/* Input Area */}
               <div className="flex gap-3 items-start py-4 bg-neutral-50/50 p-4 rounded-2xl border border-neutral-200/80">
                 <div className="w-8 h-8 rounded-full bg-neutral-900 text-white text-[11px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden shadow-sm">
                   {currentUserProfile?.avatar_url ? <img src={currentUserProfile.avatar_url} alt="" className="w-full h-full object-cover" /> : currentUserProfile?.handle?.charAt(0) || "U"}
                 </div>
                 <div className="flex-1 space-y-2.5">
-                  
                   {selectedTextQuote && (
                     <div className="flex items-center justify-between gap-4 bg-green-50/60 border border-green-200 rounded-lg px-3 py-2 text-xs">
                       <div className="flex items-center gap-2 text-neutral-700 truncate">
                         <MessageSquare className="w-4 h-4 text-[#0084FF] shrink-0" />
-                        <span className="italic truncate font-medium">
-                          Annotating selection: "{selectedTextQuote}"
-                        </span>
+                        <span className="italic truncate font-medium">Annotating selection: "{selectedTextQuote}"</span>
                       </div>
                       <button onClick={() => setSelectedTextQuote("")} className="p-1 rounded hover:bg-green-100 text-neutral-400 hover:text-neutral-700 transition">
                         <X className="w-3 h-3" />
                       </button>
                     </div>
                   )}
-
-                  <textarea
-                    ref={textareaRef}
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder={currentUser ? "Write a public response or leave an annotated feedback note..." : "Log in to post annotations"}
-                    disabled={!currentUser}
-                    className="w-full p-3 min-h-[80px] rounded-xl border border-neutral-200 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-[#0084FF] resize-none placeholder:text-neutral-400 transition disabled:opacity-50 shadow-2xs"
-                  />
-                  
+                  <textarea ref={textareaRef} value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder={currentUser ? "Write a public response or leave an annotated feedback note..." : "Log in to post annotations"} disabled={!currentUser} className="w-full p-3 min-h-[80px] rounded-xl border border-neutral-200 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-[#0084FF] resize-none placeholder:text-neutral-400 transition disabled:opacity-50 shadow-2xs" />
                   <div className="flex items-center justify-between">
                     {currentUser ? (
-                      <button
-                        type="button"
-                        onClick={() => setIsPrivateNote(!isPrivateNote)}
-                        className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border transition ${
-                          isPrivateNote 
-                            ? "bg-purple-50 border-purple-200 text-purple-700 shadow-sm" 
-                            : "bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50"
-                        }`}
-                      >
+                      <button type="button" onClick={() => setIsPrivateNote(!isPrivateNote)} className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border transition ${isPrivateNote ? "bg-purple-50 border-purple-200 text-purple-700 shadow-sm" : "bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50"}`}>
                         {isPrivateNote ? <Lock className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                         <span>{isPrivateNote ? "Private comment" : "Public Comment"}</span>
                       </button>
                     ) : <div />}
-
-                    <button
-                      onClick={handlePostComment}
-                      disabled={postingComment || !newComment.trim()}
-                      style={{ backgroundColor: "#0084FF" }}
-                      className="h-8 px-4 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center gap-1.5 disabled:opacity-50 hover:opacity-90"
-                    >
+                    <button onClick={handlePostComment} disabled={postingComment || !newComment.trim()} style={{ backgroundColor: "#0084FF" }} className="h-8 px-4 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center gap-1.5 disabled:opacity-50 hover:opacity-90">
                       <Send className="w-3.5 h-3.5" />
                       {postingComment ? "Submitting..." : "Respond"}
                     </button>
                   </div>
                 </div>
               </div>
-
             </div>
           </div>
         )}
