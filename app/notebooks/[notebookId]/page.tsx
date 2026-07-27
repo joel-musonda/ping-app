@@ -1,3 +1,16 @@
+import { Metadata } from "next";
+import { getNotebook } from "@/lib/appwrite";
+import * as NotebookClientModule from "@/components/NotebookClient";
+
+// Safely resolve whether NotebookClient uses default or named export
+const NotebookClient = 
+  (NotebookClientModule as any).default || 
+  (NotebookClientModule as any).NotebookClient;
+
+interface PageProps {
+  params: Promise<{ notebookId: string }>;
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { notebookId } = await params;
   
@@ -32,4 +45,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description: "Sharing notes and reflections",
     };
   }
+}
+
+export default async function Page({ params }: PageProps) {
+  const { notebookId } = await params;
+
+  if (!NotebookClient) {
+    return (
+      <div style={{ padding: "40px", textAlign: "center", fontFamily: "sans-serif" }}>
+        <h2>Configuration Error</h2>
+        <p>Could not load NotebookClient component. Check your export statement in <code>components/NotebookClient.tsx</code>.</p>
+      </div>
+    );
+  }
+
+  return <NotebookClient notebookId={notebookId} />;
 }
