@@ -2,23 +2,99 @@
 
 import { useState, useRef, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
-import { useEditor, EditorContent } from "@tiptap/react";
+import {
+  useEditor,
+  EditorContent,
+  NodeViewContent,
+  NodeViewWrapper,
+  ReactNodeViewRenderer,
+  NodeViewProps,
+} from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import ImageExtension from "@tiptap/extension-image";
 import TextAlign from "@tiptap/extension-text-align";
 import Placeholder from "@tiptap/extension-placeholder";
+import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import { createLowlight, common } from "lowlight";
+
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   Heading2, List, ImageIcon, Upload, FileText, Globe, X, Camera, Trash2, Users,
-  Link as LinkIcon, Quote, Code
+  Link as LinkIcon, Quote, Code, Check, ExternalLink, GripVertical
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import {
   uploadNotebookCoverImage, getNotebookCoverImageUrl, createNotebook, createChapter,
   getPingByUserId, searchPingsByHandle, inviteCollaborator,
 } from "@/lib/appwrite";
+
+// Initialize Lowlight with common languages for auto language recognition & highlighting
+const lowlight = createLowlight(common);
+
+// Custom Code Block Node Component with Auto-Detect + Language Dropdown + Drag Handle
+const CodeBlockComponent = ({ node, updateAttributes }: NodeViewProps) => {
+  const selectedLanguage = node.attrs.language || "auto";
+
+  return (
+    <NodeViewWrapper className="relative my-6 rounded-xl bg-[#0d1117] text-[#c9d1d9] border border-neutral-800 p-4 font-mono text-xs sm:text-sm shadow-md group">
+      {/* Header Bar: Drag Handle & Language Selector */}
+      <div className="absolute top-2.5 left-2.5 right-2.5 z-10 flex items-center justify-between pointer-events-none">
+        {/* Drag Handle */}
+        <div
+          data-drag-handle
+          className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-neutral-800 text-neutral-500 hover:text-neutral-300 pointer-events-auto transition opacity-0 group-hover:opacity-100 flex items-center gap-1"
+          title="Drag to reorder code block"
+        >
+          <GripVertical className="w-4 h-4" />
+        </div>
+
+        {/* Language Selector Dropdown */}
+        <div className="pointer-events-auto">
+          <select
+            contentEditable={false}
+            value={selectedLanguage}
+            onChange={(e) => {
+              const val = e.target.value;
+              // Setting language to null triggers Lowlight auto-detection
+              updateAttributes({ language: val === "auto" ? null : val });
+            }}
+            className="bg-neutral-800/90 text-neutral-300 hover:text-white border border-neutral-700 text-[11px] font-sans font-medium rounded-md px-2 py-0.5 shadow-sm focus:outline-none cursor-pointer transition"
+          >
+            <option value="auto">Auto-detect</option>
+            <option value="javascript">JavaScript</option>
+            <option value="typescript">TypeScript</option>
+            <option value="python">Python</option>
+            <option value="html">HTML</option>
+            <option value="css">CSS</option>
+            <option value="json">JSON</option>
+            <option value="bash">Bash / Shell</option>
+            <option value="sql">SQL</option>
+            <option value="cpp">C++</option>
+            <option value="java">Java</option>
+            <option value="go">Go</option>
+            <option value="rust">Rust</option>
+          </select>
+        </div>
+      </div>
+
+      <pre className="overflow-x-auto pt-7 sm:pt-6 font-mono leading-relaxed selection:bg-neutral-700">
+        <NodeViewContent className="font-mono" />
+      </pre>
+    </NodeViewWrapper>
+  );
+};
+
+// Extend CodeBlockLowlight to make it Draggable and use custom React Node View
+const CustomCodeBlock = CodeBlockLowlight.extend({
+  draggable: true,
+  addNodeView() {
+    return ReactNodeViewRenderer(CodeBlockComponent);
+  },
+}).configure({
+  lowlight,
+});
 
 export default function CreateNotebookPage() {
   const router = useRouter();
@@ -32,6 +108,13 @@ export default function CreateNotebookPage() {
   const [coverImageUrl, setCoverImageUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Track editor focus state for showing mobile keyboard bar
+  const [isEditorFocused, setIsEditorFocused] = useState(false);
+
+  // Inline Link Placeholder State
+  const [isLinkPopoverOpen, setIsLinkPopoverOpen] = useState(false);
+  const [linkInputUrl, setLinkInputUrl] = useState("");
+
   // Collaborator invite state
   const [collabQuery, setCollabQuery] = useState("");
   const [collabResults, setCollabResults] = useState<any[]>([]);
@@ -42,10 +125,14 @@ export default function CreateNotebookPage() {
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
-      StarterKit.configure({ underline: false }),
+      StarterKit.configure({ 
+        underline: false,
+        codeBlock: false,
+      }),
+      CustomCodeBlock,
       Underline,
       Placeholder.configure({
-        placeholder: "Your thouhts come here...",
+        placeholder: "Your thoughts come here...",
         emptyEditorClass: "is-editor-empty",
       }),
       Link.configure({
@@ -62,6 +149,12 @@ export default function CreateNotebookPage() {
       TextAlign.configure({ types: ["heading", "paragraph"] }),
     ],
     content: "",
+    onFocus() {
+      setIsEditorFocused(true);
+    },
+    onBlur() {
+      setIsEditorFocused(false);
+    },
     editorProps: {
       attributes: {
         class:
@@ -76,16 +169,33 @@ export default function CreateNotebookPage() {
     },
   });
 
-  const setLink = () => {
+  const handleToggleLinkPopover = () => {
     if (!editor) return;
-    const previousUrl = editor.getAttributes("link").href;
-    const url = window.prompt("Enter URL:", previousUrl);
-    if (url === null) return;
-    if (url === "") {
+    const existingUrl = editor.getAttributes("link").href || "";
+    setLinkInputUrl(existingUrl);
+    setIsLinkPopoverOpen((prev) => !prev);
+  };
+
+  const handleApplyLink = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!editor) return;
+
+    if (linkInputUrl.trim() === "") {
       editor.chain().focus().extendMarkRange("link").unsetLink().run();
-      return;
+    } else {
+      const formattedUrl = linkInputUrl.startsWith("http://") || linkInputUrl.startsWith("https://")
+        ? linkInputUrl.trim()
+        : `https://${linkInputUrl.trim()}`;
+      editor.chain().focus().extendMarkRange("link").setLink({ href: formattedUrl }).run();
     }
-    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+    setIsLinkPopoverOpen(false);
+  };
+
+  const handleRemoveLink = () => {
+    if (!editor) return;
+    editor.chain().focus().extendMarkRange("link").unsetLink().run();
+    setLinkInputUrl("");
+    setIsLinkPopoverOpen(false);
   };
 
   const addLocalImageViaUpload = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -207,35 +317,84 @@ export default function CreateNotebookPage() {
     }
   };
 
+  // Reusable formatting control list
+  const FormattingControls = () => (
+    <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-lg overflow-x-auto no-scrollbar scrollbar-none max-w-full shrink-0">
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBold().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Bold"><Bold className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleItalic().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Italic"><Italic className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleUnderline().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Underline"><UnderlineIcon className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleStrike().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Strikethrough"><Strikethrough className="w-4 h-4" /></button>
+      <div className="w-px h-4 bg-neutral-200 mx-0.5 shrink-0" />
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Heading"><Heading2 className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBulletList().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Bullet List"><List className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={handleToggleLinkPopover} className={`p-1.5 rounded-md hover:bg-white transition shrink-0 ${isLinkPopoverOpen ? "bg-white text-blue-600 shadow-xs" : "text-neutral-600"}`} title="Add Link"><LinkIcon className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBlockquote().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Quote"><Quote className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleCodeBlock().run()} className={`p-1.5 rounded-md hover:bg-white transition shrink-0 ${editor?.isActive("codeBlock") ? "bg-white text-blue-600 shadow-xs" : "text-neutral-600"}`} title="Code Block"><Code className="w-4 h-4" /></button>
+      <div className="w-px h-4 bg-neutral-200 mx-0.5 shrink-0" />
+      <label htmlFor="tiptap-image-upload" className="p-1.5 rounded-md text-neutral-600 hover:bg-white cursor-pointer transition shrink-0" title="Upload Image"><ImageIcon className="w-4 h-4" /></label>
+    </div>
+  );
+
   return (
-    <main className="min-h-[calc(100vh-56px)] bg-neutral-50/40 pb-16 sm:pb-20">
+    <main className="min-h-[calc(100vh-56px)] bg-neutral-50/40 pb-20 sm:pb-20">
+      {/* GitHub Dark Syntax Highlighting Theme */}
+      <style jsx global>{`
+        .hljs-comment,
+        .hljs-quote {
+          color: #8b949e;
+          font-style: italic;
+        }
+        .hljs-keyword,
+        .hljs-selector-tag,
+        .hljs-subst {
+          color: #ff7b72;
+          font-weight: 600;
+        }
+        .hljs-string,
+        .hljs-title.class_,
+        .hljs-section {
+          color: #a5d6ff;
+        }
+        .hljs-title,
+        .hljs-title.function_ {
+          color: #d2a8ff;
+        }
+        .hljs-number,
+        .hljs-literal {
+          color: #79c0ff;
+        }
+        .hljs-variable,
+        .hljs-template-variable {
+          color: #ffa657;
+        }
+        .hljs-tag,
+        .hljs-name {
+          color: #7ee787;
+        }
+        .hljs-attr,
+        .hljs-attribute {
+          color: #79c0ff;
+        }
+        .hljs-built_in,
+        .hljs-type {
+          color: #ffa657;
+        }
+      `}</style>
 
       <input type="file" accept="image/*" id="tiptap-image-upload" className="hidden" onChange={addLocalImageViaUpload} />
       <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleCoverImageUpload} />
 
-      {/* Sticky Mobile-Responsive Top Formatting Bar */}
+      {/* Desktop & Default Sticky Top Formatting Header */}
       <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-neutral-200 px-3 sm:px-4 py-2.5 sm:py-3">
-        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-3 sm:gap-4">
 
-          {/* Horizontally Scrollable Formatting Controls on Mobile */}
-          <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-lg overflow-x-auto no-scrollbar scrollbar-none max-w-full shrink-0">
-            <button onClick={() => editor?.chain().focus().toggleBold().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Bold"><Bold className="w-4 h-4" /></button>
-            <button onClick={() => editor?.chain().focus().toggleItalic().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Italic"><Italic className="w-4 h-4" /></button>
-            <button onClick={() => editor?.chain().focus().toggleUnderline().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Underline"><UnderlineIcon className="w-4 h-4" /></button>
-            <button onClick={() => editor?.chain().focus().toggleStrike().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Strikethrough"><Strikethrough className="w-4 h-4" /></button>
-            <div className="w-px h-4 bg-neutral-200 mx-0.5 shrink-0" />
-            <button onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Heading"><Heading2 className="w-4 h-4" /></button>
-            <button onClick={() => editor?.chain().focus().toggleBulletList().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Bullet List"><List className="w-4 h-4" /></button>
-            <button onClick={setLink} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Add Link"><LinkIcon className="w-4 h-4" /></button>
-            <button onClick={() => editor?.chain().focus().toggleBlockquote().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Quote"><Quote className="w-4 h-4" /></button>
-            <button onClick={() => editor?.chain().focus().toggleCode().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Code"><Code className="w-4 h-4" /></button>
-            <div className="w-px h-4 bg-neutral-200 mx-0.5 shrink-0" />
-            <label htmlFor="tiptap-image-upload" className="p-1.5 rounded-md text-neutral-600 hover:bg-white cursor-pointer transition shrink-0" title="Upload Image"><ImageIcon className="w-4 h-4" /></label>
+          {/* Desktop Formatting Controls */}
+          <div className="hidden sm:flex items-center">
+            <FormattingControls />
           </div>
 
           {/* Action Row: Toggle Switch & Publish Button */}
-          <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 w-full sm:w-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-neutral-100 sm:border-none">
-            {/* Public/Private Toggle Switch */}
+          <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 w-full sm:w-auto">
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -257,19 +416,68 @@ export default function CreateNotebookPage() {
               </span>
             </div>
 
-            {/* Styled Publish Button */}
             <button
               onClick={() => setIsPublishModalOpen(true)}
-              className="h-9 px-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg text-xs font-bold shadow-md shadow-blue-500/20 transition transform active:scale-95"
+              className="h-9 px-5  bg-[#0084FF] hover:bg-[#0073e6] active:bg-[#0062c4] text-white text-white rounded-lg text-xs font-bold shadow-md shadow-blue-500/20 transition transform active:scale-95"
             >
-              Publish
+             Done
             </button>
           </div>
 
         </div>
+
+        {/* Inline Small Link Placeholder Box */}
+        {isLinkPopoverOpen && (
+          <form
+            onSubmit={handleApplyLink}
+            className="max-w-md mx-auto mt-2.5 p-1.5 bg-white border border-neutral-200 rounded-lg shadow-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-150"
+          >
+            <div className="flex items-center gap-1.5 px-2 text-neutral-400">
+              <ExternalLink className="w-3.5 h-3.5" />
+            </div>
+            <input
+              type="text"
+              placeholder="Paste or type a link..."
+              value={linkInputUrl}
+              onChange={(e) => setLinkInputUrl(e.target.value)}
+              autoFocus
+              className="flex-1 text-xs bg-transparent border-none focus:outline-none focus:ring-0 text-neutral-800 placeholder:text-neutral-400"
+            />
+            <button
+              type="submit"
+              className="h-7 px-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium flex items-center gap-1 transition"
+            >
+              <Check className="w-3 h-3" />
+              <span>Apply</span>
+            </button>
+            {editor?.isActive("link") && (
+              <button
+                type="button"
+                onClick={handleRemoveLink}
+                className="h-7 px-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-md text-xs font-medium transition"
+              >
+                Unlink
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setIsLinkPopoverOpen(false)}
+              className="p-1 text-neutral-400 hover:text-neutral-600 rounded"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </form>
+        )}
       </div>
 
-      {/* Editor Content Area */}
+      {/* Mobile Sticky Bottom Toolbar (Appears above virtual keyboard ONLY when focused) */}
+      {isEditorFocused && (
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200 p-2 shadow-2xl flex items-center justify-center animate-in slide-in-from-bottom duration-200 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+          <FormattingControls />
+        </div>
+      )}
+
+      {/* Editor Content Area - Borderless / Infinite Feel */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 mt-6 sm:mt-10">
         <input
           type="text"
@@ -278,7 +486,7 @@ export default function CreateNotebookPage() {
           onChange={(e) => setTitle(e.target.value)}
           className="w-full bg-transparent text-2xl sm:text-3xl font-black placeholder:text-neutral-400 border-none focus:outline-none focus:ring-0 mb-4 sm:mb-6 text-neutral-900"
         />
-        <div className="bg-white border border-neutral-200/80 shadow-xl shadow-neutral-200/50 rounded-xl sm:rounded-2xl p-4 sm:p-8 min-h-[350px] sm:min-h-[450px]">
+        <div className="min-h-[350px] sm:min-h-[450px]">
           <EditorContent editor={editor} />
         </div>
       </div>

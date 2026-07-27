@@ -2,12 +2,22 @@
 
 import { useEffect, useState, useRef, ChangeEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useEditor, EditorContent } from "@tiptap/react";
+import {
+  useEditor,
+  EditorContent,
+  NodeViewContent,
+  NodeViewWrapper,
+  ReactNodeViewRenderer,
+  NodeViewProps,
+} from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import ImageExtension from "@tiptap/extension-image";
 import TextAlign from "@tiptap/extension-text-align";
+import Placeholder from "@tiptap/extension-placeholder";
+import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import { createLowlight, common } from "lowlight";
 import { toast } from "@heroui/react";
 import {
   getChapter,
@@ -29,8 +39,73 @@ import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   Heading2, List, ImageIcon, ArrowLeft, CloudLightning, 
   Bookmark, MessageSquare, Trash2, Heart, Link as LinkIcon, Quote, Code,
-  AlignLeft, AlignCenter, AlignRight, X, Upload
+  AlignLeft, AlignCenter, AlignRight, X, Upload, GripVertical, ExternalLink, Check
 } from "lucide-react";
+
+// Initialize Lowlight with common languages for auto language recognition & highlighting
+const lowlight = createLowlight(common);
+
+// Custom Code Block Node Component with Auto-Detect + Language Dropdown + Drag Handle
+const CodeBlockComponent = ({ node, updateAttributes }: NodeViewProps) => {
+  const selectedLanguage = node.attrs.language || "auto";
+
+  return (
+    <NodeViewWrapper className="relative my-6 rounded-xl bg-[#0d1117] text-[#c9d1d9] border border-neutral-800 p-4 font-mono text-xs sm:text-sm shadow-md group">
+      {/* Header Bar: Drag Handle & Language Selector */}
+      <div className="absolute top-2.5 left-2.5 right-2.5 z-10 flex items-center justify-between pointer-events-none">
+        {/* Drag Handle */}
+        <div
+          data-drag-handle
+          className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-neutral-800 text-neutral-500 hover:text-neutral-300 pointer-events-auto transition opacity-0 group-hover:opacity-100 flex items-center gap-1"
+          title="Drag to reorder code block"
+        >
+          <GripVertical className="w-4 h-4" />
+        </div>
+
+        {/* Language Selector Dropdown */}
+        <div className="pointer-events-auto">
+          <select
+            contentEditable={false}
+            value={selectedLanguage}
+            onChange={(e) => {
+              const val = e.target.value;
+              updateAttributes({ language: val === "auto" ? null : val });
+            }}
+            className="bg-neutral-800/90 text-neutral-300 hover:text-white border border-neutral-700 text-[11px] font-sans font-medium rounded-md px-2 py-0.5 shadow-sm focus:outline-none cursor-pointer transition"
+          >
+            <option value="auto">Auto-detect</option>
+            <option value="javascript">JavaScript</option>
+            <option value="typescript">TypeScript</option>
+            <option value="python">Python</option>
+            <option value="html">HTML</option>
+            <option value="css">CSS</option>
+            <option value="json">JSON</option>
+            <option value="bash">Bash / Shell</option>
+            <option value="sql">SQL</option>
+            <option value="cpp">C++</option>
+            <option value="java">Java</option>
+            <option value="go">Go</option>
+            <option value="rust">Rust</option>
+          </select>
+        </div>
+      </div>
+
+      <pre className="overflow-x-auto pt-7 sm:pt-6 font-mono leading-relaxed selection:bg-neutral-700">
+        <NodeViewContent  className="font-mono" />
+      </pre>
+    </NodeViewWrapper>
+  );
+};
+
+// Extend CodeBlockLowlight to make it Draggable and use custom React Node View
+const CustomCodeBlock = CodeBlockLowlight.extend({
+  draggable: true,
+  addNodeView() {
+    return ReactNodeViewRenderer(CodeBlockComponent);
+  },
+}).configure({
+  lowlight,
+});
 
 export default function ChapterWorkspacePage() {
   const { chapterId } = useParams<{ chapterId: string }>();
@@ -41,6 +116,11 @@ export default function ChapterWorkspacePage() {
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(true);
   const [canEdit, setCanEdit] = useState(false);
+
+  // Focus & Link Popover State
+  const [isEditorFocused, setIsEditorFocused] = useState(false);
+  const [isLinkPopoverOpen, setIsLinkPopoverOpen] = useState(false);
+  const [linkInputUrl, setLinkInputUrl] = useState("");
 
   // Preview Image & Onboarding Card State
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -60,8 +140,16 @@ export default function ChapterWorkspacePage() {
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
-      StarterKit.configure({ underline: false }),
+      StarterKit.configure({ 
+        underline: false,
+        codeBlock: false,
+      }),
+      CustomCodeBlock,
       Underline,
+      Placeholder.configure({
+        placeholder: "Your chapter content starts here...",
+        emptyEditorClass: "is-editor-empty",
+      }),
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
@@ -77,9 +165,22 @@ export default function ChapterWorkspacePage() {
         types: ["heading", "paragraph"],
       }),
     ],
+    onFocus() {
+      setIsEditorFocused(true);
+    },
+    onBlur() {
+      setIsEditorFocused(false);
+    },
     editorProps: {
       attributes: {
-        class: "prose focus:outline-none min-h-[350px] sm:min-h-[450px] max-w-none text-neutral-800",
+        class:
+          "prose focus:outline-none min-h-[350px] sm:min-h-[450px] max-w-none text-neutral-800 " +
+          "[&_.is-editor-empty:first-child::before]:text-neutral-400/70 " +
+          "[&_.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] " +
+          "[&_.is-editor-empty:first-child::before]:float-left " +
+          "[&_.is-editor-empty:first-child::before]:pointer-events-none " +
+          "[&_.is-editor-empty:first-child::before]:drop-shadow-[0_1px_2px_rgba(0,0,0,0.15)] " +
+          "[&_.is-editor-empty:first-child::before]:font-medium",
       },
     },
   });
@@ -159,16 +260,33 @@ export default function ChapterWorkspacePage() {
     };
   }, [chapterId, editor]);
 
-  const setLink = () => {
+  const handleToggleLinkPopover = () => {
     if (!editor) return;
-    const previousUrl = editor.getAttributes("link").href;
-    const url = window.prompt("Enter URL:", previousUrl);
-    if (url === null) return;
-    if (url === "") {
+    const existingUrl = editor.getAttributes("link").href || "";
+    setLinkInputUrl(existingUrl);
+    setIsLinkPopoverOpen((prev) => !prev);
+  };
+
+  const handleApplyLink = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!editor) return;
+
+    if (linkInputUrl.trim() === "") {
       editor.chain().focus().extendMarkRange("link").unsetLink().run();
-      return;
+    } else {
+      const formattedUrl = linkInputUrl.startsWith("http://") || linkInputUrl.startsWith("https://")
+        ? linkInputUrl.trim()
+        : `https://${linkInputUrl.trim()}`;
+      editor.chain().focus().extendMarkRange("link").setLink({ href: formattedUrl }).run();
     }
-    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+    setIsLinkPopoverOpen(false);
+  };
+
+  const handleRemoveLink = () => {
+    if (!editor) return;
+    editor.chain().focus().extendMarkRange("link").unsetLink().run();
+    setLinkInputUrl("");
+    setIsLinkPopoverOpen(false);
   };
 
   const addLocalImageViaUpload = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -268,6 +386,28 @@ export default function ChapterWorkspacePage() {
     } catch (err) { console.error(err); }
   };
 
+  // Reusable formatting controls sub-component
+  const FormattingControls = () => (
+    <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-lg overflow-x-auto no-scrollbar scrollbar-none max-w-full shrink-0">
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBold().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Bold"><Bold className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleItalic().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Italic"><Italic className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleUnderline().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Underline"><UnderlineIcon className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleStrike().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Strikethrough"><Strikethrough className="w-4 h-4" /></button>
+      <div className="w-px h-4 bg-neutral-200 mx-0.5 shrink-0" />
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Heading"><Heading2 className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBulletList().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Bullet List"><List className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={handleToggleLinkPopover} className={`p-1.5 rounded-md hover:bg-white transition shrink-0 ${isLinkPopoverOpen ? "bg-white text-blue-600 shadow-xs" : "text-neutral-600"}`} title="Add Link"><LinkIcon className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBlockquote().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Quote"><Quote className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleCodeBlock().run()} className={`p-1.5 rounded-md hover:bg-white transition shrink-0 ${editor?.isActive("codeBlock") ? "bg-white text-blue-600 shadow-xs" : "text-neutral-600"}`} title="Code Block"><Code className="w-4 h-4" /></button>
+      <div className="w-px h-4 bg-neutral-200 mx-0.5 shrink-0" />
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().setTextAlign('left').run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Align Left"><AlignLeft className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().setTextAlign('center').run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Align Center"><AlignCenter className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().setTextAlign('right').run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Align Right"><AlignRight className="w-4 h-4" /></button>
+      <div className="w-px h-4 bg-neutral-200 mx-0.5 shrink-0" />
+      <label htmlFor="tiptap-chapter-image-upload" className="p-1.5 rounded-md text-neutral-600 hover:bg-white cursor-pointer transition shrink-0" title="Upload Image"><ImageIcon className="w-4 h-4" /></label>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen text-xs text-neutral-400 font-medium tracking-wide bg-neutral-50/40">
@@ -279,7 +419,51 @@ export default function ChapterWorkspacePage() {
   // --- RENDER BLOCK A: EDITABLE WORKSPACE MODE ---
   if (canEdit) {
     return (
-      <main className="min-h-[calc(100vh-56px)] bg-neutral-50/40 pb-16 sm:pb-20 relative">
+      <main className="min-h-[calc(100vh-56px)] bg-neutral-50/40 pb-20 sm:pb-20 relative">
+        {/* GitHub Dark Syntax Highlighting Theme */}
+        <style jsx global>{`
+          .hljs-comment,
+          .hljs-quote {
+            color: #8b949e;
+            font-style: italic;
+          }
+          .hljs-keyword,
+          .hljs-selector-tag,
+          .hljs-subst {
+            color: #ff7b72;
+            font-weight: 600;
+          }
+          .hljs-string,
+          .hljs-title.class_,
+          .hljs-section {
+            color: #a5d6ff;
+          }
+          .hljs-title,
+          .hljs-title.function_ {
+            color: #d2a8ff;
+          }
+          .hljs-number,
+          .hljs-literal {
+            color: #79c0ff;
+          }
+          .hljs-variable,
+          .hljs-template-variable {
+            color: #ffa657;
+          }
+          .hljs-tag,
+          .hljs-name {
+            color: #7ee787;
+          }
+          .hljs-attr,
+          .hljs-attribute {
+            color: #79c0ff;
+          }
+          .hljs-built_in,
+          .hljs-type {
+            color: #ffa657;
+          }
+        `}</style>
+
         <input 
           type="file" 
           accept="image/*" 
@@ -359,11 +543,11 @@ export default function ChapterWorkspacePage() {
           </div>
         )}
 
-        {/* STICKY MOBILE-RESPONSIVE WORKSPACE CONTROLS HEADER */}
-        <div className="sticky top-0 z-30 bg-white border-b border-neutral-200 px-3 sm:px-4 py-2.5 sm:py-3 shadow-sm">
-          <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
+        {/* STICKY WORKSPACE CONTROLS HEADER */}
+        <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-neutral-200 px-3 sm:px-4 py-2.5 sm:py-3 shadow-xs">
+          <div className="max-w-4xl mx-auto flex items-center justify-between gap-3 sm:gap-4">
             
-            <div className="flex items-center justify-between sm:justify-start gap-2">
+            <div className="flex items-center gap-2">
               <button 
                 onClick={() => router.back()}
                 className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-500 transition shrink-0"
@@ -372,29 +556,14 @@ export default function ChapterWorkspacePage() {
                 <ArrowLeft className="w-4 h-4" />
               </button>
 
-              {/* Extended Horizontally Scrollable Formatting Controls on Mobile */}
-              <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-lg overflow-x-auto no-scrollbar scrollbar-none max-w-full shrink-0">
-                <button onClick={() => editor?.chain().focus().toggleBold().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Bold"><Bold className="w-4 h-4" /></button>
-                <button onClick={() => editor?.chain().focus().toggleItalic().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Italic"><Italic className="w-4 h-4" /></button>
-                <button onClick={() => editor?.chain().focus().toggleUnderline().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Underline"><UnderlineIcon className="w-4 h-4" /></button>
-                <button onClick={() => editor?.chain().focus().toggleStrike().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Strikethrough"><Strikethrough className="w-4 h-4" /></button>
-                <div className="w-px h-4 bg-neutral-200 mx-0.5 shrink-0" />
-                <button onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Heading"><Heading2 className="w-4 h-4" /></button>
-                <button onClick={() => editor?.chain().focus().toggleBulletList().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Bullet List"><List className="w-4 h-4" /></button>
-                <button onClick={setLink} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Add Link"><LinkIcon className="w-4 h-4" /></button>
-                <button onClick={() => editor?.chain().focus().toggleBlockquote().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Quote"><Quote className="w-4 h-4" /></button>
-                <button onClick={() => editor?.chain().focus().toggleCode().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Code"><Code className="w-4 h-4" /></button>
-                <div className="w-px h-4 bg-neutral-200 mx-0.5 shrink-0" />
-                <button onClick={() => editor?.chain().focus().setTextAlign('left').run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Align Left"><AlignLeft className="w-4 h-4" /></button>
-                <button onClick={() => editor?.chain().focus().setTextAlign('center').run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Align Center"><AlignCenter className="w-4 h-4" /></button>
-                <button onClick={() => editor?.chain().focus().setTextAlign('right').run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Align Right"><AlignRight className="w-4 h-4" /></button>
-                <div className="w-px h-4 bg-neutral-200 mx-0.5 shrink-0" />
-                <label htmlFor="tiptap-chapter-image-upload" className="p-1.5 rounded-md text-neutral-600 hover:bg-white cursor-pointer transition shrink-0" title="Upload Image"><ImageIcon className="w-4 h-4" /></label>
+              {/* Desktop Formatting Controls */}
+              <div className="hidden sm:flex items-center">
+                <FormattingControls />
               </div>
             </div>
 
-            {/* Cloud Sync Signal Tracker & Fully Responsive Blue Publish Button */}
-            <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 pt-1 sm:pt-0 border-t sm:border-t-0 border-neutral-100 sm:border-none">
+            {/* Cloud Sync Signal Tracker & Publish Button */}
+            <div className="flex items-center justify-end gap-3 sm:gap-4">
               <div className="hidden sm:flex items-center gap-1.5 text-xs text-neutral-400 font-medium">
                 {status === "Publishing payload..." ? (
                   <span className="flex items-center gap-1 text-amber-500 animate-pulse">
@@ -407,30 +576,75 @@ export default function ChapterWorkspacePage() {
 
               <button 
                 onClick={handlePublishClick}
-                className=" rounded-full bg-[#0084FF] hover:bg-[#0073e6] active:bg-[#0062c4] text-white h-10 sm:h-9 px-5  text-white rounded-lg text-xs font-bold shadow-md shadow-blue-500/20 transition transform active:scale-95 w-full sm:w-auto flex items-center justify-center"
+                className="h-9 px-5 bg-[#0084FF] hover:bg-[#0073e6] active:bg-[#0062c4] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-500/20 transition transform active:scale-95 shrink-0"
               >
-                Publish Chapter
+               Done
               </button>
             </div>
 
           </div>
+
+          {/* Inline Link Placeholder Box */}
+          {isLinkPopoverOpen && (
+            <form
+              onSubmit={handleApplyLink}
+              className="max-w-md mx-auto mt-2.5 p-1.5 bg-white border border-neutral-200 rounded-lg shadow-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-150"
+            >
+              <div className="flex items-center gap-1.5 px-2 text-neutral-400">
+                <ExternalLink className="w-3.5 h-3.5" />
+              </div>
+              <input
+                type="text"
+                placeholder="Paste or type a link..."
+                value={linkInputUrl}
+                onChange={(e) => setLinkInputUrl(e.target.value)}
+                autoFocus
+                className="flex-1 text-xs bg-transparent border-none focus:outline-none focus:ring-0 text-neutral-800 placeholder:text-neutral-400"
+              />
+              <button
+                type="submit"
+                className="h-7 px-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium flex items-center gap-1 transition"
+              >
+                <Check className="w-3 h-3" />
+                <span>Apply</span>
+              </button>
+              {editor?.isActive("link") && (
+                <button
+                  type="button"
+                  onClick={handleRemoveLink}
+                  className="h-7 px-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-md text-xs font-medium transition"
+                >
+                  Unlink
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setIsLinkPopoverOpen(false)}
+                className="p-1 text-neutral-400 hover:text-neutral-600 rounded"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </form>
+          )}
         </div>
 
-        {/* WORKSPACE AREA */}
+        {/* Mobile Sticky Bottom Toolbar (Appears above virtual keyboard ONLY when focused) */}
+        {isEditorFocused && (
+          <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200 p-2 shadow-2xl flex items-center justify-center animate-in slide-in-from-bottom duration-200 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+            <FormattingControls />
+          </div>
+        )}
+
+        {/* WORKSPACE AREA - BORDERLESS / INFINITE FEEL */}
         <div className="max-w-2xl mx-auto px-4 sm:px-6 mt-6 sm:mt-10">
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Chapter Title"
-            className="w-full bg-transparent text-2xl sm:text-3xl font-black placeholder:text-neutral-200 border-none focus:outline-none focus:ring-0 mb-4 sm:mb-6 text-neutral-900 tracking-tight"
+            className="w-full bg-transparent text-2xl sm:text-3xl font-black placeholder:text-neutral-300 border-none focus:outline-none focus:ring-0 mb-4 sm:mb-6 text-neutral-900 tracking-tight"
           />
-          <div className="relative bg-white border border-neutral-200 shadow-sm rounded-xl p-4 sm:p-8 min-h-[350px] sm:min-h-[450px]">
-            {editor && editor.isEmpty && (
-              <div className="absolute top-4 sm:top-8 left-4 sm:left-8 pointer-events-none text-neutral-400/70 font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.15)] select-none">
-                Write here
-              </div>
-            )}
+          <div className="min-h-[350px] sm:min-h-[450px]">
             <EditorContent editor={editor} />
           </div>
         </div>
@@ -441,6 +655,50 @@ export default function ChapterWorkspacePage() {
   // --- RENDER BLOCK B: PUBLIC READ FORMAT CANVAS ---
   return (
     <main className="py-6 max-w-2xl mx-auto px-4 space-y-8">
+      {/* GitHub Dark Syntax Highlighting Theme for Readers */}
+      <style jsx global>{`
+        .hljs-comment,
+        .hljs-quote {
+          color: #8b949e;
+          font-style: italic;
+        }
+        .hljs-keyword,
+        .hljs-selector-tag,
+        .hljs-subst {
+          color: #ff7b72;
+          font-weight: 600;
+        }
+        .hljs-string,
+        .hljs-title.class_,
+        .hljs-section {
+          color: #a5d6ff;
+        }
+        .hljs-title,
+        .hljs-title.function_ {
+          color: #d2a8ff;
+        }
+        .hljs-number,
+        .hljs-literal {
+          color: #79c0ff;
+        }
+        .hljs-variable,
+        .hljs-template-variable {
+          color: #ffa657;
+        }
+        .hljs-tag,
+        .hljs-name {
+          color: #7ee787;
+        }
+        .hljs-attr,
+        .hljs-attribute {
+          color: #79c0ff;
+        }
+        .hljs-built_in,
+        .hljs-type {
+          color: #ffa657;
+        }
+      `}</style>
+
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-amber-600 bg-amber-50 border border-amber-100 px-3 py-1.5 rounded-lg text-xs font-semibold">
           <span>You are viewing this chapter in read-only library format.</span>

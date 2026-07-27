@@ -32,12 +32,12 @@ export default function ForgotPasswordPage() {
     <main className="flex flex-col items-center justify-center min-h-screen bg-white text-neutral-900 px-4">
       <div className="w-full max-w-sm p-6 bg-white rounded-xl border border-neutral-200 shadow-sm space-y-5">
         
-        {/* Header Stack */}
+        {/* Header */}
         <div className="flex flex-col items-center text-center">
           <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center mb-3">
             <KeyRound className="w-5 h-5 text-neutral-900" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-neutral-900">Forgot password?</h1>
+          <h1 className="text-xl font-bold tracking-tight text-neutral-900">Forgot your password?</h1>
           <p className="text-xs text-neutral-500 mt-1">
             No worries, we'll send you recovery optimization instructions.
           </p>
@@ -47,7 +47,7 @@ export default function ForgotPasswordPage() {
           <div className="space-y-4 text-center">
             <div className="flex items-center gap-2 p-3 text-xs font-medium text-green-700 bg-green-50 border border-green-100 rounded-lg text-left">
               <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-              <span>Reset authorization link sent! Please check your email inbox to update your security keys.</span>
+              <span>Reset link sent! Please check your email inbox to update your security keys.</span>
             </div>
             <a 
               href="/login" 

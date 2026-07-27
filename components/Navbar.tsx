@@ -18,6 +18,25 @@ import Image from "next/image";
 import Link from "next/link";
 import HoverCard from "@/components/HoverCard";
 
+// Helper function to format timestamps into relative time strings
+function formatRelativeTime(dateString?: string) {
+  if (!dateString) return "Just now";
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffInSeconds < 60) return "Just now";
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours}h ago`;
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 30) return `${diffInDays}d ago`;
+  const diffInMonths = Math.floor(diffInDays / 30);
+  if (diffInMonths < 12) return `${diffInMonths}mo ago`;
+  return `${Math.floor(diffInDays / 365)}y ago`;
+}
+
 export default function Navbar() {
   const [profileData, setProfileData] = useState<{
     handle: string;
@@ -28,6 +47,7 @@ export default function Navbar() {
   const [loading, setLoading] = useState(true);
 
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [hasUnread, setHasUnread] = useState(false);
 
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -45,6 +65,7 @@ export default function Navbar() {
 
   const profileRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
+  const mobileNotifRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
   const router = useRouter();
@@ -71,6 +92,9 @@ export default function Navbar() {
         try {
           const notifs = await getNotifications(user.$id);
           setNotifications(notifs);
+          if (notifs.length > 0) {
+            setHasUnread(true);
+          }
         } catch (err) {
           console.error("Failed to load notifications:", err);
         }
@@ -97,10 +121,17 @@ export default function Navbar() {
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node;
+      // Prevent closing if target was unmounted during click (e.g., deleting an item)
+      if (!document.body.contains(target)) return;
+
       if (profileRef.current && !profileRef.current.contains(target)) {
         setProfileOpen(false);
       }
-      if (notifRef.current && !notifRef.current.contains(target)) {
+      if (
+        notifRef.current &&
+        !notifRef.current.contains(target) &&
+        (!mobileNotifRef.current || !mobileNotifRef.current.contains(target))
+      ) {
         setNotifOpen(false);
       }
       if (searchRef.current && !searchRef.current.contains(target)) {
@@ -111,6 +142,13 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleToggleNotifications = () => {
+    if (!notifOpen) {
+      setHasUnread(false); // Badge disappears when notifications panel opens
+    }
+    setNotifOpen((prev) => !prev);
+  };
+
   const handleLogout = async () => {
     setProfileOpen(false);
     await logOut();
@@ -119,8 +157,9 @@ export default function Navbar() {
     router.refresh();
   };
 
-  const handleDismissNotification = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleDismissNotification = async (id: string, e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
     try {
       await deleteNotification(id);
       setNotifications((prev) => prev.filter((n) => n.$id !== id));
@@ -264,56 +303,138 @@ export default function Navbar() {
     </div>
   );
 
-  const NotificationRow = ({ notif }: { notif: any }) => (
-    <div className="p-3.5 flex items-start justify-between gap-3 hover:bg-neutral-50 transition-colors duration-200 group">
-      <div className="flex gap-3 min-w-0">
-        <div className="mt-0.5 w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100 shrink-0">
-          <UserPlus className="w-4 h-4 text-[#0084FF]" />
+  const NotificationRow = ({ notif }: { notif: any }) => {
+    const [offsetX, setOffsetX] = useState(0);
+    const touchStartX = useRef(0);
+    const isSwiping = useRef(false);
+
+    // Determine target link for chapter/notebook/user navigation
+    const targetLink =
+      notif.chapter_id ? `/chapters/${notif.chapter_id}` :
+      notif.chapterId ? `/chapters/${notif.chapterId}` :
+      notif.notebook_id ? `/notebooks/${notif.notebook_id}` :
+      notif.notebookId ? `/notebooks/${notif.notebookId}` :
+      notif.target_url || notif.url || (notif.type === "follow" ? `/${notif.sender_handle}` : null);
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+      touchStartX.current = e.touches[0].clientX;
+      isSwiping.current = true;
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+      if (!isSwiping.current) return;
+      const currentX = e.touches[0].clientX;
+      const diff = currentX - touchStartX.current;
+
+      // Allow dragging left to reveal the delete action
+      if (diff < 0) {
+        setOffsetX(Math.max(diff, -80));
+      } else if (diff > 0 && offsetX < 0) {
+        setOffsetX(Math.min(0, offsetX + diff));
+      }
+    };
+
+    const handleTouchEnd = () => {
+      isSwiping.current = false;
+      if (offsetX < -40) {
+        setOffsetX(-70); // Snap open to display delete icon
+      } else {
+        setOffsetX(0); // Snap closed
+      }
+    };
+
+    const handleRowClick = () => {
+      if (Math.abs(offsetX) > 10) return; // Ignore row click if swiping
+      if (targetLink) {
+        setNotifOpen(false);
+        router.push(targetLink);
+      }
+    };
+
+    return (
+      <div className="relative overflow-hidden bg-white rounded-xl border border-neutral-200/80 shadow-sm transition-all duration-200">
+        {/* Hidden Delete Action Revealed ONLY on Mobile Left-Slide */}
+        <div className="sm:hidden absolute inset-y-0 right-0 w-20 flex items-center justify-center bg-neutral-100 rounded-r-xl">
+          <button
+            onClick={(e) => handleDismissNotification(notif.$id, e)}
+            className="w-full h-full flex flex-col items-center justify-center text-neutral-600 hover:text-red-600 text-[10px] font-bold gap-1 active:bg-neutral-200 transition-colors"
+            title="Delete notification"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Delete</span>
+          </button>
         </div>
-        <div className="flex flex-col min-w-0 text-xs">
-          <div className="text-neutral-700 font-normal leading-relaxed break-words">
-            <HoverCard handle={notif.sender_handle}>
-              <span className="text-neutral-900 font-bold cursor-pointer hover:underline">@{notif.sender_handle}</span>
-            </HoverCard>{" "}
-            {notif.type === "like"
-              ? "liked your chapter."
-              : notif.type === "comment"
-              ? "commented on your chapter."
-              : notif.type === "collab_invite"
-              ? "invited you to collaborate on a notebook."
-              : "started following you."}
+
+        {/* Slideable & Clickable Main Content Container */}
+        <div
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onClick={handleRowClick}
+          style={{ transform: `translateX(${offsetX}px)` }}
+          className={`relative bg-white p-3.5 flex items-start justify-between gap-3 hover:bg-neutral-50/80 transition-transform duration-200 ease-out group select-none rounded-xl ${
+            targetLink ? "cursor-pointer" : ""
+          }`}
+        >
+          <div className="flex gap-3 min-w-0">
+            <div className="mt-0.5 w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100 shrink-0">
+              <UserPlus className="w-4 h-4 text-[#0084FF]" />
+            </div>
+            <div className="flex flex-col min-w-0 text-xs">
+              <div className="text-neutral-700 font-normal leading-relaxed break-words">
+                <HoverCard handle={notif.sender_handle}>
+                  <a
+                    href={`/${notif.sender_handle}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-neutral-900 font-bold hover:underline cursor-pointer inline-block"
+                  >
+                    @{notif.sender_handle}
+                  </a>
+                </HoverCard>{" "}
+                {notif.type === "like"
+                  ? "liked your chapter."
+                  : notif.type === "comment"
+                  ? "commented on your chapter."
+                  : notif.type === "collab_invite"
+                  ? "invited you to collaborate on a notebook."
+                  : "started following you."}
+              </div>
+
+              {notif.type === "collab_invite" ? (
+                <div className="flex flex-wrap gap-2 mt-2.5">
+                  <button
+                    onClick={(e) => handleInviteResponse(notif.invite_id, true, notif.$id, e)}
+                    className="flex items-center gap-1.5 text-xs font-semibold bg-[#0084FF] hover:bg-[#0073e6] text-white rounded-xl px-3 py-1.5 shadow-sm transition-all duration-150"
+                  >
+                    <Check className="w-3.5 h-3.5" /> Accept
+                  </button>
+                  <button
+                    onClick={(e) => handleInviteResponse(notif.invite_id, false, notif.$id, e)}
+                    className="flex items-center gap-1.5 text-xs font-semibold bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-xl px-3 py-1.5 transition-all duration-150"
+                  >
+                    <X className="w-3.5 h-3.5" /> Decline
+                  </button>
+                </div>
+              ) : (
+                <span className="text-[11px] text-neutral-400 mt-1 font-medium">
+                  {formatRelativeTime(notif.$createdAt || notif.created_at)}
+                </span>
+              )}
+            </div>
           </div>
 
-          {notif.type === "collab_invite" ? (
-            <div className="flex flex-wrap gap-2 mt-2.5">
-              <button
-                onClick={(e) => handleInviteResponse(notif.invite_id, true, notif.$id, e)}
-                className="flex items-center gap-1.5 text-xs font-semibold bg-[#0084FF] hover:bg-[#0073e6] text-white rounded-xl px-3 py-1.5 shadow-sm transition-all duration-150"
-              >
-                <Check className="w-3.5 h-3.5" /> Accept
-              </button>
-              <button
-                onClick={(e) => handleInviteResponse(notif.invite_id, false, notif.$id, e)}
-                className="flex items-center gap-1.5 text-xs font-semibold bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-xl px-3 py-1.5 transition-all duration-150"
-              >
-                <X className="w-3.5 h-3.5" /> Decline
-              </button>
-            </div>
-          ) : (
-            <span className="text-[11px] text-neutral-400 mt-1 font-medium">Just now</span>
-          )}
+          {/* Hover Dismiss for Desktop */}
+          <button
+            onClick={(e) => handleDismissNotification(notif.$id, e)}
+            className="hidden sm:flex p-1.5 rounded-lg text-neutral-400 hover:text-red-600 hover:bg-neutral-100 opacity-0 group-hover:opacity-100 transition-all duration-200 shrink-0"
+            title="Dismiss alert"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
       </div>
-
-      <button
-        onClick={(e) => handleDismissNotification(notif.$id, e)}
-        className="p-1.5 rounded-lg text-neutral-400 hover:text-red-600 hover:bg-red-50 sm:opacity-0 group-hover:opacity-100 transition-all duration-200 shrink-0"
-        title="Dismiss alert"
-      >
-        <Trash2 className="w-4 h-4" />
-      </button>
-    </div>
-  );
+    );
+  };
 
   return (
     <>
@@ -395,12 +516,12 @@ export default function Navbar() {
                 {/* Notifications Desktop */}
                 <div className="relative hidden md:block" ref={notifRef}>
                   <button
-                    onClick={() => setNotifOpen(!notifOpen)}
+                    onClick={handleToggleNotifications}
                     className="w-8 h-8 rounded-xl flex items-center justify-center border border-neutral-200 bg-white hover:bg-neutral-50 hover:border-neutral-300 text-neutral-600 transition-all duration-150 relative shrink-0"
                   >
                     <Bell className="w-4 h-4" />
-                    {(notifications?.length ?? 0) > 0 && (
-                      <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-[#0084FF] text-white text-[9px] font-extrabold rounded-full shadow-sm flex items-center justify-center ring-2 ring-white">
+                    {hasUnread && notifications.length > 0 && (
+                      <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-[#0084FF] text-white text-[9px] font-extrabold rounded-full shadow-sm flex items-center justify-center ring-2 ring-white animate-pulse">
                         {notifications.length}
                       </span>
                     )}
@@ -411,11 +532,11 @@ export default function Navbar() {
                       <div className="p-3.5 border-b border-neutral-100 flex items-center justify-between bg-neutral-50/50">
                         <span className="text-xs font-bold text-neutral-900">Notification center</span>
                         <span className="text-[10px] text-[#0084FF] bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full font-bold">
-                          {notifications.length} New
+                          {notifications.length} Total
                         </span>
                       </div>
 
-                      <div className="max-h-72 overflow-y-auto [scrollbar-width:none] flex flex-col divide-y divide-neutral-100">
+                      <div className="max-h-72 overflow-y-auto [scrollbar-width:none] flex flex-col gap-2.5 p-2.5 bg-neutral-50/30">
                         {notifications.length === 0 ? (
                           <div className="p-8 text-center flex flex-col items-center justify-center gap-2">
                             <AlertCircle className="w-5 h-5 text-neutral-300" />
@@ -522,7 +643,7 @@ export default function Navbar() {
                 <a href="/login" className="text-xs font-semibold text-neutral-600 hover:text-neutral-950 px-2.5 py-1.5 transition-colors whitespace-nowrap">
                   Log in
                 </a>
-                <a href="/signup" className=" bg-[#0084FF] hover:bg-[#0073e6] active:bg-[#0062c4] text-white text-white rounded-xl px-3 py-1.5 text-xs font-semibold shadow-sm transition-all whitespace-nowrap">
+                <a href="/signup" className=" bg-[#0084FF] hover:bg-[#0073e6] active:bg-[#0062c4] text-white rounded-xl px-3 py-1.5 text-xs font-semibold shadow-sm transition-all whitespace-nowrap">
                   Sign up
                 </a>
               </div>
@@ -566,13 +687,13 @@ export default function Navbar() {
           </a>
 
           <button
-            onClick={() => setNotifOpen(!notifOpen)}
+            onClick={handleToggleNotifications}
             className="flex flex-col items-center justify-center gap-0.5 text-neutral-500 hover:text-neutral-900 transition-colors relative py-1 min-w-0"
           >
             <div className="relative">
               <Bell className="w-5 h-5 shrink-0" />
-              {(notifications?.length ?? 0) > 0 && (
-                <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-[#0084FF] text-white text-[9px] font-extrabold rounded-full shadow-sm flex items-center justify-center ring-2 ring-white">
+              {hasUnread && notifications.length > 0 && (
+                <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-[#0084FF] text-white text-[9px] font-extrabold rounded-full shadow-sm flex items-center justify-center ring-2 ring-white animate-pulse">
                   {notifications.length}
                 </span>
               )}
@@ -605,14 +726,14 @@ export default function Navbar() {
 
       {/* Mobile Notifications Popup Bottom Sheet */}
       {notifOpen && (
-        <div className="md:hidden fixed inset-x-3 sm:inset-x-4 bottom-20 z-50 rounded-2xl bg-white border border-neutral-200/80 shadow-2xl text-neutral-800 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200 max-h-[60vh] box-border">
+        <div ref={mobileNotifRef} className="md:hidden fixed inset-x-3 sm:inset-x-4 bottom-20 z-50 rounded-2xl bg-white border border-neutral-200/80 shadow-2xl text-neutral-800 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200 max-h-[60vh] box-border">
           <div className="p-3.5 border-b border-neutral-100 flex items-center justify-between bg-neutral-50/50">
             <span className="text-xs font-bold text-neutral-900">Notifications</span>
             <button onClick={() => setNotifOpen(false)} className="p-1 rounded-xl text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
-          <div className="max-h-72 overflow-y-auto [scrollbar-width:none] flex flex-col divide-y divide-neutral-100">
+          <div className="max-h-72 overflow-y-auto [scrollbar-width:none] flex flex-col gap-2.5 p-2.5 bg-neutral-50/30">
             {notifications.length === 0 ? (
               <div className="p-8 text-center flex flex-col items-center justify-center gap-2">
                 <AlertCircle className="w-5 h-5 text-neutral-300" />

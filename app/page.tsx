@@ -221,10 +221,13 @@ function HomePageInner() {
                                 <span className="text-neutral-500 font-normal hover:text-[#0084FF] transition-colors cursor-pointer truncate max-w-[100px] sm:max-w-none">@{nb.authorHandle}</span>
                               </HoverCard>
                               <span className="text-neutral-300 select-none">·</span>
-                              <span className="text-neutral-500 whitespace-nowrap">
-                                {nb.$createdAt ?
-                                  new Date(nb.$createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Just now'}
-                              </span>
+                             
+                             
+<span className="text-neutral-500 whitespace-nowrap">
+  {nb.$updatedAt || nb.$createdAt ?
+    new Date(nb.$updatedAt || nb.$createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Just now'}
+</span>
+
                             </div>
                           </div>
 
