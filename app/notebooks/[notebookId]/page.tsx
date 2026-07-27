@@ -14,8 +14,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const title = notebook?.title || "Notebook on Ping";
     const description = notebook?.snapshot || notebook?.description || "Explore this notebook on Ping.";
     
-    // Explicitly reference the absolute URL of your opengraph-image route
-    const imageUrl = `https://joinping.up.railway.app/notebooks/${notebookId}/opengraph-image`;
+    // Get the notebook's actual preview image from the database
+    const rawImage = notebook?.preview_image_url;
+    
+    // Ensure the image URL is absolute (handles relative paths or full URLs)
+    const imageUrl = rawImage 
+      ? (rawImage.startsWith("http") ? rawImage : `https://joinping.up.railway.app${rawImage}`)
+      : "https://joinping.up.railway.app/og-default.png"; // Fallback if no preview image exists
 
     return {
       title,
