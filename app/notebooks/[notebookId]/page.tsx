@@ -1,45 +1,59 @@
+import { Metadata } from "next";
 import { getNotebook, getChaptersForNotebook } from "@/lib/appwrite";
 import NotebookClient from "@/components/NotebookClient";
 
-type Props = {
+interface PageProps {
   params: Promise<{ notebookId: string }>;
-};
+}
 
-export async function generateMetadata({ params }: Props) {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { notebookId } = await params;
   try {
     const notebook = await getNotebook(notebookId);
-    const chapters = await getChaptersForNotebook(notebookId);
-    const firstChapter = chapters[0];
+    
+    // Ensure the image URL is absolute. Fall back to a default site banner if none exists.
+    const rawImage = notebook.preview_image_url;
+    const imageUrl = rawImage 
+      ? (rawImage.startsWith("http") ? rawImage : `${process.env.NEXT_PUBLIC_SITE_URL || "https://joinping.up.railway.app"}${rawImage}`)
+      : "https://joinping.up.railway.app/og-default.png"; // Replace with your default fallback image
 
-    const title = firstChapter ? `${firstChapter.title} — ${notebook.title}` : notebook.title;
-    const description = notebook.snapshot || notebook.description || "Read this notebook on Nzelu AI.";
-    const image = firstChapter?.preview_image_url || notebook.preview_image_url || "";
+    const title = notebook.title || "Notebook";
+    const description = notebook.snapshot || notebook.description || "Explore this notebook on Ping.";
 
     return {
-      title,
-      description,
+      title: title, // Clean, single title
+      description: description,
       openGraph: {
-        title,
-        description,
-        images: image ? [{ url: image }] : [],
+        title: title,
+        description: description,
+        url: `https://joinping.up.railway.app/notebooks/${notebookId}`,
+        siteName: "Ping",
+        images: [
+          {
+            url: imageUrl,
+            width: 1200,
+            height: 630,
+            alt: title,
+          },
+        ],
+        type: "article",
       },
       twitter: {
         card: "summary_large_image",
-        title,
-        description,
-        images: image ? [image] : [],
+        title: title,
+        description: description,
+        images: [imageUrl],
       },
     };
   } catch {
     return {
-      title: "Notebook — Nzelu AI",
-      description: "Read this notebook on Nzelu AI.",
+      title: "Notebook",
+      description: "Explore this notebook on Ping.",
     };
   }
 }
 
-export default async function Page({ params }: Props) {
+export default async function Page({ params }: PageProps) {
   const { notebookId } = await params;
   return <NotebookClient notebookId={notebookId} />;
 }
