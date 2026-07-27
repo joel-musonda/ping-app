@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { getNotebook, getChaptersForNotebook } from "@/lib/appwrite";
+import { getNotebook } from "@/lib/appwrite";
 import NotebookClient from "@/components/NotebookClient";
 
 interface PageProps {
@@ -8,24 +8,21 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { notebookId } = await params;
+  
   try {
     const notebook = await getNotebook(notebookId);
+    const title = notebook?.title || "Notebook on Ping";
+    const description = notebook?.snapshot || notebook?.description || "Explore this notebook on Ping.";
     
-    // Ensure the image URL is absolute. Fall back to a default site banner if none exists.
-    const rawImage = notebook.preview_image_url;
-    const imageUrl = rawImage 
-      ? (rawImage.startsWith("http") ? rawImage : `${process.env.NEXT_PUBLIC_SITE_URL || "https://joinping.up.railway.app"}${rawImage}`)
-      : "https://joinping.up.railway.app/og-default.png"; // Replace with your default fallback image
-
-    const title = notebook.title || "Notebook";
-    const description = notebook.snapshot || notebook.description || "Explore this notebook on Ping.";
+    // Explicitly reference the absolute URL of your opengraph-image route
+    const imageUrl = `https://joinping.up.railway.app/notebooks/${notebookId}/opengraph-image`;
 
     return {
-      title: title, // Clean, single title
-      description: description,
+      title,
+      description,
       openGraph: {
-        title: title,
-        description: description,
+        title,
+        description,
         url: `https://joinping.up.railway.app/notebooks/${notebookId}`,
         siteName: "Ping",
         images: [
@@ -40,14 +37,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       },
       twitter: {
         card: "summary_large_image",
-        title: title,
-        description: description,
+        title,
+        description,
         images: [imageUrl],
       },
     };
   } catch {
     return {
-      title: "Notebook",
+      title: "Notebook on Ping",
       description: "Explore this notebook on Ping.",
     };
   }
