@@ -562,8 +562,51 @@ export default function ChapterWorkspacePage() {
               </div>
             </div>
 
-            {/* Cloud Sync Signal Tracker & Publish Button */}
-            <div className="flex items-center justify-end gap-3 sm:gap-4">
+            {/* Cloud Sync Signal Tracker, Link Popover & Publish Button */}
+            <div className="flex items-center justify-end gap-3 sm:gap-4 relative">
+              {/* Inline Link Placeholder Box Sticking with Publish Area */}
+              {isLinkPopoverOpen && (
+                <form
+                  onSubmit={handleApplyLink}
+                  className="absolute right-full mr-2 top-1/2 -translate-y-1/2 p-1.5 bg-white border border-neutral-200 rounded-lg shadow-lg flex items-center gap-2 animate-in fade-in duration-150 z-50 whitespace-nowrap"
+                >
+                  <div className="flex items-center gap-1.5 px-1 text-neutral-400">
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Paste or type a link..."
+                    value={linkInputUrl}
+                    onChange={(e) => setLinkInputUrl(e.target.value)}
+                    autoFocus
+                    className="w-40 sm:w-48 text-xs bg-transparent border-none focus:outline-none focus:ring-0 text-neutral-800 placeholder:text-neutral-400"
+                  />
+                  <button
+                    type="submit"
+                    className="h-7 px-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium flex items-center gap-1 transition"
+                  >
+                    <Check className="w-3 h-3" />
+                    <span>Apply</span>
+                  </button>
+                  {editor?.isActive("link") && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveLink}
+                      className="h-7 px-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-md text-xs font-medium transition"
+                    >
+                      Unlink
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setIsLinkPopoverOpen(false)}
+                    className="p-1 text-neutral-400 hover:text-neutral-600 rounded"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </form>
+              )}
+
               <div className="hidden sm:flex items-center gap-1.5 text-xs text-neutral-400 font-medium">
                 {status === "Publishing payload..." ? (
                   <span className="flex items-center gap-1 text-amber-500 animate-pulse">
@@ -583,49 +626,6 @@ export default function ChapterWorkspacePage() {
             </div>
 
           </div>
-
-          {/* Inline Link Placeholder Box */}
-          {isLinkPopoverOpen && (
-            <form
-              onSubmit={handleApplyLink}
-              className="max-w-md mx-auto mt-2.5 p-1.5 bg-white border border-neutral-200 rounded-lg shadow-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-150"
-            >
-              <div className="flex items-center gap-1.5 px-2 text-neutral-400">
-                <ExternalLink className="w-3.5 h-3.5" />
-              </div>
-              <input
-                type="text"
-                placeholder="Paste or type a link..."
-                value={linkInputUrl}
-                onChange={(e) => setLinkInputUrl(e.target.value)}
-                autoFocus
-                className="flex-1 text-xs bg-transparent border-none focus:outline-none focus:ring-0 text-neutral-800 placeholder:text-neutral-400"
-              />
-              <button
-                type="submit"
-                className="h-7 px-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium flex items-center gap-1 transition"
-              >
-                <Check className="w-3 h-3" />
-                <span>Apply</span>
-              </button>
-              {editor?.isActive("link") && (
-                <button
-                  type="button"
-                  onClick={handleRemoveLink}
-                  className="h-7 px-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-md text-xs font-medium transition"
-                >
-                  Unlink
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setIsLinkPopoverOpen(false)}
-                className="p-1 text-neutral-400 hover:text-neutral-600 rounded"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </form>
-          )}
         </div>
 
         {/* Mobile Sticky Bottom Toolbar (Appears above virtual keyboard ONLY when focused) */}

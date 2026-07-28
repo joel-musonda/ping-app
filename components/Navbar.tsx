@@ -121,7 +121,6 @@ export default function Navbar() {
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node;
-      // Prevent closing if target was unmounted during click (e.g., deleting an item)
       if (!document.body.contains(target)) return;
 
       if (profileRef.current && !profileRef.current.contains(target)) {
@@ -144,7 +143,7 @@ export default function Navbar() {
 
   const handleToggleNotifications = () => {
     if (!notifOpen) {
-      setHasUnread(false); // Badge disappears when notifications panel opens
+      setHasUnread(false);
     }
     setNotifOpen((prev) => !prev);
   };
@@ -308,7 +307,6 @@ export default function Navbar() {
     const touchStartX = useRef(0);
     const isSwiping = useRef(false);
 
-    // Determine target link for chapter/notebook/user navigation
     const targetLink =
       notif.chapter_id ? `/chapters/${notif.chapter_id}` :
       notif.chapterId ? `/chapters/${notif.chapterId}` :
@@ -326,7 +324,6 @@ export default function Navbar() {
       const currentX = e.touches[0].clientX;
       const diff = currentX - touchStartX.current;
 
-      // Allow dragging left to reveal the delete action
       if (diff < 0) {
         setOffsetX(Math.max(diff, -80));
       } else if (diff > 0 && offsetX < 0) {
@@ -337,14 +334,14 @@ export default function Navbar() {
     const handleTouchEnd = () => {
       isSwiping.current = false;
       if (offsetX < -40) {
-        setOffsetX(-70); // Snap open to display delete icon
+        setOffsetX(-70);
       } else {
-        setOffsetX(0); // Snap closed
+        setOffsetX(0);
       }
     };
 
     const handleRowClick = () => {
-      if (Math.abs(offsetX) > 10) return; // Ignore row click if swiping
+      if (Math.abs(offsetX) > 10) return;
       if (targetLink) {
         setNotifOpen(false);
         router.push(targetLink);
@@ -353,7 +350,6 @@ export default function Navbar() {
 
     return (
       <div className="relative overflow-hidden bg-white rounded-xl border border-neutral-200/80 shadow-sm transition-all duration-200 shrink-0">
-        {/* Hidden Delete Action Revealed ONLY on Mobile Left-Slide */}
         <div className="sm:hidden absolute inset-y-0 right-0 w-20 flex items-center justify-center bg-neutral-100 rounded-r-xl">
           <button
             onClick={(e) => handleDismissNotification(notif.$id, e)}
@@ -365,7 +361,6 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* Slideable & Clickable Main Content Container */}
         <div
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
@@ -423,7 +418,6 @@ export default function Navbar() {
             </div>
           </div>
 
-          {/* Hover Dismiss for Desktop */}
           <button
             onClick={(e) => handleDismissNotification(notif.$id, e)}
             className="hidden sm:flex p-1.5 rounded-lg text-neutral-400 hover:text-red-600 hover:bg-neutral-100 opacity-0 group-hover:opacity-100 transition-all duration-200 shrink-0"
@@ -439,7 +433,6 @@ export default function Navbar() {
   return (
     <>
       <div className={`sticky top-0 z-50 transition-transform duration-300 ${showNavbar ? "translate-y-0" : "-translate-y-full"}`}>
-        {/* TOP BAR */}
         <nav className="flex items-center justify-between px-3 sm:px-6 py-1 border-b border-neutral-200 bg-white/95 backdrop-blur-md select-none h-14 relative z-50 shadow-sm box-border w-full">
 
           <div className="flex items-center gap-3 sm:gap-6 min-w-0">
@@ -452,8 +445,6 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-
-            {/* Desktop Search */}
             <div className="relative hidden md:block" ref={searchRef}>
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 transition-colors">
                 <Search className="w-4 h-4" />
@@ -484,7 +475,6 @@ export default function Navbar() {
               )}
             </div>
 
-            {/* Mobile Search Toggle */}
             <button
               onClick={() => setMobileSearchOpen((v) => !v)}
               className="md:hidden w-8 h-8 rounded-xl flex items-center justify-center border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-600 transition-all duration-150 shrink-0"
@@ -513,7 +503,6 @@ export default function Navbar() {
                   <Home className="w-4 h-4" />
                 </a>
 
-                {/* Notifications Desktop */}
                 <div className="relative hidden md:block" ref={notifRef}>
                   <button
                     onClick={handleToggleNotifications}
@@ -550,7 +539,6 @@ export default function Navbar() {
                   )}
                 </div>
 
-                {/* Profile Dropdown */}
                 <div className="relative" ref={profileRef}>
                   <div
                     onClick={() => setProfileOpen(!profileOpen)}
@@ -653,7 +641,6 @@ export default function Navbar() {
         </nav>
       </div>
 
-      {/* Mobile Search Dropdown Bar */}
       {mobileSearchOpen && (
         <div className="md:hidden border-b border-neutral-200 bg-white px-3 sm:px-4 py-3 relative z-40 animate-in fade-in slide-in-from-top-2 duration-150 shadow-md box-border w-full">
           <div className="relative">
@@ -677,10 +664,8 @@ export default function Navbar() {
         </div>
       )}
 
-      {/* Mobile Bottom Navigation Bar */}
       {!loading && profileData && (
         <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200 h-16 grid grid-cols-5 items-center px-1 shadow-lg box-border w-full">
-
           <a href="/" className="flex flex-col items-center justify-center gap-0.5 text-neutral-500 hover:text-neutral-900 transition-colors py-1 min-w-0">
             <Home className="w-5 h-5 shrink-0" />
             <span className="text-[10px] font-medium truncate w-full text-center">Home</span>
@@ -720,11 +705,9 @@ export default function Navbar() {
             <Settings className="w-5 h-5 shrink-0" />
             <span className="text-[10px] font-medium truncate w-full text-center">Settings</span>
           </Link>
-
         </nav>
       )}
 
-      {/* Mobile Notifications Popup Bottom Sheet */}
       {notifOpen && (
         <div ref={mobileNotifRef} className="md:hidden fixed inset-x-3 sm:inset-x-4 bottom-20 z-50 rounded-2xl bg-white border border-neutral-200/80 shadow-2xl text-neutral-800 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200 max-h-[60vh] box-border">
           <div className="p-3.5 border-b border-neutral-100 flex items-center justify-between bg-neutral-50/50 shrink-0">
