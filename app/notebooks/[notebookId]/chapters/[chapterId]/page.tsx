@@ -543,8 +543,8 @@ export default function ChapterWorkspacePage() {
           </div>
         )}
 
-        {/* STICKY WORKSPACE CONTROLS HEADER */}
-        <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-neutral-200 px-3 sm:px-4 py-2.5 sm:py-3 shadow-xs">
+        {/* STICKY WORKSPACE CONTROLS HEADER - Hides completely on mobile when editor is focused */}
+        <div className={`sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-neutral-200 px-3 sm:px-4 py-2.5 sm:py-3 shadow-xs transition-all duration-200 ${isEditorFocused ? "hidden sm:block" : ""}`}>
           <div className="max-w-4xl mx-auto flex items-center justify-between gap-3 sm:gap-4">
             
             <div className="flex items-center gap-2">

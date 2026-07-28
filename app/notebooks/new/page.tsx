@@ -57,7 +57,6 @@ const CodeBlockComponent = ({ node, updateAttributes }: NodeViewProps) => {
             value={selectedLanguage}
             onChange={(e) => {
               const val = e.target.value;
-              // Setting language to null triggers Lowlight auto-detection
               updateAttributes({ language: val === "auto" ? null : val });
             }}
             className="bg-neutral-800/90 text-neutral-300 hover:text-white border border-neutral-700 text-[11px] font-sans font-medium rounded-md px-2 py-0.5 shadow-sm focus:outline-none cursor-pointer transition"
@@ -108,7 +107,7 @@ export default function CreateNotebookPage() {
   const [coverImageUrl, setCoverImageUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Track editor focus state for showing mobile keyboard bar
+  // Track editor focus state for showing mobile keyboard bar & hiding navbar
   const [isEditorFocused, setIsEditorFocused] = useState(false);
 
   // Inline Link Placeholder State
@@ -260,7 +259,7 @@ export default function CreateNotebookPage() {
   };
 
   const executePublishPipeline = async () => {
-    if (!title.trim()) return alert("Please Go back and specify a notebook title first.");
+    if (!title.trim()) return alert("Please specify a notebook title first.");
     if (!snapshot.trim()) return alert("A snapshot description summary is required.");
     if (!coverImageUrl) return alert("Please select a cover thumbnail image before publishing.");
 
@@ -384,8 +383,8 @@ export default function CreateNotebookPage() {
       <input type="file" accept="image/*" id="tiptap-image-upload" className="hidden" onChange={addLocalImageViaUpload} />
       <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleCoverImageUpload} />
 
-      {/* Desktop & Default Sticky Top Formatting Header */}
-      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-neutral-200 px-3 sm:px-4 py-2.5 sm:py-3">
+      {/* Sticky Top Formatting Header - Hides completely on mobile when editor is focused */}
+      <div className={`sticky top-0 z-30 bg-white/85 backdrop-blur-md border-b border-neutral-200 px-3 sm:px-4 py-2.5 sm:py-3 transition-all duration-200 ${isEditorFocused ? "hidden sm:block" : ""}`}>
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-3 sm:gap-4">
 
           {/* Desktop Formatting Controls */}
@@ -418,9 +417,9 @@ export default function CreateNotebookPage() {
 
             <button
               onClick={() => setIsPublishModalOpen(true)}
-              className="h-9 px-5  bg-[#0084FF] hover:bg-[#0073e6] active:bg-[#0062c4] text-white text-white rounded-lg text-xs font-bold shadow-md shadow-blue-500/20 transition transform active:scale-95"
+              className="h-9 px-5 bg-[#0084FF] hover:bg-[#0073e6] active:bg-[#0062c4] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-500/20 transition transform active:scale-95"
             >
-             Done
+              Done
             </button>
           </div>
 

@@ -352,7 +352,7 @@ export default function Navbar() {
     };
 
     return (
-      <div className="relative overflow-hidden bg-white rounded-xl border border-neutral-200/80 shadow-sm transition-all duration-200">
+      <div className="relative overflow-hidden bg-white rounded-xl border border-neutral-200/80 shadow-sm transition-all duration-200 shrink-0">
         {/* Hidden Delete Action Revealed ONLY on Mobile Left-Slide */}
         <div className="sm:hidden absolute inset-y-0 right-0 w-20 flex items-center justify-center bg-neutral-100 rounded-r-xl">
           <button
@@ -727,13 +727,13 @@ export default function Navbar() {
       {/* Mobile Notifications Popup Bottom Sheet */}
       {notifOpen && (
         <div ref={mobileNotifRef} className="md:hidden fixed inset-x-3 sm:inset-x-4 bottom-20 z-50 rounded-2xl bg-white border border-neutral-200/80 shadow-2xl text-neutral-800 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200 max-h-[60vh] box-border">
-          <div className="p-3.5 border-b border-neutral-100 flex items-center justify-between bg-neutral-50/50">
+          <div className="p-3.5 border-b border-neutral-100 flex items-center justify-between bg-neutral-50/50 shrink-0">
             <span className="text-xs font-bold text-neutral-900">Notifications</span>
             <button onClick={() => setNotifOpen(false)} className="p-1 rounded-xl text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
-          <div className="max-h-72 overflow-y-auto [scrollbar-width:none] flex flex-col gap-2.5 p-2.5 bg-neutral-50/30">
+          <div className="flex-1 overflow-y-auto [scrollbar-width:none] flex flex-col gap-2.5 p-2.5 bg-neutral-50/30 min-h-0">
             {notifications.length === 0 ? (
               <div className="p-8 text-center flex flex-col items-center justify-center gap-2">
                 <AlertCircle className="w-5 h-5 text-neutral-300" />
