@@ -107,9 +107,6 @@ export default function CreateNotebookPage() {
   const [coverImageUrl, setCoverImageUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Track editor focus state for showing mobile keyboard bar & hiding navbar
-  const [isEditorFocused, setIsEditorFocused] = useState(false);
-
   // Inline Link Placeholder State
   const [isLinkPopoverOpen, setIsLinkPopoverOpen] = useState(false);
   const [linkInputUrl, setLinkInputUrl] = useState("");
@@ -148,12 +145,6 @@ export default function CreateNotebookPage() {
       TextAlign.configure({ types: ["heading", "paragraph"] }),
     ],
     content: "",
-    onFocus() {
-      setIsEditorFocused(true);
-    },
-    onBlur() {
-      setIsEditorFocused(false);
-    },
     editorProps: {
       attributes: {
         class:
@@ -383,17 +374,17 @@ export default function CreateNotebookPage() {
       <input type="file" accept="image/*" id="tiptap-image-upload" className="hidden" onChange={addLocalImageViaUpload} />
       <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleCoverImageUpload} />
 
-      {/* Sticky Top Formatting Header - Hides completely on mobile when editor is focused */}
-      <div className={`sticky top-0 z-30 bg-white/85 backdrop-blur-md border-b border-neutral-200 px-3 sm:px-4 py-2.5 sm:py-3 transition-all duration-200 ${isEditorFocused ? "hidden sm:block" : ""}`}>
+      {/* Sticky Top Formatting Header */}
+      <div className="sticky top-0 z-30 bg-white/85 backdrop-blur-md border-b border-neutral-200 px-3 sm:px-4 py-2.5 sm:py-3 transition-all duration-200">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-3 sm:gap-4">
 
-          {/* Desktop Formatting Controls */}
-          <div className="hidden sm:flex items-center">
+          {/* Formatting Controls */}
+          <div className="flex items-center">
             <FormattingControls />
           </div>
 
           {/* Action Row: Toggle Switch & Publish Button */}
-          <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 w-full sm:w-auto">
+          <div className="flex items-center justify-end gap-3 sm:gap-4 shrink-0">
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -468,13 +459,6 @@ export default function CreateNotebookPage() {
           </form>
         )}
       </div>
-
-      {/* Mobile Sticky Bottom Toolbar (Appears above virtual keyboard ONLY when focused) */}
-      {isEditorFocused && (
-        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200 p-2 shadow-2xl flex items-center justify-center animate-in slide-in-from-bottom duration-200 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-          <FormattingControls />
-        </div>
-      )}
 
       {/* Editor Content Area - Borderless / Infinite Feel */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 mt-6 sm:mt-10">
