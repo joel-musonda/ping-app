@@ -118,7 +118,6 @@ export default function ChapterWorkspacePage() {
   const [canEdit, setCanEdit] = useState(false);
 
   // Focus & Link Popover State
-  const [isEditorFocused, setIsEditorFocused] = useState(false);
   const [isLinkPopoverOpen, setIsLinkPopoverOpen] = useState(false);
   const [linkInputUrl, setLinkInputUrl] = useState("");
 
@@ -165,12 +164,6 @@ export default function ChapterWorkspacePage() {
         types: ["heading", "paragraph"],
       }),
     ],
-    onFocus() {
-      setIsEditorFocused(true);
-    },
-    onBlur() {
-      setIsEditorFocused(false);
-    },
     editorProps: {
       attributes: {
         class:
@@ -388,23 +381,23 @@ export default function ChapterWorkspacePage() {
 
   // Reusable formatting controls sub-component
   const FormattingControls = () => (
-    <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-lg overflow-x-auto no-scrollbar scrollbar-none max-w-full shrink-0">
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBold().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Bold"><Bold className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleItalic().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Italic"><Italic className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleUnderline().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Underline"><UnderlineIcon className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleStrike().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Strikethrough"><Strikethrough className="w-4 h-4" /></button>
-      <div className="w-px h-4 bg-neutral-200 mx-0.5 shrink-0" />
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Heading"><Heading2 className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBulletList().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Bullet List"><List className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={handleToggleLinkPopover} className={`p-1.5 rounded-md hover:bg-white transition shrink-0 ${isLinkPopoverOpen ? "bg-white text-blue-600 shadow-xs" : "text-neutral-600"}`} title="Add Link"><LinkIcon className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBlockquote().run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Quote"><Quote className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleCodeBlock().run()} className={`p-1.5 rounded-md hover:bg-white transition shrink-0 ${editor?.isActive("codeBlock") ? "bg-white text-blue-600 shadow-xs" : "text-neutral-600"}`} title="Code Block"><Code className="w-4 h-4" /></button>
-      <div className="w-px h-4 bg-neutral-200 mx-0.5 shrink-0" />
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().setTextAlign('left').run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Align Left"><AlignLeft className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().setTextAlign('center').run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Align Center"><AlignCenter className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().setTextAlign('right').run()} className="p-1.5 rounded-md hover:bg-white text-neutral-600 transition shrink-0" title="Align Right"><AlignRight className="w-4 h-4" /></button>
-      <div className="w-px h-4 bg-neutral-200 mx-0.5 shrink-0" />
-      <label htmlFor="tiptap-chapter-image-upload" className="p-1.5 rounded-md text-neutral-600 hover:bg-white cursor-pointer transition shrink-0" title="Upload Image"><ImageIcon className="w-4 h-4" /></label>
+    <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar overscroll-contain py-1 sm:py-0 w-full">
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBold().run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Bold"><Bold className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleItalic().run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Italic"><Italic className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleUnderline().run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Underline"><UnderlineIcon className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleStrike().run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Strikethrough"><Strikethrough className="w-4 h-4" /></button>
+      <div className="w-px h-5 bg-neutral-300 mx-1 shrink-0" />
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Heading"><Heading2 className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBulletList().run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Bullet List"><List className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={handleToggleLinkPopover} className={`p-2 rounded-lg transition shrink-0 ${isLinkPopoverOpen ? "bg-neutral-200 text-blue-600" : "text-neutral-700 hover:bg-neutral-200/80"}`} title="Add Link"><LinkIcon className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBlockquote().run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Quote"><Quote className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleCodeBlock().run()} className={`p-2 rounded-lg transition shrink-0 ${editor?.isActive("codeBlock") ? "bg-neutral-200 text-blue-600" : "text-neutral-700 hover:bg-neutral-200/80"}`} title="Code Block"><Code className="w-4 h-4" /></button>
+      <div className="w-px h-5 bg-neutral-300 mx-1 shrink-0" />
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().setTextAlign('left').run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Align Left"><AlignLeft className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().setTextAlign('center').run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Align Center"><AlignCenter className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().setTextAlign('right').run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Align Right"><AlignRight className="w-4 h-4" /></button>
+      <div className="w-px h-5 bg-neutral-300 mx-1 shrink-0" />
+      <label htmlFor="tiptap-chapter-image-upload" className="p-2 rounded-lg text-neutral-700 hover:bg-neutral-200/80 cursor-pointer transition shrink-0" title="Upload Image"><ImageIcon className="w-4 h-4" /></label>
     </div>
   );
 
@@ -543,97 +536,73 @@ export default function ChapterWorkspacePage() {
           </div>
         )}
 
-        {/* STICKY WORKSPACE CONTROLS HEADER - Hides completely on mobile when editor is focused */}
-        <div className={`sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-neutral-200 px-3 sm:px-4 py-2.5 sm:py-3 shadow-xs transition-all duration-200 ${isEditorFocused ? "hidden sm:block" : ""}`}>
-          <div className="max-w-4xl mx-auto flex items-center justify-between gap-3 sm:gap-4">
+        {/* Unified Sticky Top Toolbar */}
+        <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-neutral-200 shadow-sm w-full transition-all duration-200">
+          <div className="max-w-4xl mx-auto px-3 sm:px-6 py-2 sm:py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-6 relative">
             
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => router.back()}
-                className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-500 transition shrink-0"
-                title="Back"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </button>
-
-              {/* Desktop Formatting Controls */}
-              <div className="hidden sm:flex items-center">
-                <FormattingControls />
-              </div>
-            </div>
-
-            {/* Cloud Sync Signal Tracker, Link Popover & Publish Button */}
-            <div className="flex items-center justify-end gap-3 sm:gap-4 relative">
-              {/* Inline Link Placeholder Box Sticking with Publish Area */}
-              {isLinkPopoverOpen && (
-                <form
-                  onSubmit={handleApplyLink}
-                  className="absolute right-full mr-2 top-1/2 -translate-y-1/2 p-1.5 bg-white border border-neutral-200 rounded-lg shadow-lg flex items-center gap-2 animate-in fade-in duration-150 z-50 whitespace-nowrap"
+            {/* Action Row - Top on mobile, Right on desktop */}
+            <div className="flex items-center justify-between sm:justify-end gap-4 order-1 sm:order-2 w-full sm:w-auto shrink-0">
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => router.back()}
+                  className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-500 transition shrink-0"
+                  title="Back"
                 >
-                  <div className="flex items-center gap-1.5 px-1 text-neutral-400">
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Paste or type a link..."
-                    value={linkInputUrl}
-                    onChange={(e) => setLinkInputUrl(e.target.value)}
-                    autoFocus
-                    className="w-40 sm:w-48 text-xs bg-transparent border-none focus:outline-none focus:ring-0 text-neutral-800 placeholder:text-neutral-400"
-                  />
-                  <button
-                    type="submit"
-                    className="h-7 px-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium flex items-center gap-1 transition"
-                  >
-                    <Check className="w-3 h-3" />
-                    <span>Apply</span>
-                  </button>
-                  {editor?.isActive("link") && (
-                    <button
-                      type="button"
-                      onClick={handleRemoveLink}
-                      className="h-7 px-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-md text-xs font-medium transition"
-                    >
-                      Unlink
-                    </button>
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                
+                <div className="flex items-center gap-1.5 text-xs text-neutral-400 font-medium ml-2">
+                  {status === "Publishing payload..." ? (
+                    <span className="flex items-center gap-1 text-amber-500 animate-pulse">
+                      <CloudLightning className="w-3.5 h-3.5" /> Publishing...
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-neutral-400"><Bookmark className="w-3.5 h-3.5" /> Draft Ready</span>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => setIsLinkPopoverOpen(false)}
-                    className="p-1 text-neutral-400 hover:text-neutral-600 rounded"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </form>
-              )}
-
-              <div className="hidden sm:flex items-center gap-1.5 text-xs text-neutral-400 font-medium">
-                {status === "Publishing payload..." ? (
-                  <span className="flex items-center gap-1 text-amber-500 animate-pulse">
-                    <CloudLightning className="w-3 h-3" /> Publishing...
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1 text-neutral-400"><Bookmark className="w-3 h-3" /> Draft Ready</span>
-                )}
+                </div>
               </div>
 
               <button 
                 onClick={handlePublishClick}
-                className="h-9 px-5 bg-[#0084FF] hover:bg-[#0073e6] active:bg-[#0062c4] text-white rounded-lg text-xs font-bold shadow-md shadow-blue-500/20 transition transform active:scale-95 shrink-0"
+                className="h-9 px-5 bg-[#0084FF] hover:bg-[#0073e6] active:bg-[#0062c4] text-white rounded-lg text-sm font-bold shadow-sm transition transform active:scale-95 shrink-0"
               >
                Done
               </button>
             </div>
 
+            {/* Formatting Controls - Bottom on mobile, Left on desktop */}
+            <div className="flex items-center w-full order-2 sm:order-1 bg-neutral-50 sm:bg-transparent rounded-lg px-1 sm:px-0 border border-neutral-200 sm:border-none">
+              <FormattingControls />
+            </div>
+
+            {/* Link Popover - Dropdown from the sticky header */}
+            {isLinkPopoverOpen && (
+              <div className="absolute left-3 right-3 sm:left-6 sm:right-auto top-[calc(100%+8px)] z-50 max-w-sm p-2 bg-white border border-neutral-200 rounded-xl shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                <div className="px-2 text-neutral-400"><ExternalLink className="w-4 h-4" /></div>
+                <input
+                  type="text"
+                  placeholder="Paste or type a link..."
+                  value={linkInputUrl}
+                  onChange={(e) => setLinkInputUrl(e.target.value)}
+                  autoFocus
+                  className="flex-1 text-sm bg-transparent border-none focus:outline-none focus:ring-0 text-neutral-800"
+                />
+                <button type="button" onClick={handleApplyLink} className="h-8 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition">
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Apply</span>
+                </button>
+                {editor?.isActive("link") && (
+                  <button type="button" onClick={handleRemoveLink} className="h-8 px-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-semibold transition">
+                    Unlink
+                  </button>
+                )}
+                <button type="button" onClick={() => setIsLinkPopoverOpen(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
-
-        {/* Mobile Sticky Bottom Toolbar (Appears above virtual keyboard ONLY when focused) */}
-        {isEditorFocused && (
-          <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200 p-2 shadow-2xl flex items-center justify-center animate-in slide-in-from-bottom duration-200 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-            <FormattingControls />
-          </div>
-        )}
 
         {/* WORKSPACE AREA - BORDERLESS / INFINITE FEEL */}
         <div className="max-w-2xl mx-auto px-4 sm:px-6 mt-6 sm:mt-10">
