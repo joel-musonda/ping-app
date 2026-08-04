@@ -79,7 +79,7 @@ function HomePageInner() {
 
   // Dynamic Page Title Effect
   useEffect(() => {
-    document.title = "Ping | Homepage";
+    document.title = "Homepage | Ping";
   }, []);
 
   useEffect(() => {
