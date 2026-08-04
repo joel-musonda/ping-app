@@ -11,10 +11,8 @@ export async function GET(
     const { notebookId } = await params;
 
     let title = "Untitled Notebook";
-    let description = "Read this notebook on Ping.";
+    let description = "Read this notebook and explore chapters on Ping.";
     let authorName = "Joel Musonda";
-    let authorHandle = "joelimusonda";
-    let chapterCount = "3 min read";
 
     try {
       const notebook = await databases.getDocument(
@@ -37,164 +35,141 @@ export async function GET(
             height: "100%",
             width: "100%",
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "#09090b",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            backgroundColor: "#09090b",
+            backgroundImage: "radial-gradient(circle at 25% 25%, #27272a 0%, transparent 50%), radial-gradient(circle at 75% 75%, #18181b 0%, transparent 50%)",
+            padding: "60px 70px",
             fontFamily: "sans-serif",
           }}
         >
-          {/* Medium-Style White Card Frame */}
+          {/* Top Bar: Brand Pill & Category */}
           <div
             style={{
-              width: "820px",
-              height: "460px",
-              backgroundColor: "#ffffff",
-              borderRadius: "24px",
               display: "flex",
-              flexDirection: "column",
               justifyContent: "space-between",
-              padding: "40px 48px",
+              alignItems: "center",
+              width: "100%",
             }}
           >
-            {/* Top Header */}
             <div
               style={{
                 display: "flex",
-                justifyContent: "space-between",
                 alignItems: "center",
-                fontSize: "15px",
-                fontWeight: 500,
-                color: "#737373",
-                borderBottom: "1px solid #e5e5e5",
-                paddingBottom: "16px",
+                gap: "10px",
+                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                padding: "8px 18px",
+                borderRadius: "9999px",
+                border: "1px solid rgba(255, 255, 255, 0.15)",
               }}
             >
-              <span>{chapterCount}</span>
-              <span>·</span>
-              <span>Ping Chapter</span>
-            </div>
-
-            {/* Middle Content Section */}
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "stretch",
-                flex: 1,
-                paddingTop: "24px",
-                paddingBottom: "24px",
-              }}
-            >
-              {/* Left Column: Title & Description */}
-              <div
+              <span
                 style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "center",
-                  flex: 4,
-                  paddingRight: "32px",
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  color: "#ffffff",
+                  letterSpacing: "0.05em",
                 }}
               >
-                <div
-                  style={{
-                    fontSize: "36px",
-                    fontWeight: 800,
-                    color: "#0f172a",
-                    lineHeight: 1.15,
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                  }}
-                >
-                  {title}
-                </div>
-                {description && (
-                  <div
-                    style={{
-                      fontSize: "15px",
-                      color: "#475569",
-                      marginTop: "12px",
-                      lineHeight: 1.4,
-                      display: "-webkit-box",
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                    }}
-                  >
-                    {description}
-                  </div>
-                )}
-              </div>
+                PING NOTEBOOK
+              </span>
+            </div>
 
-              {/* Right Column: Vertical Domain Bar */}
+            <span
+              style={{
+                fontSize: "16px",
+                fontWeight: 500,
+                color: "#a1a1aa",
+              }}
+            >
+              joinping.up.railway.app
+            </span>
+          </div>
+
+          {/* Middle Section: Main Title & Description */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "16px",
+              maxWidth: "1000px",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "52px",
+                fontWeight: 800,
+                color: "#ffffff",
+                lineHeight: 1.15,
+                letterSpacing: "-0.03em",
+              }}
+            >
+              {title}
+            </div>
+            {description && (
               <div
                 style={{
+                  fontSize: "20px",
+                  color: "#a1a1aa",
+                  lineHeight: 1.5,
+                  display: "-webkit-box",
+                  overflow: "hidden",
+                }}
+              >
+                {description}
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Footer: Author Info */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+              paddingTop: "24px",
+              width: "100%",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+              <div
+                style={{
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "22px",
+                  backgroundColor: "#ffffff",
+                  color: "#09090b",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  borderLeft: "1px solid #e5e5e5",
-                  paddingLeft: "28px",
-                  flex: 1,
+                  fontSize: "18px",
+                  fontWeight: 800,
                 }}
               >
-                <div
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: 700,
-                    color: "#64748b",
-                    letterSpacing: "0.08em",
-                    transform: "rotate(90deg)",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  joinping.up.railway.app/@{authorHandle}
-                </div>
+                {authorName.charAt(0)}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                <span style={{ fontSize: "16px", fontWeight: 700, color: "#ffffff" }}>
+                  {authorName}
+                </span>
+                <span style={{ fontSize: "13px", color: "#a1a1aa" }}>
+                  Published on Ping
+                </span>
               </div>
             </div>
 
-            {/* Bottom Footer */}
-            <div
+            <span
               style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                borderTop: "1px solid #e5e5e5",
-                paddingTop: "18px",
+                fontSize: "28px",
+                fontStyle: "italic",
+                fontWeight: 900,
+                color: "#ffffff",
+                letterSpacing: "-0.03em",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div
-                  style={{
-                    width: "36px",
-                    height: "36px",
-                    borderRadius: "18px",
-                    backgroundColor: "#0f172a",
-                    color: "#ffffff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "14px",
-                    fontWeight: "bold",
-                  }}
-                >
-                  {authorName.charAt(0)}
-                </div>
-                <span style={{ fontSize: "15px", fontWeight: "bold", color: "#0f172a" }}>
-                  {authorName}
-                </span>
-              </div>
-              <span
-                style={{
-                  fontSize: "22px",
-                  fontStyle: "italic",
-                  fontWeight: 900,
-                  color: "#0f172a",
-                }}
-              >
-                Ping
-              </span>
-            </div>
+              Ping.
+            </span>
           </div>
         </div>
       ),
@@ -204,26 +179,6 @@ export async function GET(
       }
     );
   } catch (err) {
-    // Ultimate fallback image response so scrapers NEVER get a 500 error
-    return new ImageResponse(
-      (
-        <div
-          style={{
-            height: "100%",
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "#ffffff",
-            fontSize: "48px",
-            fontWeight: "bold",
-            color: "#0f172a",
-          }}
-        >
-          Ping Notebook
-        </div>
-      ),
-      { width: 1200, height: 630 }
-    );
+    return new Response("Failed to generate image", { status: 500 });
   }
 }
