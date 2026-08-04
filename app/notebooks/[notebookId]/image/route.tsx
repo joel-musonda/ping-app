@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { databases, DATABASE_ID, NOTEBOOKS_COLLECTION_ID, getPingByUserId } from "@/lib/appwrite";
+import { databases, DATABASE_ID, NOTEBOOKS_COLLECTION_ID } from "@/lib/appwrite";
 
 export const runtime = "edge";
 
@@ -10,30 +10,25 @@ export async function GET(
   try {
     const { notebookId } = await params;
 
-    const notebook = await databases.getDocument(
-      DATABASE_ID,
-      NOTEBOOKS_COLLECTION_ID,
-      notebookId
-    );
-
+    let title = "Untitled Notebook";
+    let description = "Read this notebook on Ping.";
     let authorName = "Joel Musonda";
     let authorHandle = "joelimusonda";
-    let authorAvatar = null;
-    try {
-      if (notebook?.owner_id) {
-        const profile = await getPingByUserId(notebook.owner_id);
-        if (profile) {
-          authorName = profile.name || authorName;
-          authorHandle = profile.handle || authorHandle;
-          authorAvatar = profile.avatar_url || null;
-        }
-      }
-    } catch (e) {
-      // Fallback defaults
-    }
+    let chapterCount = "3 min read";
 
-    const title = notebook?.title || "Untitled Notebook";
-    const description = notebook?.snapshot || notebook.description || "Read this notebook on Ping.";
+    try {
+      const notebook = await databases.getDocument(
+        DATABASE_ID,
+        NOTEBOOKS_COLLECTION_ID,
+        notebookId
+      );
+      if (notebook) {
+        title = notebook.title || title;
+        description = notebook.snapshot || notebook.description || description;
+      }
+    } catch (dbErr) {
+      console.error("Error fetching notebook for OG image:", dbErr);
+    }
 
     return new ImageResponse(
       (
@@ -44,25 +39,24 @@ export async function GET(
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "linear-gradient(135deg, #18181b 0%, #09090b 100%)",
+            background: "#09090b",
             fontFamily: "sans-serif",
           }}
         >
-          {/* Medium-Style White Card Container */}
+          {/* Medium-Style White Card Frame */}
           <div
             style={{
               width: "820px",
               height: "460px",
-              backgroundColor: "white",
-              borderRadius: "28px",
+              backgroundColor: "#ffffff",
+              borderRadius: "24px",
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between",
-              padding: "36px 44px",
-              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+              padding: "40px 48px",
             }}
           >
-            {/* Top Bar */}
+            {/* Top Header */}
             <div
               style={{
                 display: "flex",
@@ -70,27 +64,28 @@ export async function GET(
                 alignItems: "center",
                 fontSize: "15px",
                 fontWeight: 500,
-                color: "#525252",
-                borderBottom: "1.5px solid #e5e5e5",
+                color: "#737373",
+                borderBottom: "1px solid #e5e5e5",
                 paddingBottom: "16px",
               }}
             >
-              <span>3 min read</span>
+              <span>{chapterCount}</span>
               <span>·</span>
               <span>Ping Chapter</span>
             </div>
 
-            {/* Content Body */}
+            {/* Middle Content Section */}
             <div
               style={{
                 display: "flex",
                 flexDirection: "row",
                 alignItems: "stretch",
                 flex: 1,
-                paddingTop: "20px",
-                paddingBottom: "20px",
+                paddingTop: "24px",
+                paddingBottom: "24px",
               }}
             >
+              {/* Left Column: Title & Description */}
               <div
                 style={{
                   display: "flex",
@@ -103,14 +98,13 @@ export async function GET(
                 <div
                   style={{
                     fontSize: "36px",
-                    fontWeight: 900,
-                    color: "#0a0a0a",
+                    fontWeight: 800,
+                    color: "#0f172a",
                     lineHeight: 1.15,
                     display: "-webkit-box",
                     WebkitLineClamp: 2,
                     WebkitBoxOrient: "vertical",
                     overflow: "hidden",
-                    letterSpacing: "-0.02em",
                   }}
                 >
                   {title}
@@ -119,7 +113,7 @@ export async function GET(
                   <div
                     style={{
                       fontSize: "15px",
-                      color: "#525252",
+                      color: "#475569",
                       marginTop: "12px",
                       lineHeight: 1.4,
                       display: "-webkit-box",
@@ -133,13 +127,13 @@ export async function GET(
                 )}
               </div>
 
-              {/* Right Vertical Domain Bar */}
+              {/* Right Column: Vertical Domain Bar */}
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  borderLeft: "1.5px solid #e5e5e5",
+                  borderLeft: "1px solid #e5e5e5",
                   paddingLeft: "28px",
                   flex: 1,
                 }}
@@ -148,7 +142,7 @@ export async function GET(
                   style={{
                     fontSize: "13px",
                     fontWeight: 700,
-                    color: "#737373",
+                    color: "#64748b",
                     letterSpacing: "0.08em",
                     transform: "rotate(90deg)",
                     whiteSpace: "nowrap",
@@ -165,33 +159,28 @@ export async function GET(
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                borderTop: "1.5px solid #e5e5e5",
+                borderTop: "1px solid #e5e5e5",
                 paddingTop: "18px",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <div
                   style={{
-                    width: "38px",
-                    height: "38px",
-                    borderRadius: "50%",
-                    backgroundColor: "#171717",
-                    color: "white",
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "18px",
+                    backgroundColor: "#0f172a",
+                    color: "#ffffff",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     fontSize: "14px",
                     fontWeight: "bold",
-                    overflow: "hidden",
                   }}
                 >
-                  {authorAvatar ? (
-                    <img src={authorAvatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  ) : (
-                    authorName.charAt(0).toUpperCase()
-                  )}
+                  {authorName.charAt(0)}
                 </div>
-                <span style={{ fontSize: "15px", fontWeight: "bold", color: "#171717" }}>
+                <span style={{ fontSize: "15px", fontWeight: "bold", color: "#0f172a" }}>
                   {authorName}
                 </span>
               </div>
@@ -200,8 +189,7 @@ export async function GET(
                   fontSize: "22px",
                   fontStyle: "italic",
                   fontWeight: 900,
-                  color: "#171717",
-                  letterSpacing: "-0.03em",
+                  color: "#0f172a",
                 }}
               >
                 Ping
@@ -215,7 +203,27 @@ export async function GET(
         height: 630,
       }
     );
-  } catch (e) {
-    return new Response("Failed to generate image", { status: 500 });
+  } catch (err) {
+    // Ultimate fallback image response so scrapers NEVER get a 500 error
+    return new ImageResponse(
+      (
+        <div
+          style={{
+            height: "100%",
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "#ffffff",
+            fontSize: "48px",
+            fontWeight: "bold",
+            color: "#0f172a",
+          }}
+        >
+          Ping Notebook
+        </div>
+      ),
+      { width: 1200, height: 630 }
+    );
   }
 }
