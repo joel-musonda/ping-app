@@ -132,6 +132,13 @@ export default function CommunityPage() {
     }
   };
 
+
+         // Dynamic Page Title Effect
+              useEffect(() => {
+                document.title = "Community | Ping";
+              }, []);
+
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-15 space-y-8 bg-transparent text-neutral-900">
       <div>

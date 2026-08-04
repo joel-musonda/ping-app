@@ -77,6 +77,11 @@ function HomePageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Dynamic Page Title Effect
+  useEffect(() => {
+    document.title = "Ping | Homepage";
+  }, []);
+
   useEffect(() => {
     getPublicNotebooks()
       .then(async (nbs) => {
@@ -222,12 +227,10 @@ function HomePageInner() {
                               </HoverCard>
                               <span className="text-neutral-300 select-none">·</span>
                              
-                             
-<span className="text-neutral-500 whitespace-nowrap">
-  {nb.$updatedAt || nb.$createdAt ?
-    new Date(nb.$updatedAt || nb.$createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Just now'}
-</span>
-
+                              <span className="text-neutral-500 whitespace-nowrap">
+                                {nb.$updatedAt || nb.$createdAt ?
+                                  new Date(nb.$updatedAt || nb.$createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Just now'}
+                              </span>
                             </div>
                           </div>
 

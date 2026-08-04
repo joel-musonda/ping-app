@@ -151,6 +151,16 @@ export default function PingProfilePage() {
     };
   }, [handle]);
 
+  // Dynamic Page Title Effect
+  useEffect(() => {
+    if (ping) {
+      const displayName = ping.name || ping.handle || handle;
+      document.title = `${displayName} | Ping`;
+    } else if (ping === false) {
+      document.title = "Ping | Not Found";
+    }
+  }, [ping, handle]);
+
   const handleFollowToggle = async () => {
     if (!currentUser) {
       router.push("/login");
@@ -265,7 +275,7 @@ export default function PingProfilePage() {
                 <p className="text-sm font-medium text-neutral-400">@{ping?.handle}</p>
               </div>
 
-                            {isOwnProfile ? (
+              {isOwnProfile ? (
                 <button
                   onClick={() => router.push("/settings")}
                   className="w-full bg-white hover:bg-neutral-50 border border-neutral-200 text-neutral-900 text-sm font-medium py-2 px-4 rounded-md shadow-sm transition-colors shrink-0 cursor-pointer"
@@ -285,7 +295,6 @@ export default function PingProfilePage() {
                   {actionLoading ? "Processing..." : followId ? "Unfollow" : "Follow"}
                 </button>
               )}
-
 
               <p className="text-sm text-neutral-700 leading-relaxed pt-1 shrink-0 break-words whitespace-pre-wrap">
                 {ping?.bio || "Hello There, Welcome to my Ping"}
@@ -401,7 +410,7 @@ export default function PingProfilePage() {
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-2 min-w-0">
                                 <Book className="w-4 h-4 text-neutral-500 shrink-0" />
-                                <CardTitle className="text-sm font-bold text-neutral-900 truncate underline-offset-2 decoration-1">
+                                <CardTitle className="text-sm font-bold text-neutral-900 line-clamp-2 underline-offset-2 decoration-1">
                                   {nb.title}
                                 </CardTitle>
                               </div>
@@ -530,7 +539,7 @@ export default function PingProfilePage() {
                                     backgroundColor: loading || day.isFuture 
                                       ? "#F4F4F5" 
                                       : day.isActive 
-                                        ? "#2563EB" 
+                                        ? "#60A5FA" 
                                         : "#F4F4F5",
                                   }}
                                 />

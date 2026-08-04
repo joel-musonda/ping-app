@@ -173,7 +173,6 @@ export async function getChapter(chapterId: string) {
   return await databases.getDocument(DATABASE_ID, CHAPTERS_COLLECTION_ID, chapterId);
 }
 
-
 export async function getNotebooksForUser(userId: string, publicOnly: boolean) {
   const ownerQueries = [Query.equal("owner_id", userId)];
   if (publicOnly) ownerQueries.push(Query.equal("is_public", true));
@@ -190,7 +189,17 @@ export async function getNotebooksForUser(userId: string, publicOnly: boolean) {
   const uniqueMap = new Map();
   combinedNotebooks.forEach((doc) => uniqueMap.set(doc.$id, doc));
 
-  return Array.from(uniqueMap.values());
+  // Filter out drafts so they do not show up on the profile page[cite: 8]
+  return Array.from(uniqueMap.values()).filter((doc) => !doc.is_draft);
+}
+
+export async function getDraftsForUser(userId: string) {
+  const res = await databases.listDocuments(DATABASE_ID, NOTEBOOKS_COLLECTION_ID, [
+    Query.equal("owner_id", userId),
+    Query.equal("is_draft", true),
+    Query.orderDesc("$createdAt"),
+  ]);
+  return res.documents;
 }
 
 export async function getPublicNotebooks() {

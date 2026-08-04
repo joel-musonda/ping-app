@@ -41,6 +41,11 @@ export default function SettingsClient() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
 
+  // Dynamic Page Title Effect
+  useEffect(() => {
+    document.title = "Ping | Settings";
+  }, []);
+
   useEffect(() => {
     async function load() {
       const activeUser = await getCurrentUser();

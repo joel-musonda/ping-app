@@ -24,6 +24,13 @@ export default function AnalyticsPage() {
     avgEngagementRate: 0
   });
 
+
+         // Dynamic Page Title Effect
+              useEffect(() => {
+                document.title = "Analytics | Ping";
+              }, []);
+
+
   useEffect(() => {
     let cancelled = false;
 

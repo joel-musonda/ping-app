@@ -596,10 +596,15 @@ export default function Navbar() {
                           <User className="w-4 h-4 text-neutral-400 shrink-0" />
                           <span>Profile</span>
                         </a>
-                        <a href={`/${profileData.handle}`} onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 transition-colors duration-150">
-                          <Book className="w-4 h-4 text-neutral-400 shrink-0" />
-                          <span>Notebooks</span>
-                        </a>
+
+                        {/* Updated Notebooks Link */}
+                    <Link href="/dashboard" onClick={() => setProfileOpen(false)}>
+                     <button className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl text-left text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 transition-colors duration-150">
+             <Book className="w-4 h-4 text-neutral-400 shrink-0" />
+             <span>Notebooks</span>
+              </button>
+           </Link>
+
                         <Link href="/community" onClick={() => setProfileOpen(false)}>
                           <button className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl text-left text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 transition-colors duration-150">
                             <Heart className="w-4 h-4 text-neutral-400 shrink-0" />

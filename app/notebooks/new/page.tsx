@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, ChangeEvent } from "react";
+import { useState, useRef, useEffect, ChangeEvent, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   useEditor,
@@ -22,12 +22,13 @@ import { createLowlight, common } from "lowlight";
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   Heading2, List, ImageIcon, Upload, FileText, Globe, X, Camera, Trash2, Users,
-  Link as LinkIcon, Quote, Code, Check, ExternalLink, GripVertical
+  Link as LinkIcon, Quote, Code, Check, ExternalLink, GripVertical,
+  AlignLeft, AlignCenter, AlignRight
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import {
   uploadNotebookCoverImage, getNotebookCoverImageUrl, createNotebook, createChapter,
-  getPingByUserId, searchPingsByHandle, inviteCollaborator,
+  getPingByUserId, searchPingsByHandle, inviteCollaborator
 } from "@/lib/appwrite";
 
 // Initialize Lowlight with common languages for auto language recognition & highlighting
@@ -94,6 +95,7 @@ export default function CreateNotebookPage() {
   const router = useRouter();
 
   const [title, setTitle] = useState("");
+  const [category, setCategory] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -240,6 +242,7 @@ export default function CreateNotebookPage() {
 
   const executePublishPipeline = async () => {
     if (!title.trim()) return alert("Please specify a notebook title first.");
+    if (!category.trim()) return alert("Please specify a category.");
     if (!snapshot.trim()) return alert("A snapshot description summary is required.");
     if (!coverImageUrl) return alert("Please select a cover thumbnail image before publishing.");
 
@@ -251,15 +254,16 @@ export default function CreateNotebookPage() {
       const notebook = await createNotebook(
         user.$id,
         title.trim(),
-        "",
+        category.trim(),
         isPublic,
         snapshot.trim(),
         coverImageUrl.trim()
       );
+      const targetNotebookId = notebook.$id;
 
       const contentJson = editor?.getJSON() ?? {};
       await createChapter(
-        notebook.$id,
+        targetNotebookId,
         user.$id,
         isPublic,
         title.trim(),
@@ -272,7 +276,7 @@ export default function CreateNotebookPage() {
           const ownerProfile = await getPingByUserId(user.$id);
           for (const c of selectedCollaborators) {
             await inviteCollaborator(
-              notebook.$id,
+              targetNotebookId,
               title.trim(),
               user.$id,
               ownerProfile?.name || "",
@@ -287,7 +291,7 @@ export default function CreateNotebookPage() {
       }
 
       setIsPublishModalOpen(false);
-      window.location.href = `/notebooks/${notebook.$id}`;
+      window.location.href = `/notebooks/${targetNotebookId}`;
     } catch (err: any) {
       console.error("CRITICAL BACKEND WRITE ERROR:", err);
       alert(`Appwrite Error: ${err?.message || err}`);
@@ -305,6 +309,14 @@ export default function CreateNotebookPage() {
       <div className="w-px h-5 bg-neutral-300 mx-1 shrink-0" />
       <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Heading"><Heading2 className="w-4 h-4" /></button>
       <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBulletList().run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Bullet List"><List className="w-4 h-4" /></button>
+      
+      {/* Text Alignment Formatting */}
+      <div className="w-px h-5 bg-neutral-300 mx-1 shrink-0" />
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().setTextAlign("left").run()} className={`p-2 rounded-lg transition shrink-0 ${editor?.isActive({ textAlign: "left" }) ? "bg-neutral-200 text-blue-600" : "text-neutral-700 hover:bg-neutral-200/80"}`} title="Align Left"><AlignLeft className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().setTextAlign("center").run()} className={`p-2 rounded-lg transition shrink-0 ${editor?.isActive({ textAlign: "center" }) ? "bg-neutral-200 text-blue-600" : "text-neutral-700 hover:bg-neutral-200/80"}`} title="Align Center"><AlignCenter className="w-4 h-4" /></button>
+      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().setTextAlign("right").run()} className={`p-2 rounded-lg transition shrink-0 ${editor?.isActive({ textAlign: "right" }) ? "bg-neutral-200 text-blue-600" : "text-neutral-700 hover:bg-neutral-200/80"}`} title="Align Right"><AlignRight className="w-4 h-4" /></button>
+
+      <div className="w-px h-5 bg-neutral-300 mx-1 shrink-0" />
       <button onMouseDown={(e) => e.preventDefault()} onClick={handleToggleLinkPopover} className={`p-2 rounded-lg transition shrink-0 ${isLinkPopoverOpen ? "bg-neutral-200 text-blue-600" : "text-neutral-700 hover:bg-neutral-200/80"}`} title="Add Link"><LinkIcon className="w-4 h-4" /></button>
       <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBlockquote().run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Quote"><Quote className="w-4 h-4" /></button>
       <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleCodeBlock().run()} className={`p-2 rounded-lg transition shrink-0 ${editor?.isActive("codeBlock") ? "bg-neutral-200 text-blue-600" : "text-neutral-700 hover:bg-neutral-200/80"}`} title="Code Block"><Code className="w-4 h-4" /></button>
@@ -315,7 +327,6 @@ export default function CreateNotebookPage() {
 
   return (
     <main className="min-h-screen bg-white pb-32">
-      {/* Syntax Highlighting CSS */}
       <style jsx global>{`
         .hljs-comment, .hljs-quote { color: #8b949e; font-style: italic; }
         .hljs-keyword, .hljs-selector-tag, .hljs-subst { color: #ff7b72; font-weight: 600; }
@@ -335,35 +346,28 @@ export default function CreateNotebookPage() {
       <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-neutral-200 shadow-sm w-full transition-all duration-200">
         <div className="max-w-4xl mx-auto px-3 sm:px-6 py-2 sm:py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-6 relative">
           
-          {/* Action Row - Top on mobile, Right on desktop */}
-          <div className="flex items-center justify-between sm:justify-end gap-4 order-1 sm:order-2 w-full sm:w-auto shrink-0">
+          <div className="flex items-center justify-between sm:justify-end gap-3 order-1 sm:order-2 w-full sm:w-auto shrink-0">
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setIsPublic(!isPublic)}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isPublic ? "bg-blue-600" : "bg-neutral-300"}`}
-                role="switch"
-                aria-checked={isPublic}
+                className="h-9 px-3.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 rounded-lg text-xs font-semibold border border-neutral-200 transition shadow-2xs"
               >
-                <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isPublic ? "translate-x-5" : "translate-x-0"}`} />
+                Save to Draft
               </button>
-              <span className="text-sm font-semibold text-neutral-700">{isPublic ? "Public" : "Private"}</span>
-            </div>
 
-            <button
-              onClick={() => setIsPublishModalOpen(true)}
-              className="h-9 px-5 bg-[#0084FF] hover:bg-[#0073e6] active:bg-[#0062c4] text-white rounded-lg text-sm font-bold shadow-sm transition transform active:scale-95"
-            >
-              Done
-            </button>
+              <button
+                onClick={() => setIsPublishModalOpen(true)}
+                className="h-9 px-5 bg-[#0084FF] hover:bg-[#0073e6] active:bg-[#0062c4] text-white rounded-lg text-sm font-bold shadow-sm transition transform active:scale-95"
+              >
+                Done
+              </button>
+            </div>
           </div>
 
-          {/* Formatting Controls - Bottom on mobile, Left on desktop */}
           <div className="flex items-center w-full order-2 sm:order-1 bg-neutral-50 sm:bg-transparent rounded-lg px-1 sm:px-0 border border-neutral-200 sm:border-none">
             <FormattingControls />
           </div>
 
-          {/* Link Popover - Dropdown from the sticky header */}
           {isLinkPopoverOpen && (
             <div className="absolute left-3 right-3 sm:left-6 sm:right-auto top-[calc(100%+8px)] z-50 max-w-sm p-2 bg-white border border-neutral-200 rounded-xl shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
               <div className="px-2 text-neutral-400"><ExternalLink className="w-4 h-4" /></div>
@@ -404,7 +408,7 @@ export default function CreateNotebookPage() {
         <EditorContent editor={editor} />
       </div>
 
-      {/* Publish Modal */}
+      {/* Publish / Onboarding Modal */}
       {isPublishModalOpen && (
         <div className="fixed inset-0 z-[60] bg-neutral-950/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl border border-neutral-200 max-w-md w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -417,6 +421,41 @@ export default function CreateNotebookPage() {
             </div>
 
             <div className="p-5 space-y-4 flex-1 overflow-y-auto">
+              <div className="space-y-1.5 bg-neutral-50 border border-neutral-200 p-3.5 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <label className="text-xs font-bold text-neutral-900 block">Notebook Visibility</label>
+                    <p className="text-[11px] text-neutral-500">
+                      {isPublic ? "Anyone can discover and read this notebook" : "Only you and invited collaborators can view this"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsPublic(!isPublic)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isPublic ? "bg-blue-600" : "bg-neutral-300"}`}
+                    role="switch"
+                    aria-checked={isPublic}
+                  >
+                    <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isPublic ? "translate-x-5" : "translate-x-0"}`} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Category Field */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 flex items-center gap-1">
+                  <FileText className="w-3 h-3" />
+                  <span>Category</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Technology, Design, Engineering..."
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full text-sm p-3 rounded-xl border border-neutral-200 bg-neutral-50/50 focus:bg-white focus:outline-none focus:border-neutral-400 text-neutral-800"
+                />
+              </div>
+
               <div className="space-y-1">
                 <label className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 flex items-center gap-1">
                   <FileText className="w-3 h-3" />
@@ -522,7 +561,7 @@ export default function CreateNotebookPage() {
                   disabled={publishing}
                   className="h-10 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg text-sm font-bold shadow-sm disabled:opacity-50 transition"
                 >
-                  {publishing ? "Saving..." : "Final Publish"}
+                  {publishing ? "Publishing..." : "Publish"}
                 </button>
               </div>
             </div>
