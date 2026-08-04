@@ -6,7 +6,6 @@ type Props = {
   params: Promise<{ notebookId: string }>;
 };
 
-// Generates dynamic Open Graph tags for WhatsApp, Facebook, and Twitter crawlers
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { notebookId } = await params;
   
@@ -25,7 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     console.error("Failed to fetch notebook metadata for sharing:", err);
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://ping.vercel.app";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://joinping.up.railway.app";
   const imageUrl = `${siteUrl}/notebooks/${notebookId}/image`;
 
   return {
@@ -54,6 +53,5 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function Page({ params }: Props) {
-  const { notebookId } = await params;
   return <NotebookClient />;
 }

@@ -16,7 +16,6 @@ export async function GET(
       notebookId
     );
 
-    // Fetch author profile for real name and avatar
     let authorName = "Joel Musonda";
     let authorHandle = "joelimusonda";
     let authorAvatar = null;
@@ -30,7 +29,7 @@ export async function GET(
         }
       }
     } catch (e) {
-      // Fallback if profile fetch fails
+      // Fallback defaults
     }
 
     const title = notebook?.title || "Untitled Notebook";
@@ -45,12 +44,11 @@ export async function GET(
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            // Dark gradient background prevents social scrapers from injecting ugly solid green/black boxes
             background: "linear-gradient(135deg, #18181b 0%, #09090b 100%)",
             fontFamily: "sans-serif",
           }}
         >
-          {/* Centered Medium-style White Card */}
+          {/* Medium-Style White Card Container */}
           <div
             style={{
               width: "820px",
@@ -64,7 +62,7 @@ export async function GET(
               boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
             }}
           >
-            {/* Top Header: Read Time */}
+            {/* Top Bar */}
             <div
               style={{
                 display: "flex",
@@ -82,7 +80,7 @@ export async function GET(
               <span>Ping Chapter</span>
             </div>
 
-            {/* Middle Section: Split Layout (Title/Desc on left, Vertical Domain on right) */}
+            {/* Content Body */}
             <div
               style={{
                 display: "flex",
@@ -93,7 +91,6 @@ export async function GET(
                 paddingBottom: "20px",
               }}
             >
-              {/* Left Column: Title & Description */}
               <div
                 style={{
                   display: "flex",
@@ -136,7 +133,7 @@ export async function GET(
                 )}
               </div>
 
-              {/* Right Column: Vertical Domain Border */}
+              {/* Right Vertical Domain Bar */}
               <div
                 style={{
                   display: "flex",
@@ -162,7 +159,7 @@ export async function GET(
               </div>
             </div>
 
-            {/* Bottom Footer: Author Info & Brand */}
+            {/* Bottom Footer */}
             <div
               style={{
                 display: "flex",
