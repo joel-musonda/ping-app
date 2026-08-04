@@ -19,7 +19,7 @@ import HoverCard from "@/components/HoverCard";
 
 function NotebookPageSkeleton() {
   return (
-    <main className="w-full min-h-[calc(100vh-56px)] h-[calc(100vh-56px)] bg-white flex overflow-hidden">
+    <main className="w-full min-h-screen md:min-h-[calc(100vh-56px)] h-screen md:h-[calc(100vh-56px)] bg-white flex overflow-hidden">
       <div className="hidden md:flex w-80 border-r border-neutral-200 flex-col h-full bg-neutral-50/50 shrink-0 p-5 animate-pulse">
         <div className="h-3 bg-neutral-200 rounded w-24 mb-3" />
         <div className="h-5 bg-neutral-200 rounded w-full mb-2" />
@@ -66,6 +66,7 @@ export default function NotebookPage() {
   const [canEdit, setCanEdit] = useState(false);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isGlobalNavVisible, setIsGlobalNavVisible] = useState(true);
 
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
@@ -89,6 +90,8 @@ export default function NotebookPage() {
   const [replyingToId, setReplyingToId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [postingReply, setPostingReply] = useState(false);
+
+  const lastScrollY = useRef(0);
   
   const contentWrapperRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -208,7 +211,6 @@ export default function NotebookPage() {
     };
   }, [selectedChapter, currentUser]);
 
-  // Stable Table of Contents extraction
   useEffect(() => {
     if (viewMode !== "chapter" || !selectedChapter || !contentWrapperRef.current) {
       setHeadings([]);
@@ -252,28 +254,39 @@ export default function NotebookPage() {
     return () => clearTimeout(timer);
   }, [selectedChapter, viewMode]);
 
-  // Precise scroll tracking using offsetTop
   useEffect(() => {
     const container = scrollContainerRef.current;
-    if (!container || viewMode !== "chapter" || headings.length === 0) return;
+    if (!container) return;
 
     const handleScroll = () => {
       setAnnotationMenuPos(null);
 
-      const scrollPos = container.scrollTop + 140;
-      let currentActive = headings[0].id;
+      const currentScrollY = container.scrollTop;
+      if (currentScrollY < lastScrollY.current) {
+        setIsGlobalNavVisible(true);
+        window.dispatchEvent(new CustomEvent("toggle-global-navbar", { detail: { show: true } }));
+      } else if (currentScrollY > lastScrollY.current && currentScrollY > 60) {
+        setIsGlobalNavVisible(false);
+        window.dispatchEvent(new CustomEvent("toggle-global-navbar", { detail: { show: false } }));
+      }
+      lastScrollY.current = currentScrollY;
 
-      for (const h of headings) {
-        const el = document.getElementById(h.id);
-        if (el) {
-          if (el.offsetTop <= scrollPos) {
-            currentActive = h.id;
+      if (viewMode === "chapter" && headings.length > 0) {
+        const scrollPos = currentScrollY + 140;
+        let currentActive = headings[0].id;
+
+        for (const h of headings) {
+          const el = document.getElementById(h.id);
+          if (el) {
+            if (el.offsetTop <= scrollPos) {
+              currentActive = h.id;
+            }
           }
         }
-      }
 
-      if (currentActive) {
-        setActiveHeadingId(currentActive);
+        if (currentActive) {
+          setActiveHeadingId(currentActive);
+        }
       }
     };
 
@@ -283,7 +296,6 @@ export default function NotebookPage() {
     return () => container.removeEventListener("scroll", handleScroll);
   }, [viewMode, headings]);
 
-  // Text selection tracking
   useEffect(() => {
     const handleSelectionChange = () => {
       const selection = window.getSelection();
@@ -591,7 +603,7 @@ export default function NotebookPage() {
   const nextChapter = currentChapterIndex !== -1 && currentChapterIndex < chapters.length - 1 ? chapters[currentChapterIndex + 1] : null;
 
   return (
-    <main className="w-full min-h-[calc(100vh-56px)] h-[calc(100vh-56px)] bg-white text-neutral-900 overflow-hidden flex relative">
+    <main className="w-full min-h-screen md:min-h-[calc(100vh-56px)] h-screen md:h-[calc(100vh-56px)] bg-white text-neutral-900 overflow-hidden flex relative">
 
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-neutral-950 text-white text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom-3 duration-200 border border-neutral-800">
@@ -600,7 +612,6 @@ export default function NotebookPage() {
         </div>
       )}
 
-      {/* Medium Popover Context Trigger */}
       {annotationMenuPos && (
         <button
           style={{ top: annotationMenuPos.top, left: annotationMenuPos.left }}
@@ -612,11 +623,9 @@ export default function NotebookPage() {
         </button>
       )}
 
-      {/* Progress Indicator Dashes with Table of Contents Hover Popover Card */}
       {viewMode === "chapter" && headings.length > 0 && (
         <div className="hidden md:flex fixed right-4 top-1/2 -translate-y-1/2 z-40 items-center">
           <div className="relative group/toc py-4 px-2">
-            {/* Table of Contents Popover Card on Hover */}
             <div className="absolute right-8 top-1/2 -translate-y-1/2 opacity-0 pointer-events-none group-hover/toc:opacity-100 group-hover/toc:pointer-events-auto transition-all duration-200 w-72 bg-white rounded-2xl shadow-xl border border-neutral-200 p-4 z-50 max-h-[80vh] overflow-y-auto">
               <div className="space-y-1">
                 {headings.map((h) => {
@@ -636,7 +645,6 @@ export default function NotebookPage() {
               </div>
             </div>
 
-            {/* Dash Bar Stack */}
             <div className="flex flex-col items-center gap-2 py-3 px-1.5 rounded-full hover:bg-neutral-100/70 transition-colors cursor-pointer">
               {headings.map((h) => {
                 const isActive = h.id === activeHeadingId;
@@ -653,7 +661,8 @@ export default function NotebookPage() {
         </div>
       )}
 
-      <div className="md:hidden absolute top-0 left-0 right-0 z-30 flex items-center gap-3 px-4 h-12 border-b border-neutral-200 bg-white/95 backdrop-blur-sm">
+      {/* Top Mobile Chapter Header (Automatically moves to top-0 when main navbar disappears, avoiding space) */}
+      <div className={`md:hidden fixed left-0 right-0 z-30 flex items-center gap-3 px-4 h-12 border-b border-neutral-200 bg-white/95 backdrop-blur-md shadow-xs transition-all duration-300 ${isGlobalNavVisible ? "top-14" : "top-0"}`}>
         <button onClick={() => setSidebarOpen(true)} className="p-1.5 -ml-1.5 rounded-md text-neutral-600 hover:bg-neutral-100 transition">
           <Menu className="w-5 h-5" />
         </button>
@@ -728,7 +737,7 @@ export default function NotebookPage() {
         </div>
       </div>
 
-      <ScrollShadow ref={scrollContainerRef} visibility="bottom" className="flex-1 flex flex-col h-full bg-white overflow-y-auto pt-12 md:pt-0">
+      <ScrollShadow ref={scrollContainerRef} visibility="bottom" className={`flex-1 flex flex-col h-full bg-white overflow-y-auto transition-all duration-300 ${isGlobalNavVisible ? "pt-[104px]" : "pt-12"} md:pt-0`}>
         {viewMode === "root" && (
           <div className="max-w-3xl w-full mx-auto px-6 md:px-12 pt-6 pb-24 md:pb-10 flex flex-col min-h-full">
             <div className="flex justify-between items-start gap-6 border-b border-neutral-100 pb-4 mb-6 relative">

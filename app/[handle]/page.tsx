@@ -17,7 +17,7 @@ import {
 } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
 import { Query } from "appwrite";
-import { Book, MapPin, Link2, Users, FileText, Lock, Link } from "lucide-react";
+import { Book, MapPin, Link2, Users, FileText, Lock, Link, Globe } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Modal, Button, Avatar, ListBox, Label, Description } from "@heroui/react";
 
@@ -321,7 +321,7 @@ export default function PingProfilePage() {
                   )}
                   {ping?.website && (
                     <div className="flex items-center gap-2">
-                      <Link2 className="w-4 h-4 text-neutral-400" />
+                      <Globe className="w-4 h-4 text-neutral-400" />
                       <a
                         href={ping.website.startsWith("http") ? ping.website : `https://${ping.website}`}
                         target="_blank"

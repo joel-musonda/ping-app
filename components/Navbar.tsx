@@ -18,7 +18,7 @@ import Image from "next/image";
 import Link from "next/link";
 import HoverCard from "@/components/HoverCard";
 
-// Helper function to format timestamps into relative time strings
+// Helper function to format timestamps into relative time strings[cite: 10]
 function formatRelativeTime(dateString?: string) {
   if (!dateString) return "Just now";
   const date = new Date(dateString);
@@ -103,6 +103,7 @@ export default function Navbar() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Standard window scroll listener[cite: 10]
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -116,6 +117,21 @@ export default function Navbar() {
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Custom event listener for internal scroll containers (e.g. NotebookPage)
+  useEffect(() => {
+    const handleCustomToggleNavbar = (e: Event) => {
+      const customEvent = e as CustomEvent<{ show: boolean }>;
+      if (customEvent.detail && typeof customEvent.detail.show === "boolean") {
+        setShowNavbar(customEvent.detail.show);
+      }
+    };
+
+    window.addEventListener("toggle-global-navbar", handleCustomToggleNavbar as EventListener);
+    return () => {
+      window.removeEventListener("toggle-global-navbar", handleCustomToggleNavbar as EventListener);
+    };
   }, []);
 
   useEffect(() => {
@@ -665,47 +681,49 @@ export default function Navbar() {
       )}
 
       {!loading && profileData && (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200 h-16 grid grid-cols-5 items-center px-1 shadow-lg box-border w-full">
-          <a href="/" className="flex flex-col items-center justify-center gap-0.5 text-neutral-500 hover:text-neutral-900 transition-colors py-1 min-w-0">
-            <Home className="w-5 h-5 shrink-0" />
-            <span className="text-[10px] font-medium truncate w-full text-center">Home</span>
-          </a>
+        <div className={`md:hidden fixed bottom-0 left-0 right-0 z-40 transition-transform duration-300 ${showNavbar ? "translate-y-0" : "translate-y-full"}`}>
+          <nav className="bg-white/95 backdrop-blur-md border-t border-neutral-200 h-16 grid grid-cols-5 items-center px-1 shadow-lg box-border w-full">
+            <a href="/" className="flex flex-col items-center justify-center gap-0.5 text-neutral-500 hover:text-neutral-900 transition-colors py-1 min-w-0">
+              <Home className="w-5 h-5 shrink-0" />
+              <span className="text-[10px] font-medium truncate w-full text-center">Home</span>
+            </a>
 
-          <button
-            onClick={handleToggleNotifications}
-            className="flex flex-col items-center justify-center gap-0.5 text-neutral-500 hover:text-neutral-900 transition-colors relative py-1 min-w-0"
-          >
-            <div className="relative">
-              <Bell className="w-5 h-5 shrink-0" />
-              {hasUnread && notifications.length > 0 && (
-                <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-[#0084FF] text-white text-[9px] font-extrabold rounded-full shadow-sm flex items-center justify-center ring-2 ring-white animate-pulse">
-                  {notifications.length}
-                </span>
-              )}
-            </div>
-            <span className="text-[10px] font-medium truncate w-full text-center">Alerts</span>
-          </button>
-
-          <div className="relative flex justify-center min-w-0">
             <button
-              onClick={handleNewNotebookClick}
-              className="absolute -top-6 w-12 h-12 sm:w-13 sm:h-13 rounded-full bg-[#0084FF] hover:bg-[#0073e6] text-white shadow-xl flex items-center justify-center active:scale-95 transition-transform ring-4 ring-white shrink-0"
-              title="New Notebook"
+              onClick={handleToggleNotifications}
+              className="flex flex-col items-center justify-center gap-0.5 text-neutral-500 hover:text-neutral-900 transition-colors relative py-1 min-w-0"
             >
-              <Plus className="w-6 h-6" />
+              <div className="relative">
+                <Bell className="w-5 h-5 shrink-0" />
+                {hasUnread && notifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-[#0084FF] text-white text-[9px] font-extrabold rounded-full shadow-sm flex items-center justify-center ring-2 ring-white animate-pulse">
+                    {notifications.length}
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] font-medium truncate w-full text-center">Alerts</span>
             </button>
-          </div>
 
-          <Link href="/?trending=1" className="flex flex-col items-center justify-center gap-0.5 text-neutral-500 hover:text-neutral-900 transition-colors py-1 min-w-0">
-            <Flame className="w-5 h-5 shrink-0" />
-            <span className="text-[10px] font-medium truncate w-full text-center">Trending</span>
-          </Link>
+            <div className="relative flex justify-center min-w-0">
+              <button
+                onClick={handleNewNotebookClick}
+                className="absolute -top-6 w-12 h-12 sm:w-13 sm:h-13 rounded-full bg-[#0084FF] hover:bg-[#0073e6] text-white shadow-xl flex items-center justify-center active:scale-95 transition-transform ring-4 ring-white shrink-0"
+                title="New Notebook"
+              >
+                <Plus className="w-6 h-6" />
+              </button>
+            </div>
 
-          <Link href="/settings" className="flex flex-col items-center justify-center gap-0.5 text-neutral-500 hover:text-neutral-900 transition-colors py-1 min-w-0">
-            <Settings className="w-5 h-5 shrink-0" />
-            <span className="text-[10px] font-medium truncate w-full text-center">Settings</span>
-          </Link>
-        </nav>
+            <Link href="/?trending=1" className="flex flex-col items-center justify-center gap-0.5 text-neutral-500 hover:text-neutral-900 transition-colors py-1 min-w-0">
+              <Flame className="w-5 h-5 shrink-0" />
+              <span className="text-[10px] font-medium truncate w-full text-center">Trending</span>
+            </Link>
+
+            <Link href="/settings" className="flex flex-col items-center justify-center gap-0.5 text-neutral-500 hover:text-neutral-900 transition-colors py-1 min-w-0">
+              <Settings className="w-5 h-5 shrink-0" />
+              <span className="text-[10px] font-medium truncate w-full text-center">Settings</span>
+            </Link>
+          </nav>
+        </div>
       )}
 
       {notifOpen && (
