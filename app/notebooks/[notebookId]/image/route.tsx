@@ -5,15 +5,15 @@ export const runtime = "edge";
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ notebookId: string }> }
 ) {
   try {
-    const { id } = await params;
+    const { notebookId } = await params;
 
     const notebook = await databases.getDocument(
       DATABASE_ID,
       NOTEBOOKS_COLLECTION_ID,
-      id
+      notebookId
     );
 
     const title = notebook?.title || "Untitled Notebook";
