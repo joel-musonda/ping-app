@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { databases, DATABASE_ID, NOTEBOOKS_COLLECTION_ID } from "@/lib/appwrite";
+import { databases, DATABASE_ID, NOTEBOOKS_COLLECTION_ID, getPingByUserId } from "@/lib/appwrite";
 
 export const runtime = "edge";
 
@@ -12,7 +12,9 @@ export async function GET(
 
     let title = "Untitled Notebook";
     let description = "Read this notebook and explore chapters on Ping.";
-    let authorName = "Joel Musonda";
+    let authorName = "Creator";
+    let authorHandle = "ping";
+    let authorAvatar: string | null = null;
 
     try {
       const notebook = await databases.getDocument(
@@ -23,6 +25,21 @@ export async function GET(
       if (notebook) {
         title = notebook.title || title;
         description = notebook.snapshot || notebook.description || description;
+
+        // Fetch the notebook owner's profile info
+        const ownerId = notebook.owner_id || notebook.user_id;
+        if (ownerId) {
+          try {
+            const profile = await getPingByUserId(ownerId);
+            if (profile) {
+              authorName = profile.name || profile.username || authorName;
+              authorHandle = profile.handle || profile.username || authorHandle;
+              authorAvatar = profile.avatar_url || profile.avatar || null;
+            }
+          } catch (profileErr) {
+            console.error("Error fetching author profile for OG image:", profileErr);
+          }
+        }
       }
     } catch (dbErr) {
       console.error("Error fetching notebook for OG image:", dbErr);
@@ -37,13 +54,14 @@ export async function GET(
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
-            backgroundColor: "#09090b",
-            backgroundImage: "radial-gradient(circle at 25% 25%, #27272a 0%, transparent 50%), radial-gradient(circle at 75% 75%, #18181b 0%, transparent 50%)",
+            backgroundColor: "#ffffff",
+            backgroundImage: "radial-gradient(circle at 10% 10%, #f1f5f9 0%, transparent 40%), radial-gradient(circle at 90% 90%, #f8fafc 0%, transparent 40%)",
             padding: "60px 70px",
             fontFamily: "sans-serif",
+            border: "1px solid #e2e8f0",
           }}
         >
-          {/* Top Bar: Brand Pill & Category */}
+          {/* Top Bar: Brand Pill & Domain */}
           <div
             style={{
               display: "flex",
@@ -57,17 +75,17 @@ export async function GET(
                 display: "flex",
                 alignItems: "center",
                 gap: "10px",
-                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                backgroundColor: "#f1f5f9",
                 padding: "8px 18px",
                 borderRadius: "9999px",
-                border: "1px solid rgba(255, 255, 255, 0.15)",
+                border: "1px solid #cbd5e1",
               }}
             >
               <span
                 style={{
                   fontSize: "14px",
                   fontWeight: 700,
-                  color: "#ffffff",
+                  color: "#0f172a",
                   letterSpacing: "0.05em",
                 }}
               >
@@ -79,10 +97,10 @@ export async function GET(
               style={{
                 fontSize: "16px",
                 fontWeight: 500,
-                color: "#a1a1aa",
+                color: "#64748b",
               }}
             >
-              joinping.up.railway.app
+              joinping.up.railway.app/@{authorHandle}
             </span>
           </div>
 
@@ -92,14 +110,14 @@ export async function GET(
               display: "flex",
               flexDirection: "column",
               gap: "16px",
-              maxWidth: "1000px",
+              maxWidth: "1050px",
             }}
           >
             <div
               style={{
                 fontSize: "52px",
                 fontWeight: 800,
-                color: "#ffffff",
+                color: "#0f172a",
                 lineHeight: 1.15,
                 letterSpacing: "-0.03em",
               }}
@@ -110,7 +128,7 @@ export async function GET(
               <div
                 style={{
                   fontSize: "20px",
-                  color: "#a1a1aa",
+                  color: "#475569",
                   lineHeight: 1.5,
                   display: "-webkit-box",
                   overflow: "hidden",
@@ -121,13 +139,13 @@ export async function GET(
             )}
           </div>
 
-          {/* Bottom Footer: Author Info */}
+          {/* Bottom Footer: Author Info & Brand */}
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+              borderTop: "1px solid #e2e8f0",
               paddingTop: "24px",
               width: "100%",
             }}
@@ -135,26 +153,38 @@ export async function GET(
             <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
               <div
                 style={{
-                  width: "44px",
-                  height: "44px",
-                  borderRadius: "22px",
-                  backgroundColor: "#ffffff",
-                  color: "#09090b",
+                  width: "48px",
+                  height: "48px",
+                  borderRadius: "24px",
+                  backgroundColor: "#0f172a",
+                  color: "#ffffff",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   fontSize: "18px",
                   fontWeight: 800,
+                  overflow: "hidden",
                 }}
               >
-                {authorName.charAt(0)}
+                {authorAvatar ? (
+                  <img
+                    src={authorAvatar}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                ) : (
+                  authorName.charAt(0).toUpperCase()
+                )}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                <span style={{ fontSize: "16px", fontWeight: 700, color: "#ffffff" }}>
+                <span style={{ fontSize: "16px", fontWeight: 700, color: "#0f172a" }}>
                   {authorName}
                 </span>
-                <span style={{ fontSize: "13px", color: "#a1a1aa" }}>
-                  Published on Ping
+                <span style={{ fontSize: "13px", color: "#64748b" }}>
+                  @{authorHandle} on Ping
                 </span>
               </div>
             </div>
@@ -164,7 +194,7 @@ export async function GET(
                 fontSize: "28px",
                 fontStyle: "italic",
                 fontWeight: 900,
-                color: "#ffffff",
+                color: "#0f172a",
                 letterSpacing: "-0.03em",
               }}
             >
