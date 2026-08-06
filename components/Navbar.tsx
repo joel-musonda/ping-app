@@ -18,7 +18,7 @@ import Image from "next/image";
 import Link from "next/link";
 import HoverCard from "@/components/HoverCard";
 
-// Helper function to format timestamps into relative time strings[cite: 10]
+// Helper function to format timestamps into relative time strings
 function formatRelativeTime(dateString?: string) {
   if (!dateString) return "Just now";
   const date = new Date(dateString);
@@ -103,7 +103,7 @@ export default function Navbar() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Standard window scroll listener[cite: 10]
+  // Standard window scroll listener
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -323,12 +323,16 @@ export default function Navbar() {
     const touchStartX = useRef(0);
     const isSwiping = useRef(false);
 
+    // Determine target link: Chapter links take priority for likes/comments, follow goes to profile
     const targetLink =
       notif.chapter_id ? `/chapters/${notif.chapter_id}` :
       notif.chapterId ? `/chapters/${notif.chapterId}` :
       notif.notebook_id ? `/notebooks/${notif.notebook_id}` :
       notif.notebookId ? `/notebooks/${notif.notebookId}` :
-      notif.target_url || notif.url || (notif.type === "follow" ? `/${notif.sender_handle}` : null);
+      notif.type === "follow" ? `/${notif.sender_handle}` :
+      notif.target_url || notif.url || null;
+
+    const chapterTitle = notif.chapter_title || notif.chapterTitle;
 
     const handleTouchStart = (e: React.TouchEvent) => {
       touchStartX.current = e.touches[0].clientX;
@@ -389,7 +393,7 @@ export default function Navbar() {
         >
           <div className="flex gap-3 min-w-0">
             <div className="mt-0.5 w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100 shrink-0">
-              <UserPlus className="w-4 h-4 text-[#0084FF]" />
+              {notif.type === "follow" ? <UserPlus className="w-4 h-4 text-[#0084FF]" /> : <Book className="w-4 h-4 text-[#0084FF]" />}
             </div>
             <div className="flex flex-col min-w-0 text-xs">
               <div className="text-neutral-700 font-normal leading-relaxed break-words">
@@ -402,13 +406,19 @@ export default function Navbar() {
                     @{notif.sender_handle}
                   </a>
                 </HoverCard>{" "}
-                {notif.type === "like"
-                  ? "liked your chapter."
-                  : notif.type === "comment"
-                  ? "commented on your chapter."
-                  : notif.type === "collab_invite"
-                  ? "invited you to collaborate on a notebook."
-                  : "started following you."}
+                {notif.type === "like" ? (
+                  <>
+                    liked your chapter{chapterTitle ? <span className="font-semibold text-neutral-900"> &ldquo;{chapterTitle}&rdquo;</span> : ""}.
+                  </>
+                ) : notif.type === "comment" ? (
+                  <>
+                    commented on your chapter{chapterTitle ? <span className="font-semibold text-neutral-900"> &ldquo;{chapterTitle}&rdquo;</span> : ""}.
+                  </>
+                ) : notif.type === "collab_invite" ? (
+                  "invited you to collaborate on a notebook."
+                ) : (
+                  "started following you."
+                )}
               </div>
 
               {notif.type === "collab_invite" ? (
@@ -597,13 +607,12 @@ export default function Navbar() {
                           <span>Profile</span>
                         </a>
 
-                        {/* Updated Notebooks Link */}
-                    <Link href="/dashboard" onClick={() => setProfileOpen(false)}>
-                     <button className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl text-left text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 transition-colors duration-150">
-             <Book className="w-4 h-4 text-neutral-400 shrink-0" />
-             <span>Notebooks</span>
-              </button>
-           </Link>
+                        <Link href="/dashboard" onClick={() => setProfileOpen(false)}>
+                          <button className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl text-left text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 transition-colors duration-150">
+                            <Book className="w-4 h-4 text-neutral-400 shrink-0" />
+                            <span>Notebooks</span>
+                          </button>
+                        </Link>
 
                         <Link href="/community" onClick={() => setProfileOpen(false)}>
                           <button className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl text-left text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 transition-colors duration-150">
@@ -652,7 +661,7 @@ export default function Navbar() {
                 <a href="/login" className="text-xs font-semibold text-neutral-600 hover:text-neutral-950 px-2.5 py-1.5 transition-colors whitespace-nowrap">
                   Log in
                 </a>
-                <a href="/signup" className=" bg-[#0084FF] hover:bg-[#0073e6] active:bg-[#0062c4] text-white rounded-xl px-3 py-1.5 text-xs font-semibold shadow-sm transition-all whitespace-nowrap">
+                <a href="/signup" className="bg-[#0084FF] hover:bg-[#0073e6] active:bg-[#0062c4] text-white rounded-xl px-3 py-1.5 text-xs font-semibold shadow-sm transition-all whitespace-nowrap">
                   Sign up
                 </a>
               </div>

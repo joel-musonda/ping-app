@@ -23,7 +23,7 @@ import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   Heading2, List, ImageIcon, Upload, FileText, Globe, X, Camera, Trash2, Users,
   Link as LinkIcon, Quote, Code, Check, ExternalLink, GripVertical,
-  AlignLeft, AlignCenter, AlignRight
+  AlignLeft, AlignCenter, AlignRight, Lock, Unlock
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -349,10 +349,16 @@ export default function CreateNotebookPage() {
           <div className="flex items-center justify-between sm:justify-end gap-3 order-1 sm:order-2 w-full sm:w-auto shrink-0">
             <div className="flex items-center gap-2">
               <button
+                onClick={() => {}}
+                className="h-9 px-4 bg-neutral-100 hover:bg-neutral-200 active:bg-neutral-300 text-neutral-700 rounded-lg text-sm font-semibold transition transform active:scale-95"
+              >
+                Save as Draft
+              </button>
+              <button
                 onClick={() => setIsPublishModalOpen(true)}
                 className="h-9 px-5 bg-[#0084FF] hover:bg-[#0073e6] active:bg-[#0062c4] text-white rounded-lg text-sm font-bold shadow-sm transition transform active:scale-95"
               >
-                Publish Notebook
+                Done
               </button>
             </div>
           </div>
@@ -414,36 +420,46 @@ export default function CreateNotebookPage() {
             </div>
 
             <div className="p-5 space-y-4 flex-1 overflow-y-auto">
-              {/* Visibility Option */}
-              <div className="space-y-1">
+              {/* Visibility Option - Custom Toggle Switch UI */}
+              <div className="space-y-1.5">
                 <label className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 flex items-center gap-1">
                   <Globe className="w-3 h-3" />
                   <span>Visibility</span>
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center justify-between p-3 rounded-xl border border-neutral-200 bg-neutral-50/50">
+                  <div className="flex items-center gap-2.5">
+                    {isPublic ? (
+                      <Globe className="w-4 h-4 text-emerald-600" />
+                    ) : (
+                      <Lock className="w-4 h-4 text-rose-600" />
+                    )}
+                    <div>
+                      <p className="text-xs font-bold text-neutral-800">
+                        {isPublic ? "Public Notebook" : "Private Notebook"}
+                      </p>
+                      <p className="text-[11px] text-neutral-500">
+                        {isPublic ? "Anyone can discover and view this notebook" : "Only you and invited collaborators can view"}
+                      </p>
+                    </div>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => setIsPublic(true)}
-                    className={`py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition ${
-                      isPublic 
-                        ? "border-blue-600 bg-blue-50/50 text-blue-900 shadow-sm" 
-                        : "border-neutral-200 bg-neutral-50/50 text-neutral-600 hover:bg-neutral-100"
+                    onClick={() => setIsPublic(!isPublic)}
+                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      isPublic ? "bg-emerald-500" : "bg-rose-500"
                     }`}
                   >
-                    <Globe className="w-3.5 h-3.5" />
-                    <span>Public</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsPublic(false)}
-                    className={`py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition ${
-                      !isPublic 
-                        ? "border-blue-600 bg-blue-50/50 text-blue-900 shadow-sm" 
-                        : "border-neutral-200 bg-neutral-50/50 text-neutral-600 hover:bg-neutral-100"
-                    }`}
-                  >
-                    <Users className="w-3.5 h-3.5" />
-                    <span>Private</span>
+                    <span
+                      className={`pointer-events-none flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ease-in-out ${
+                        isPublic ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    >
+                      {isPublic ? (
+                        <Check className="w-3.5 h-3.5 text-blue-600 stroke-[2.5]" />
+                      ) : (
+                        <X className="w-3.5 h-3.5 text-blue-600 stroke-[2.5]" />
+                      )}
+                    </span>
                   </button>
                 </div>
               </div>
@@ -566,7 +582,7 @@ export default function CreateNotebookPage() {
                   type="button"
                   onClick={executePublishPipeline}
                   disabled={publishing}
-                  className="h-10 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg text-sm font-bold shadow-sm disabled:opacity-50 transition"
+                  className="h-10 px-6 bg-[#0084FF] hover:bg-[#0073e6] active:bg-[#0062c4] text-white rounded-lg text-sm font-bold shadow-sm disabled:opacity-50 transition"
                 >
                   {publishing ? "Publishing..." : "Publish"}
                 </button>
