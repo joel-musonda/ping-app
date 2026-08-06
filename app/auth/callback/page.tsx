@@ -9,36 +9,65 @@ export default function AuthCallbackPage() {
   const router = useRouter();
 
   useEffect(() => {
-    getCurrentUser()
-      .then(async (user) => {
-        if (user) {
-          try {
-            // Check if this logged-in user already has a database profile
-            const profile = await getPingByUserId(user.$id);
-            
-            if (!profile) {
-              // If they don't have a profile (new Google/GitHub signup), create a starter one
-              const starterHandle = user.email ? user.email.split("@")[0] : `user_${user.$id.slice(0, 8)}`;
-              await createPingProfile(user.$id, starterHandle);
-            }
-          } catch (profileError) {
-            console.error("Profile check/creation failed:", profileError);
-            // If the error is simply "not found", create it
+    let isMounted = true;
+
+    const handleAuthCallback = async () => {
+      try {
+        // Add a small initial delay to allow Appwrite session cookies/tokens to settle across redirects
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        
+        const user = await getCurrentUser();
+
+        if (!isMounted) return;
+
+        if (user && user.$id) {
+          let profile = null;
+          let retries = 3;
+
+          // Retry logic to handle race conditions where Appwrite auth is created 
+          // but the session or database read has a slight propagation latency
+          while (retries > 0 && !profile) {
             try {
-              const starterHandle = user.email ? user.email.split("@")[0] : `user_${user.$id.slice(0, 8)}`;
+              profile = await getPingByUserId(user.$id);
+            } catch (err) {
+              console.warn(`Profile fetch attempt failed (${retries} retries left):`, err);
+            }
+            if (!profile && retries > 1) {
+              await new Promise((resolve) => setTimeout(resolve, 500));
+            }
+            retries--;
+          }
+
+          if (!profile) {
+            // If they still don't have a profile document, create it now safely
+            const starterHandle = user.email ? user.email.split("@")[0] : `user_${user.$id.slice(0, 8)}`;
+            try {
               await createPingProfile(user.$id, starterHandle);
             } catch (createError) {
-              console.error("Critical: Failed to auto-create profile", createError);
+              console.error("Critical: Failed to auto-create profile during callback", createError);
             }
           }
-          
-          // Now they have both an Auth account and a Database profile document!
-          router.push("/onboarding");
+
+          if (!isMounted) return;
+          // Ensure redirection targets the onboarding flow reliably
+          router.replace("/onboarding");
         } else {
-          router.push("/login");
+          if (!isMounted) return;
+          router.replace("/login");
         }
-      })
-      .catch(() => router.push("/login"));
+      } catch (err) {
+        console.error("Auth callback processing failed:", err);
+        if (isMounted) {
+          router.replace("/login");
+        }
+      }
+    };
+
+    handleAuthCallback();
+
+    return () => {
+      isMounted = false;
+    };
   }, [router]);
 
   return (
