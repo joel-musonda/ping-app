@@ -289,7 +289,7 @@ export default function PingProfilePage() {
                   className={`w-full text-sm font-medium py-2 px-4 rounded-md shadow-sm transition-colors shrink-0 ${
                     followId
                       ? "bg-neutral-100 hover:bg-neutral-200 text-neutral-900 border border-neutral-200"
-                      : "bg-neutral-900 hover:bg-neutral-800 text-white"
+                      : "bg-[#0084FF] hover:bg-[#0073e6] text-white"
                   }`}
                 >
                   {actionLoading ? "Processing..." : followId ? "Unfollow" : "Follow"}

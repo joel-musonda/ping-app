@@ -13,14 +13,13 @@ import {
   BookOpen, Plus, Edit2, MessageSquare, FileText, Menu, X, Heart, 
   Send, Trash2, Users, MessageSquarePlus, Lock, Eye, CheckCircle2, ArrowRight, CornerDownRight, Reply
 } from "lucide-react";
-import { ScrollShadow } from "@heroui/react";
 import ChapterContent from "@/components/ChapterContent";
 import HoverCard from "@/components/HoverCard";
 
 function NotebookPageSkeleton() {
   return (
-    <main className="w-full min-h-screen md:min-h-[calc(100vh-56px)] h-screen md:h-[calc(100vh-56px)] bg-white flex overflow-hidden">
-      <div className="hidden md:flex w-80 border-r border-neutral-200 flex-col h-full bg-neutral-50/50 shrink-0 p-5 animate-pulse">
+    <main className="w-full max-w-full overflow-x-hidden min-h-[calc(100vh-56px)] bg-white flex">
+      <div className="hidden md:flex w-80 border-r border-neutral-200 flex-col h-[calc(100vh-56px)] sticky top-14 bg-neutral-50/50 shrink-0 p-5 animate-pulse">
         <div className="h-3 bg-neutral-200 rounded w-24 mb-3" />
         <div className="h-5 bg-neutral-200 rounded w-full mb-2" />
         <div className="h-3 bg-neutral-200 rounded w-3/4 mb-4" />
@@ -94,7 +93,6 @@ export default function NotebookPage() {
   const lastScrollY = useRef(0);
   
   const contentWrapperRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const commentSectionRef = useRef<HTMLDivElement>(null);
   const commentElementsRef = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -255,13 +253,10 @@ export default function NotebookPage() {
   }, [selectedChapter, viewMode]);
 
   useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
     const handleScroll = () => {
       setAnnotationMenuPos(null);
 
-      const currentScrollY = container.scrollTop;
+      const currentScrollY = window.scrollY;
       if (currentScrollY < lastScrollY.current) {
         setIsGlobalNavVisible(true);
         window.dispatchEvent(new CustomEvent("toggle-global-navbar", { detail: { show: true } }));
@@ -290,12 +285,13 @@ export default function NotebookPage() {
       }
     };
 
-    container.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
 
-    return () => container.removeEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, [viewMode, headings]);
 
+  // Fix: Robust selection change handler checking container bounds to prevent incorrect root selections
   useEffect(() => {
     const handleSelectionChange = () => {
       const selection = window.getSelection();
@@ -306,17 +302,21 @@ export default function NotebookPage() {
       }
 
       if (contentWrapperRef.current && contentWrapperRef.current.contains(selection.anchorNode)) {
+        // Ensure range is strictly valid inside content wrapper
         const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
         
-        setAnnotationMenuPos({
-          top: rect.top - 46,
-          left: rect.left + rect.width / 2,
-        });
-        setSelectedTextQuote(selection.toString().trim());
-      } else {
-        setAnnotationMenuPos(null);
+        if (rect.width > 0 && rect.height > 0) {
+          setAnnotationMenuPos({
+            top: rect.top - 46,
+            left: rect.left + rect.width / 2,
+          });
+          setSelectedTextQuote(selection.toString().trim());
+          return;
+        }
       }
+      
+      setAnnotationMenuPos(null);
     };
 
     document.addEventListener("selectionchange", handleSelectionChange);
@@ -326,15 +326,12 @@ export default function NotebookPage() {
   const scrollToHeading = (headingId: string) => {
     setActiveHeadingId(headingId);
     const el = document.getElementById(headingId);
-    const container = scrollContainerRef.current;
-    if (el && container) {
-      const offsetTop = el.offsetTop - 24;
-      container.scrollTo({
+    if (el) {
+      const offsetTop = el.offsetTop - 80;
+      window.scrollTo({
         top: offsetTop,
         behavior: "smooth",
       });
-    } else if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
@@ -400,9 +397,7 @@ export default function NotebookPage() {
     setSelectedChapter(ch);
     setViewMode("chapter");
     setSidebarOpen(false);
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
-    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleNotebookClick = () => {
@@ -603,7 +598,7 @@ export default function NotebookPage() {
   const nextChapter = currentChapterIndex !== -1 && currentChapterIndex < chapters.length - 1 ? chapters[currentChapterIndex + 1] : null;
 
   return (
-    <main className="w-full min-h-screen md:min-h-[calc(100vh-56px)] h-screen md:h-[calc(100vh-56px)] bg-white text-neutral-900 overflow-hidden flex relative">
+    <main className="w-full max-w-full overflow-x-hidden min-h-[calc(100vh-56px)] bg-white text-neutral-900 flex relative">
 
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-neutral-950 text-white text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom-3 duration-200 border border-neutral-800">
@@ -614,7 +609,7 @@ export default function NotebookPage() {
 
       {annotationMenuPos && (
         <button
-          style={{ top: annotationMenuPos.top, left: annotationMenuPos.left }}
+          style={{ top: annotationMenuPos.top, left: Math.min(annotationMenuPos.left, window.innerWidth - 80) }}
           onClick={triggerAnnotationDraft}
           className="fixed z-[9999] -translate-x-1/2 bg-neutral-950 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-xl flex items-center gap-1.5 hover:bg-neutral-900 transition animate-in fade-in zoom-in-95 duration-100 border border-neutral-800"
         >
@@ -624,9 +619,9 @@ export default function NotebookPage() {
       )}
 
       {viewMode === "chapter" && headings.length > 0 && (
-        <div className="hidden md:flex fixed right-4 top-1/2 -translate-y-1/2 z-40 items-center">
+        <div className="hidden lg:flex fixed right-3 top-1/2 -translate-y-1/2 z-40 items-center">
           <div className="relative group/toc py-4 px-2">
-            <div className="absolute right-8 top-1/2 -translate-y-1/2 opacity-0 pointer-events-none group-hover/toc:opacity-100 group-hover/toc:pointer-events-auto transition-all duration-200 w-72 bg-white rounded-2xl shadow-xl border border-neutral-200 p-4 z-50 max-h-[80vh] overflow-y-auto">
+            <div className="absolute right-8 top-1/2 -translate-y-1/2 opacity-0 pointer-events-none group-hover/toc:opacity-100 group-hover/toc:pointer-events-auto transition-all duration-200 w-64 bg-white rounded-2xl shadow-xl border border-neutral-200 p-4 z-50 max-h-[80vh] overflow-y-auto">
               <div className="space-y-1">
                 {headings.map((h) => {
                   const isActive = h.id === activeHeadingId;
@@ -661,7 +656,7 @@ export default function NotebookPage() {
         </div>
       )}
 
-      {/* Top Mobile Chapter Header (Automatically moves to top-0 when main navbar disappears, avoiding space) */}
+      {/* Top Mobile Chapter Header */}
       <div className={`md:hidden fixed left-0 right-0 z-30 flex items-center gap-3 px-4 h-12 border-b border-neutral-200 bg-white/95 backdrop-blur-md shadow-xs transition-all duration-300 ${isGlobalNavVisible ? "top-14" : "top-0"}`}>
         <button onClick={() => setSidebarOpen(true)} className="p-1.5 -ml-1.5 rounded-md text-neutral-600 hover:bg-neutral-100 transition">
           <Menu className="w-5 h-5" />
@@ -671,8 +666,9 @@ export default function NotebookPage() {
 
       {sidebarOpen && <div onClick={() => setSidebarOpen(false)} className="md:hidden fixed inset-0 bg-neutral-950/40 z-40" />}
 
-      <div
-        className={`fixed md:static top-0 left-0 h-full w-80 max-w-[85vw] border-r border-neutral-200 flex flex-col bg-white md:bg-neutral-50/50 shrink-0 z-50 transition-transform duration-200 ease-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
+      {/* Sticky Desktop & Off-Canvas Mobile Sidebar */}
+      <aside
+        className={`fixed top-0 md:top-14 h-screen md:h-[calc(100vh-56px)] w-80 max-w-[85vw] border-r border-neutral-200 flex flex-col bg-white md:bg-neutral-50/50 shrink-0 z-50 transition-transform duration-200 ease-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 overflow-y-auto`}
       >
         <div className="md:hidden flex justify-end p-3 shrink-0">
           <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-md text-neutral-500 hover:bg-neutral-100 transition">
@@ -698,51 +694,50 @@ export default function NotebookPage() {
           )}
         </div>
 
-        <div className="flex-1 overflow-hidden flex flex-col p-4">
+        <div className="flex-1 flex flex-col p-4">
           <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block mb-3 pl-1 shrink-0">Chapters ({chapters.length})</span>
-          <ScrollShadow visibility="bottom" className="flex-1 max-h-full pr-1 space-y-2">
-            <nav className="space-y-2 pb-6">
-              {chapters.map((ch) => {
-                const isActive = viewMode === "chapter" && selectedChapter?.$id === ch.$id;
-                return (
-                  <div key={ch.$id} onClick={() => handleSelectChapter(ch)} className={`w-full relative group/item p-2.5 rounded-xl border transition-all cursor-pointer flex items-center gap-3 ${isActive ? "bg-white text-neutral-900 border-neutral-300 shadow-sm" : "bg-white/60 hover:bg-white text-neutral-700 border-neutral-200/80 shadow-2xs hover:border-neutral-300"}`}>
-                    <div className="w-9 h-9 rounded-lg bg-neutral-100 border border-neutral-200/70 overflow-hidden flex items-center justify-center shrink-0">
-                      {ch.preview_image_url ? (
-                        <img src={ch.preview_image_url} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="text-neutral-500 flex items-center justify-center bg-gradient-to-br from-neutral-100 to-neutral-200 w-full h-full">
-                          <BookOpen className="w-4 h-4 text-neutral-500" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0 pr-16 md:pr-10">
-                      <h4 className="text-xs font-bold text-neutral-900 truncate">{ch.title || "Untitled chapter"}</h4>
-                    </div>
-
-                    {canEdit && (
-                      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover/item:opacity-100 transition-opacity bg-white md:bg-transparent md:shadow-none p-1 md:p-0 rounded-md">
-                        <button onClick={(e) => { e.stopPropagation(); router.push(`/notebooks/${notebookId}/chapters/${ch.$id}`); }} className="p-1.5 rounded-md md:bg-white md:border border-neutral-200 shadow-sm text-neutral-600 hover:text-neutral-900 transition" title="Edit Chapter">
-                          <Edit2 className="w-3 h-3" />
-                        </button>
-                        <button onClick={(e) => handleDeleteChapter(ch.$id, e)} className="p-1.5 rounded-md md:bg-white md:border border-neutral-200 shadow-sm text-neutral-400 hover:text-rose-600 transition" title="Delete Chapter">
-                          <Trash2 className="w-3 h-3" />
-                        </button>
+          <nav className="space-y-2 pb-6">
+            {chapters.map((ch) => {
+              const isActive = viewMode === "chapter" && selectedChapter?.$id === ch.$id;
+              return (
+                <div key={ch.$id} onClick={() => handleSelectChapter(ch)} className={`w-full relative group/item p-2.5 rounded-xl border transition-all cursor-pointer flex items-center gap-3 ${isActive ? "bg-white text-neutral-900 border-neutral-300 shadow-sm" : "bg-white/60 hover:bg-white text-neutral-700 border-neutral-200/80 shadow-2xs hover:border-neutral-300"}`}>
+                  <div className="w-9 h-9 rounded-lg bg-neutral-100 border border-neutral-200/70 overflow-hidden flex items-center justify-center shrink-0">
+                    {ch.preview_image_url ? (
+                      <img src={ch.preview_image_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="text-neutral-500 flex items-center justify-center bg-gradient-to-br from-neutral-100 to-neutral-200 w-full h-full">
+                        <BookOpen className="w-4 h-4 text-neutral-500" />
                       </div>
                     )}
                   </div>
-                );
-              })}
-            </nav>
-          </ScrollShadow>
-        </div>
-      </div>
+                  <div className="flex-1 min-w-0 pr-16 md:pr-10">
+                    <h4 className="text-xs font-bold text-neutral-900 truncate">{ch.title || "Untitled chapter"}</h4>
+                  </div>
 
-      <ScrollShadow ref={scrollContainerRef} visibility="bottom" className={`flex-1 flex flex-col h-full bg-white overflow-y-auto transition-all duration-300 ${isGlobalNavVisible ? "pt-[104px]" : "pt-12"} md:pt-0`}>
+                  {canEdit && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover/item:opacity-100 transition-opacity bg-white md:bg-transparent md:shadow-none p-1 md:p-0 rounded-md">
+                      <button onClick={(e) => { e.stopPropagation(); router.push(`/notebooks/${notebookId}/chapters/${ch.$id}`); }} className="p-1.5 rounded-md md:bg-white md:border border-neutral-200 shadow-sm text-neutral-600 hover:text-neutral-900 transition" title="Edit Chapter">
+                        <Edit2 className="w-3 h-3" />
+                      </button>
+                      <button onClick={(e) => handleDeleteChapter(ch.$id, e)} className="p-1.5 rounded-md md:bg-white md:border border-neutral-200 shadow-sm text-neutral-400 hover:text-rose-600 transition" title="Delete Chapter">
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+        </div>
+      </aside>
+
+      {/* Main Content Pane */}
+      <div className={`flex-1 min-w-0 flex flex-col bg-white transition-all duration-300 md:pl-80 relative shadow-[inset_0_-24px_24px_-16px_rgba(0,0,0,0.03)] ${isGlobalNavVisible ? "pt-14 md:pt-0" : "pt-0"}`}>
         {viewMode === "root" && (
           <div className="max-w-3xl w-full mx-auto px-6 md:px-12 pt-6 pb-24 md:pb-10 flex flex-col min-h-full">
             <div className="flex justify-between items-start gap-6 border-b border-neutral-100 pb-4 mb-6 relative">
-              <div className="space-y-2">
-                <h2 className="text-2xl font-bold tracking-tight text-neutral-900 leading-tight">{notebook.title}</h2>
+              <div className="space-y-2 min-w-0">
+                <h2 className="text-2xl font-bold tracking-tight text-neutral-900 leading-tight truncate">{notebook.title}</h2>
                 <div className="flex flex-col gap-1.5">
                   <AuthorByline />
                   <CollaborationStack />
@@ -776,9 +771,9 @@ export default function NotebookPage() {
         )}
 
         {viewMode === "chapter" && selectedChapter && (
-          <div className="max-w-2xl w-full mx-auto px-6 md:px-12 pt-6 pb-24 md:pb-10 flex flex-col min-h-full">
+          <div className="max-w-2xl w-full mx-auto px-6 md:px-12 pt-6 pb-24 md:pb-10 flex flex-col min-h-full relative">
             <div className="flex justify-between items-start gap-6 border-b border-neutral-100 pb-4 mb-6 relative">
-              <div className="space-y-2">
+              <div className="space-y-2 min-w-0">
                 <div className="flex items-center gap-2 text-xs font-semibold text-neutral-400">
                   <span>Chapter {currentChapterIndex + 1} of {chapters.length}</span>
                 </div>
@@ -792,12 +787,13 @@ export default function NotebookPage() {
               </div>
             </div>
 
-            <div className="flex-1 relative selection:bg-green-100/90 selection:text-neutral-900" ref={contentWrapperRef}>
-              <div className="prose prose-neutral max-w-none text-neutral-800 tracking-normal leading-relaxed">
+            {/* Added scroll shadow wrapper class for bottom depth indicator */}
+            <div className="flex-1 relative selection:bg-green-100/90 selection:text-neutral-900 pb-12 shadow-[inset_0_-30px_20px_-20px_rgba(0,0,0,0.04)]" ref={contentWrapperRef}>
+              <div className="prose prose-neutral max-w-none text-neutral-800 tracking-normal leading-relaxed break-words">
                 <ChapterContent contentJson={selectedChapter.content_json} />
               </div>
               
-              <div className="absolute top-0 -right-6 md:-right-12 flex flex-col gap-2 select-none h-full border-l border-neutral-100/60 pl-2">
+              <div className="absolute top-0 -right-5 md:-right-8 flex flex-col gap-2 select-none h-full border-l border-neutral-100/60 pl-1.5">
                 {visibleComments.map((c) => {
                   const { quote, isPrivate } = parseAnnotationMeta(c.content);
                   if (!quote) return null;
@@ -827,7 +823,7 @@ export default function NotebookPage() {
               </div>
             )}
 
-            <div ref={commentSectionRef} className="mt-12 pt-8 border-t border-neutral-200 bg-white scroll-mt-6">
+            <div ref={commentSectionRef} className="mt-12 pt-8 border-t border-neutral-200 bg-white scroll-mt-20">
               <div className="flex items-center gap-2 mb-8">
                 <button onClick={handleLikeToggle} disabled={likeLoading} className={`flex items-center gap-1.5 text-sm rounded-full px-3 py-1.5 border transition-colors ${likeId ? "bg-red-50 border-red-200 text-red-600" : "bg-white border-neutral-300 text-neutral-600 hover:border-neutral-400"}`}>
                   <Heart className={`w-4 h-4 ${likeId ? "fill-red-500 text-red-500" : ""}`} />
@@ -863,12 +859,12 @@ export default function NotebookPage() {
                           
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
                                 <HoverCard handle={c.handle}>
-                                  <span className="text-xs font-bold text-neutral-900 cursor-pointer hover:underline">{c.name || `@${c.handle}`}</span>
+                                  <span className="text-xs font-bold text-neutral-900 cursor-pointer hover:underline truncate">{c.name || `@${c.handle}`}</span>
                                 </HoverCard>
                                 {isPrivate && (
-                                  <span className="flex items-center gap-1 text-[9px] bg-purple-50 text-purple-700 font-semibold px-1.5 py-0.5 rounded border border-purple-100 uppercase tracking-wide select-none">
+                                  <span className="flex items-center gap-1 text-[9px] bg-purple-50 text-purple-700 font-semibold px-1.5 py-0.5 rounded border border-purple-100 uppercase tracking-wide select-none shrink-0">
                                     <Lock className="w-2.5 h-2.5" />
                                     <span>Private Note</span>
                                   </span>
@@ -891,17 +887,17 @@ export default function NotebookPage() {
                             </div>
 
                             {quote && (
-                              <div className="mt-2 text-[11px] bg-green-50/50 text-neutral-800 border border-green-200/80 rounded-lg p-2.5 mb-2 font-medium border-l-2 border-l-green-500">
+                              <div className="mt-2 text-[11px] bg-green-50/50 text-neutral-800 border border-green-200/80 rounded-lg p-2.5 mb-2 font-medium border-l-2 border-l-green-500 break-words">
                                 <span className="italic">"{quote}"</span>
                               </div>
                             )}
 
-                            <p className="text-xs text-neutral-800 leading-relaxed mt-1">{bodyText}</p>
+                            <p className="text-xs text-neutral-800 leading-relaxed mt-1 break-words">{bodyText}</p>
                           </div>
                         </div>
 
                         {replies.length > 0 && (
-                          <div className="pl-6 md:pl-10 space-y-3 border-l-2 border-neutral-100 ml-4">
+                          <div className="pl-4 md:pl-8 space-y-3 border-l-2 border-neutral-100 ml-4">
                             {replies.map((reply) => {
                               const replyMeta = parseAnnotationMeta(reply.content);
                               const isReplyFlashed = flashedCommentId === reply.$id;
@@ -915,7 +911,7 @@ export default function NotebookPage() {
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
                                       <HoverCard handle={reply.handle}>
-                                        <span className="text-xs font-bold text-neutral-900 cursor-pointer hover:underline">{reply.name || `@${reply.handle}`}</span>
+                                        <span className="text-xs font-bold text-neutral-900 cursor-pointer hover:underline truncate">{reply.name || `@${reply.handle}`}</span>
                                       </HoverCard>
                                       {currentUser?.$id === reply.user_id && (
                                         <button onClick={() => handleDeleteComment(reply.$id)} className="p-1 rounded text-neutral-400 hover:text-rose-600 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition" title="Delete reply">
@@ -923,7 +919,7 @@ export default function NotebookPage() {
                                         </button>
                                       )}
                                     </div>
-                                    <p className="text-xs text-neutral-700 leading-relaxed">{replyMeta.bodyText}</p>
+                                    <p className="text-xs text-neutral-700 leading-relaxed break-words">{replyMeta.bodyText}</p>
                                   </div>
                                 </div>
                               );
@@ -932,11 +928,11 @@ export default function NotebookPage() {
                         )}
 
                         {replyingToId === c.$id && (
-                          <div className="pl-6 md:pl-10 ml-4 pt-1 animate-in fade-in duration-200">
+                          <div className="pl-4 md:pl-8 ml-4 pt-1 animate-in fade-in duration-200">
                             <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-xl space-y-2.5">
                               <div className="flex items-center gap-1.5 text-[11px] font-semibold text-neutral-500">
                                 <CornerDownRight className="w-3 h-3 text-[#0084FF]" />
-                                <span>Replying to {c.name || `@${c.handle}`}</span>
+                                <span className="truncate">Replying to {c.name || `@${c.handle}`}</span>
                               </div>
                               <textarea value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Write a reply..." className="w-full p-2.5 min-h-[60px] rounded-lg border border-neutral-200 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-[#0084FF] resize-none placeholder:text-neutral-400 transition" />
                               <div className="flex items-center justify-end gap-2">
@@ -959,20 +955,20 @@ export default function NotebookPage() {
                 <div className="w-8 h-8 rounded-full bg-neutral-900 text-white text-[11px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden shadow-sm">
                   {currentUserProfile?.avatar_url ? <img src={currentUserProfile.avatar_url} alt="" className="w-full h-full object-cover" /> : currentUserProfile?.handle?.charAt(0) || "U"}
                 </div>
-                <div className="flex-1 space-y-2.5">
+                <div className="flex-1 min-w-0 space-y-2.5">
                   {selectedTextQuote && (
                     <div className="flex items-center justify-between gap-4 bg-green-50/60 border border-green-200 rounded-lg px-3 py-2 text-xs">
-                      <div className="flex items-center gap-2 text-neutral-700 truncate">
+                      <div className="flex items-center gap-2 text-neutral-700 min-w-0">
                         <MessageSquare className="w-4 h-4 text-[#0084FF] shrink-0" />
                         <span className="italic truncate font-medium">Annotating selection: "{selectedTextQuote}"</span>
                       </div>
-                      <button onClick={() => setSelectedTextQuote("")} className="p-1 rounded hover:bg-green-100 text-neutral-400 hover:text-neutral-700 transition">
+                      <button onClick={() => setSelectedTextQuote("")} className="p-1 rounded hover:bg-green-100 text-neutral-400 hover:text-neutral-700 transition shrink-0">
                         <X className="w-3 h-3" />
                       </button>
                     </div>
                   )}
                   <textarea ref={textareaRef} value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder={currentUser ? "Write a public response or leave an annotated feedback note..." : "Log in to post annotations"} disabled={!currentUser} className="w-full p-3 min-h-[80px] rounded-xl border border-neutral-200 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-[#0084FF] resize-none placeholder:text-neutral-400 transition disabled:opacity-50 shadow-2xs" />
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
                     {currentUser ? (
                       <button type="button" onClick={() => setIsPrivateNote(!isPrivateNote)} className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border transition ${isPrivateNote ? "bg-purple-50 border-purple-200 text-purple-700 shadow-sm" : "bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50"}`}>
                         {isPrivateNote ? <Lock className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
@@ -989,7 +985,7 @@ export default function NotebookPage() {
             </div>
           </div>
         )}
-      </ScrollShadow>
+      </div>
     </main>
   );
 }
