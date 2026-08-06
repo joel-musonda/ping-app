@@ -255,7 +255,7 @@ export default function CreateNotebookPage() {
         user.$id,
         title.trim(),
         category.trim(),
-        isPublic,
+        isPublic, 
         snapshot.trim(),
         coverImageUrl.trim()
       );
@@ -265,7 +265,7 @@ export default function CreateNotebookPage() {
       await createChapter(
         targetNotebookId,
         user.$id,
-        isPublic,
+        true,
         title.trim(),
         JSON.stringify(contentJson),
         0
@@ -349,17 +349,10 @@ export default function CreateNotebookPage() {
           <div className="flex items-center justify-between sm:justify-end gap-3 order-1 sm:order-2 w-full sm:w-auto shrink-0">
             <div className="flex items-center gap-2">
               <button
-                type="button"
-                className="h-9 px-3.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 rounded-lg text-xs font-semibold border border-neutral-200 transition shadow-2xs"
-              >
-                Save to Draft
-              </button>
-
-              <button
                 onClick={() => setIsPublishModalOpen(true)}
                 className="h-9 px-5 bg-[#0084FF] hover:bg-[#0073e6] active:bg-[#0062c4] text-white rounded-lg text-sm font-bold shadow-sm transition transform active:scale-95"
               >
-                Done
+                Publish Notebook
               </button>
             </div>
           </div>
@@ -415,28 +408,42 @@ export default function CreateNotebookPage() {
             <div className="px-5 py-4 border-b border-neutral-100 flex justify-between items-center bg-neutral-50 shrink-0">
               <div className="flex items-center gap-2">
                 <Globe className="w-4 h-4 text-neutral-900" />
-                <h3 className="text-sm font-bold text-neutral-900">Finalizing Your Notebook</h3>
+                <h3 className="text-sm font-bold text-neutral-900">Publishing Your Notebook</h3>
               </div>
               <button onClick={() => setIsPublishModalOpen(false)} className="p-1 rounded-md text-neutral-400 hover:text-neutral-900"><X className="w-4 h-4" /></button>
             </div>
 
             <div className="p-5 space-y-4 flex-1 overflow-y-auto">
-              <div className="space-y-1.5 bg-neutral-50 border border-neutral-200 p-3.5 rounded-xl">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <label className="text-xs font-bold text-neutral-900 block">Notebook Visibility</label>
-                    <p className="text-[11px] text-neutral-500">
-                      {isPublic ? "Anyone can discover and read this notebook" : "Only you and invited collaborators can view this"}
-                    </p>
-                  </div>
+              {/* Visibility Option */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 flex items-center gap-1">
+                  <Globe className="w-3 h-3" />
+                  <span>Visibility</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setIsPublic(!isPublic)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isPublic ? "bg-blue-600" : "bg-neutral-300"}`}
-                    role="switch"
-                    aria-checked={isPublic}
+                    onClick={() => setIsPublic(true)}
+                    className={`py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition ${
+                      isPublic 
+                        ? "border-blue-600 bg-blue-50/50 text-blue-900 shadow-sm" 
+                        : "border-neutral-200 bg-neutral-50/50 text-neutral-600 hover:bg-neutral-100"
+                    }`}
                   >
-                    <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isPublic ? "translate-x-5" : "translate-x-0"}`} />
+                    <Globe className="w-3.5 h-3.5" />
+                    <span>Public</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsPublic(false)}
+                    className={`py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition ${
+                      !isPublic 
+                        ? "border-blue-600 bg-blue-50/50 text-blue-900 shadow-sm" 
+                        : "border-neutral-200 bg-neutral-50/50 text-neutral-600 hover:bg-neutral-100"
+                    }`}
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    <span>Private</span>
                   </button>
                 </div>
               </div>
@@ -533,7 +540,7 @@ export default function CreateNotebookPage() {
 
                 {selectedCollaborators.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 pt-1">
-                    {selectedCollaborators.map((c, index) => {
+                    {selectedCollaborators.length > 0 && selectedCollaborators.map((c, index) => {
                       const gradients = ["from-blue-400 to-indigo-500", "from-emerald-400 to-teal-500", "from-purple-400 to-pink-500", "from-amber-400 to-orange-500"];
                       const dotGradient = gradients[index % gradients.length];
 

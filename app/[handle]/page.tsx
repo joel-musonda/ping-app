@@ -78,7 +78,9 @@ export default function PingProfilePage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
-  const [activityDates, setActivityDates] = useState<Set<string>>(new Set());
+  
+  // Streak tracking states: Maps date strings to activity types ("notebook" | "chapter")
+  const [activityMap, setActivityMap] = useState<Map<string, "notebook" | "chapter">>(new Map());
 
   // Modal State for Followers & Following Lists
   const [modalOpen, setModalOpen] = useState(false);
@@ -127,14 +129,33 @@ export default function PingProfilePage() {
         setFollowerCount(followers);
         setFollowingCount(following);
 
-        const datesSet = new Set<string>();
+        // Map notebook creation vs chapter updates/creation
+        const newActivityMap = new Map<string, "notebook" | "chapter">();
+        
         nbs.forEach((nb: any) => {
+          // Check for chapter creation dates if chapters exist on the notebook object
+          const chapters = nb.chapters || nb.chapterList || nb.items || [];
+          if (Array.isArray(chapters) && chapters.length > 0) {
+            chapters.forEach((ch: any) => {
+              const chDate = ch.$createdAt || ch.created_at;
+              if (chDate) {
+                const dateStr = chDate.split("T")[0];
+                // Chapter activity sets lighter blue unless already overridden by a notebook
+                if (!newActivityMap.has(dateStr)) {
+                  newActivityMap.set(dateStr, "chapter");
+                }
+              }
+            });
+          }
+
+          // Notebook creation takes precedence (blue dot)
           if (nb.$createdAt) {
             const dateStr = nb.$createdAt.split("T")[0];
-            datesSet.add(dateStr);
+            newActivityMap.set(dateStr, "notebook");
           }
         });
-        setActivityDates(datesSet);
+
+        setActivityMap(newActivityMap);
       })
       .catch((err) => {
         if (!cancelled) {
@@ -438,7 +459,10 @@ export default function PingProfilePage() {
 
           {/* Activity Streak Matrix Panel */}
           <div className="space-y-4 pt-4 border-t border-neutral-100 shrink-0">
-            <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Activity</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Activity</h3>
+             
+            </div>
 
             <div className="flex items-center gap-6 text-xs font-bold text-neutral-400 border-b border-b-neutral-100 pb-2">
               <div className="flex items-center gap-1.5 text-neutral-900 border-b-2 border-b-neutral-900 pb-2 -mb-[9px] cursor-pointer">
@@ -462,10 +486,11 @@ export default function PingProfilePage() {
                       const date = new Date(gridStartDate);
                       date.setDate(gridStartDate.getDate() + weekIndex * 7 + dayIndex);
                       const dateStr = date.toISOString().split("T")[0];
+                      const activityType = activityMap.get(dateStr);
                       return {
                         date,
                         dateStr,
-                        isActive: activityDates.has(dateStr),
+                        activityType, // "notebook" | "chapter" | undefined
                         isFuture: date > today,
                       };
                     });
@@ -530,20 +555,25 @@ export default function PingProfilePage() {
                         <div className="flex gap-[3.5px]">
                           {weeks.map((week, weekIdx) => (
                             <div key={weekIdx} className="flex flex-col gap-[3.5px]">
-                              {week.map((day, dayIdx) => (
-                                <span
-                                  key={dayIdx}
-                                  title={day.dateStr}
-                                  className="w-2.5 h-2.5 rounded-[1.5px] block shrink-0 transition-colors"
-                                  style={{
-                                    backgroundColor: loading || day.isFuture 
-                                      ? "#F4F4F5" 
-                                      : day.isActive 
-                                        ? "#60A5FA" 
-                                        : "#F4F4F5",
-                                  }}
-                                />
-                              ))}
+                              {week.map((day, dayIdx) => {
+                                let bg = "#F4F4F5";
+                                if (!loading && !day.isFuture) {
+                                  if (day.activityType === "notebook") {
+                                    bg = "#3B82F6"; // Darker blue for notebook creation
+                                  } else if (day.activityType === "chapter") {
+                                    bg = "#93C5FD"; // Lighter blue for chapter creation
+                                  }
+                                }
+
+                                return (
+                                  <span
+                                    key={dayIdx}
+                                    title={`${day.dateStr}: ${day.activityType ? day.activityType + ' created' : 'No activity'}`}
+                                    className="w-2.5 h-2.5 rounded-[1.5px] block shrink-0 transition-colors"
+                                    style={{ backgroundColor: bg }}
+                                  />
+                                );
+                              })}
                             </div>
                           ))}
                         </div>
