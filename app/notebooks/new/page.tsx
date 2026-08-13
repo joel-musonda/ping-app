@@ -23,7 +23,7 @@ import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   Heading2, List, ImageIcon, Upload, FileText, Globe, X, Camera, Trash2, Users,
   Link as LinkIcon, Quote, Code, Check, ExternalLink, GripVertical,
-  AlignLeft, AlignCenter, AlignRight, Lock, Unlock
+  AlignLeft, AlignCenter, AlignRight, Lock, Unlock, Undo2, Redo2, Minus
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -33,6 +33,41 @@ import {
 
 // Initialize Lowlight with common languages for auto language recognition & highlighting
 const lowlight = createLowlight(common);
+
+// Custom Image Component with Reference Text Field Support
+const ImageWithCaptionComponent = ({ node, updateAttributes }: NodeViewProps) => {
+  const { src, caption } = node.attrs;
+
+  return (
+    <NodeViewWrapper className="my-6 max-w-full flex flex-col items-center">
+      <div className="relative group rounded-xl overflow-hidden border border-neutral-200 shadow-sm max-h-[300px] sm:max-h-[400px]">
+        <img src={src} alt="" className="w-auto h-auto max-h-[300px] sm:max-h-[400px] object-cover mx-auto" />
+      </div>
+      <input
+        type="text"
+        contentEditable={false}
+        placeholder="Type a reference or caption for this image..."
+        value={caption || ""}
+        onChange={(e) => updateAttributes({ caption: e.target.value })}
+        className="mt-2 w-full max-w-md text-center text-xs text-neutral-500 bg-transparent border-b border-transparent hover:border-neutral-200 focus:border-neutral-400 focus:outline-none py-1 placeholder:text-neutral-400/70 transition"
+      />
+    </NodeViewWrapper>
+  );
+};
+
+const CustomImageExtension = ImageExtension.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      caption: {
+        default: "",
+      },
+    };
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(ImageWithCaptionComponent);
+  },
+});
 
 // Custom Code Block Node Component with Auto-Detect + Language Dropdown + Drag Handle
 const CodeBlockComponent = ({ node, updateAttributes }: NodeViewProps) => {
@@ -130,9 +165,7 @@ export default function CreateNotebookPage() {
         openOnClick: false,
         HTMLAttributes: { class: "text-blue-600 underline cursor-pointer" },
       }),
-      ImageExtension.configure({
-        HTMLAttributes: { class: "rounded-xl border max-h-[300px] sm:max-h-[400px] w-auto mx-auto my-4 object-cover shadow-sm" },
-      }),
+      CustomImageExtension,
       TextAlign.configure({ types: ["heading", "paragraph"] }),
     ],
     content: "",
@@ -301,27 +334,161 @@ export default function CreateNotebookPage() {
   };
 
   const FormattingControls = () => (
-    <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar overscroll-contain py-1 sm:py-0 w-full">
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBold().run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Bold"><Bold className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleItalic().run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Italic"><Italic className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleUnderline().run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Underline"><UnderlineIcon className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleStrike().run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Strikethrough"><Strikethrough className="w-4 h-4" /></button>
-      <div className="w-px h-5 bg-neutral-300 mx-1 shrink-0" />
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Heading"><Heading2 className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBulletList().run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Bullet List"><List className="w-4 h-4" /></button>
-      
-      {/* Text Alignment Formatting */}
-      <div className="w-px h-5 bg-neutral-300 mx-1 shrink-0" />
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().setTextAlign("left").run()} className={`p-2 rounded-lg transition shrink-0 ${editor?.isActive({ textAlign: "left" }) ? "bg-neutral-200 text-blue-600" : "text-neutral-700 hover:bg-neutral-200/80"}`} title="Align Left"><AlignLeft className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().setTextAlign("center").run()} className={`p-2 rounded-lg transition shrink-0 ${editor?.isActive({ textAlign: "center" }) ? "bg-neutral-200 text-blue-600" : "text-neutral-700 hover:bg-neutral-200/80"}`} title="Align Center"><AlignCenter className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().setTextAlign("right").run()} className={`p-2 rounded-lg transition shrink-0 ${editor?.isActive({ textAlign: "right" }) ? "bg-neutral-200 text-blue-600" : "text-neutral-700 hover:bg-neutral-200/80"}`} title="Align Right"><AlignRight className="w-4 h-4" /></button>
+    <div className="flex items-center gap-1 overflow-x-auto no-scrollbar overscroll-contain py-1 sm:py-0 w-full">
+      {/* Pill 1: Text Styling */}
+      <div className="flex items-center bg-neutral-100/90 rounded-full px-2 py-1 shadow-2xs shrink-0">
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().toggleBold().run()}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("bold") ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
+          title="Bold"
+        >
+          <Bold className="w-4 h-4" />
+        </button>
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().toggleItalic().run()}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("italic") ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
+          title="Italic"
+        >
+          <Italic className="w-4 h-4" />
+        </button>
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().toggleUnderline().run()}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("underline") ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
+          title="Underline"
+        >
+          <UnderlineIcon className="w-4 h-4" />
+        </button>
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().toggleStrike().run()}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("strike") ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
+          title="Strikethrough"
+        >
+          <Strikethrough className="w-4 h-4" />
+        </button>
+      </div>
 
-      <div className="w-px h-5 bg-neutral-300 mx-1 shrink-0" />
-      <button onMouseDown={(e) => e.preventDefault()} onClick={handleToggleLinkPopover} className={`p-2 rounded-lg transition shrink-0 ${isLinkPopoverOpen ? "bg-neutral-200 text-blue-600" : "text-neutral-700 hover:bg-neutral-200/80"}`} title="Add Link"><LinkIcon className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBlockquote().run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Quote"><Quote className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleCodeBlock().run()} className={`p-2 rounded-lg transition shrink-0 ${editor?.isActive("codeBlock") ? "bg-neutral-200 text-blue-600" : "text-neutral-700 hover:bg-neutral-200/80"}`} title="Code Block"><Code className="w-4 h-4" /></button>
-      <div className="w-px h-5 bg-neutral-300 mx-1 shrink-0" />
-      <label htmlFor="tiptap-image-upload" className="p-2 rounded-lg text-neutral-700 hover:bg-neutral-200/80 cursor-pointer transition shrink-0" title="Upload Image"><ImageIcon className="w-4 h-4" /></label>
+      {/* Pill 2: History & Layout */}
+      <div className="flex items-center bg-neutral-100/90 rounded-full px-2 py-1 shadow-2xs shrink-0">
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().undo().run()}
+          className="p-1.5 rounded-lg text-neutral-600 hover:text-neutral-900 transition shrink-0"
+          title="Undo"
+        >
+          <Undo2 className="w-4 h-4" />
+        </button>
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().redo().run()}
+          className="p-1.5 rounded-lg text-neutral-600 hover:text-neutral-900 transition shrink-0"
+          title="Redo"
+        >
+          <Redo2 className="w-4 h-4" />
+        </button>
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().setHardBreak().run()}
+          className="p-1.5 rounded-lg text-neutral-600 hover:text-neutral-900 transition shrink-0"
+          title="Add Line with Space"
+        >
+          <Minus className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Pill 3: Structure & Blocks */}
+      <div className="flex items-center bg-neutral-100/90 rounded-full px-2 py-1 shadow-2xs shrink-0">
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("heading", { level: 2 }) ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
+          title="Heading"
+        >
+          <Heading2 className="w-4 h-4" />
+        </button>
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().toggleBulletList().run()}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("bulletList") ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
+          title="Bullet List"
+        >
+          <List className="w-4 h-4" />
+        </button>
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("blockquote") ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
+          title="Quote"
+        >
+          <Quote className="w-4 h-4" />
+        </button>
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("codeBlock") ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
+          title="Code Block"
+        >
+          <Code className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Pill 4: Alignment & Links & Media */}
+      <div className="flex items-center bg-neutral-100/90 rounded-full px-2 py-1 shadow-2xs shrink-0">
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().setTextAlign("left").run()}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive({ textAlign: "left" }) ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
+          title="Align Left"
+        >
+          <AlignLeft className="w-4 h-4" />
+        </button>
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().setTextAlign("center").run()}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive({ textAlign: "center" }) ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
+          title="Align Center"
+        >
+          <AlignCenter className="w-4 h-4" />
+        </button>
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().setTextAlign("right").run()}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive({ textAlign: "right" }) ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
+          title="Align Right"
+        >
+          <AlignRight className="w-4 h-4" />
+        </button>
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={handleToggleLinkPopover}
+          className={`p-1.5 rounded-lg transition shrink-0 ${isLinkPopoverOpen || editor?.isActive("link") ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
+          title="Add Link"
+        >
+          <LinkIcon className="w-4 h-4" />
+        </button>
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
+        <label
+          htmlFor="tiptap-image-upload"
+          className="p-1.5 rounded-lg text-neutral-600 hover:text-neutral-900 cursor-pointer transition shrink-0"
+          title="Upload Image"
+        >
+          <ImageIcon className="w-4 h-4" />
+        </label>
+      </div>
     </div>
   );
 
@@ -363,7 +530,7 @@ export default function CreateNotebookPage() {
             </div>
           </div>
 
-          <div className="flex items-center w-full order-2 sm:order-1 bg-neutral-50 sm:bg-transparent rounded-lg px-1 sm:px-0 border border-neutral-200 sm:border-none">
+          <div className="flex items-center w-full order-2 sm:order-1 rounded-lg px-1 sm:px-0">
             <FormattingControls />
           </div>
 
@@ -420,7 +587,6 @@ export default function CreateNotebookPage() {
             </div>
 
             <div className="p-5 space-y-4 flex-1 overflow-y-auto">
-              {/* Visibility Option - Custom Toggle Switch UI */}
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 flex items-center gap-1">
                   <Globe className="w-3 h-3" />
@@ -464,7 +630,6 @@ export default function CreateNotebookPage() {
                 </div>
               </div>
 
-              {/* Category Field */}
               <div className="space-y-1">
                 <label className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 flex items-center gap-1">
                   <FileText className="w-3 h-3" />
@@ -556,7 +721,7 @@ export default function CreateNotebookPage() {
 
                 {selectedCollaborators.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 pt-1">
-                    {selectedCollaborators.length > 0 && selectedCollaborators.map((c, index) => {
+                    {selectedCollaborators.map((c, index) => {
                       const gradients = ["from-blue-400 to-indigo-500", "from-emerald-400 to-teal-500", "from-purple-400 to-pink-500", "from-amber-400 to-orange-500"];
                       const dotGradient = gradients[index % gradients.length];
 
