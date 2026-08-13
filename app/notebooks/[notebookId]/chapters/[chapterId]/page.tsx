@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, ChangeEvent } from "react";
+import { useEffect, useState, useRef, ChangeEvent, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   useEditor,
@@ -39,11 +39,47 @@ import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   Heading2, List, ImageIcon, ArrowLeft, CloudLightning, 
   Bookmark, MessageSquare, Trash2, Heart, Link as LinkIcon, Quote, Code,
-  AlignLeft, AlignCenter, AlignRight, X, Upload, GripVertical, ExternalLink, Check
+  AlignLeft, AlignCenter, AlignRight, X, Upload, GripVertical, ExternalLink, Check,
+  Undo2, Redo2, Minus, Camera
 } from "lucide-react";
 
 // Initialize Lowlight with common languages for auto language recognition & highlighting
 const lowlight = createLowlight(common);
+
+// Custom Image Component with Reference Text Field Support
+const ImageWithCaptionComponent = ({ node, updateAttributes }: NodeViewProps) => {
+  const { src, caption } = node.attrs;
+
+  return (
+    <NodeViewWrapper className="my-6 max-w-full flex flex-col items-center">
+      <div className="relative group rounded-xl overflow-hidden border border-neutral-200 shadow-sm max-h-[300px] sm:max-h-[400px]">
+        <img src={src} alt="" className="w-auto h-auto max-h-[300px] sm:max-h-[400px] object-cover mx-auto" />
+      </div>
+      <input
+        type="text"
+        contentEditable={false}
+        placeholder="Type a reference or caption for this image..."
+        value={caption || ""}
+        onChange={(e) => updateAttributes({ caption: e.target.value })}
+        className="mt-2 w-full max-w-md text-center text-xs text-neutral-500 bg-transparent border-b border-transparent hover:border-neutral-200 focus:border-neutral-400 focus:outline-none py-1 placeholder:text-neutral-400/70 transition"
+      />
+    </NodeViewWrapper>
+  );
+};
+
+const CustomImageExtension = ImageExtension.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      caption: {
+        default: "",
+      },
+    };
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(ImageWithCaptionComponent);
+  },
+});
 
 // Custom Code Block Node Component with Auto-Detect + Language Dropdown + Drag Handle
 const CodeBlockComponent = ({ node, updateAttributes }: NodeViewProps) => {
@@ -51,9 +87,7 @@ const CodeBlockComponent = ({ node, updateAttributes }: NodeViewProps) => {
 
   return (
     <NodeViewWrapper className="relative my-6 rounded-xl bg-[#0d1117] text-[#c9d1d9] border border-neutral-800 p-4 font-mono text-xs sm:text-sm shadow-md group">
-      {/* Header Bar: Drag Handle & Language Selector */}
       <div className="absolute top-2.5 left-2.5 right-2.5 z-10 flex items-center justify-between pointer-events-none">
-        {/* Drag Handle */}
         <div
           data-drag-handle
           className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-neutral-800 text-neutral-500 hover:text-neutral-300 pointer-events-auto transition opacity-0 group-hover:opacity-100 flex items-center gap-1"
@@ -62,7 +96,6 @@ const CodeBlockComponent = ({ node, updateAttributes }: NodeViewProps) => {
           <GripVertical className="w-4 h-4" />
         </div>
 
-        {/* Language Selector Dropdown */}
         <div className="pointer-events-auto">
           <select
             contentEditable={false}
@@ -91,13 +124,12 @@ const CodeBlockComponent = ({ node, updateAttributes }: NodeViewProps) => {
       </div>
 
       <pre className="overflow-x-auto pt-7 sm:pt-6 font-mono leading-relaxed selection:bg-neutral-700">
-        <NodeViewContent  className="font-mono" />
+        <NodeViewContent className="font-mono" />
       </pre>
     </NodeViewWrapper>
   );
 };
 
-// Extend CodeBlockLowlight to make it Draggable and use custom React Node View
 const CustomCodeBlock = CodeBlockLowlight.extend({
   draggable: true,
   addNodeView() {
@@ -155,11 +187,7 @@ export default function ChapterWorkspacePage() {
           class: "text-blue-600 underline cursor-pointer",
         },
       }),
-      ImageExtension.configure({
-        HTMLAttributes: {
-          class: "rounded-xl border max-h-[300px] sm:max-h-[400px] w-auto mx-auto my-4 object-cover shadow-sm",
-        },
-      }),
+      CustomImageExtension,
       TextAlign.configure({
         types: ["heading", "paragraph"],
       }),
@@ -379,25 +407,163 @@ export default function ChapterWorkspacePage() {
     } catch (err) { console.error(err); }
   };
 
-  // Reusable formatting controls sub-component
+  // Reusable floating pill formatting controls sub-component matching user design
   const FormattingControls = () => (
-    <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar overscroll-contain py-1 sm:py-0 w-full">
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBold().run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Bold"><Bold className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleItalic().run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Italic"><Italic className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleUnderline().run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Underline"><UnderlineIcon className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleStrike().run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Strikethrough"><Strikethrough className="w-4 h-4" /></button>
-      <div className="w-px h-5 bg-neutral-300 mx-1 shrink-0" />
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Heading"><Heading2 className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBulletList().run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Bullet List"><List className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={handleToggleLinkPopover} className={`p-2 rounded-lg transition shrink-0 ${isLinkPopoverOpen ? "bg-neutral-200 text-blue-600" : "text-neutral-700 hover:bg-neutral-200/80"}`} title="Add Link"><LinkIcon className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleBlockquote().run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Quote"><Quote className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().toggleCodeBlock().run()} className={`p-2 rounded-lg transition shrink-0 ${editor?.isActive("codeBlock") ? "bg-neutral-200 text-blue-600" : "text-neutral-700 hover:bg-neutral-200/80"}`} title="Code Block"><Code className="w-4 h-4" /></button>
-      <div className="w-px h-5 bg-neutral-300 mx-1 shrink-0" />
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().setTextAlign('left').run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Align Left"><AlignLeft className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().setTextAlign('center').run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Align Center"><AlignCenter className="w-4 h-4" /></button>
-      <button onMouseDown={(e) => e.preventDefault()} onClick={() => editor?.chain().focus().setTextAlign('right').run()} className="p-2 rounded-lg hover:bg-neutral-200/80 text-neutral-700 transition shrink-0" title="Align Right"><AlignRight className="w-4 h-4" /></button>
-      <div className="w-px h-5 bg-neutral-300 mx-1 shrink-0" />
-      <label htmlFor="tiptap-chapter-image-upload" className="p-2 rounded-lg text-neutral-700 hover:bg-neutral-200/80 cursor-pointer transition shrink-0" title="Upload Image"><ImageIcon className="w-4 h-4" /></label>
+    <div className="flex items-center gap-1 overflow-x-auto no-scrollbar overscroll-contain py-1 sm:py-0 w-full">
+      {/* Pill 1: Text Styling */}
+      <div className="flex items-center bg-neutral-100/95 rounded-full px-2 py-1 shadow-2xs shrink-0">
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().toggleBold().run()}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("bold") ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
+          title="Bold"
+        >
+          <Bold className="w-4 h-4" />
+        </button>
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().toggleItalic().run()}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("italic") ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
+          title="Italic"
+        >
+          <Italic className="w-4 h-4" />
+        </button>
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().toggleUnderline().run()}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("underline") ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
+          title="Underline"
+        >
+          <UnderlineIcon className="w-4 h-4" />
+        </button>
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().toggleStrike().run()}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("strike") ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
+          title="Strikethrough"
+        >
+          <Strikethrough className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Pill 2: History & Spacing */}
+      <div className="flex items-center bg-neutral-100/95 rounded-full px-2 py-1 shadow-2xs shrink-0">
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().undo().run()}
+          className="p-1.5 rounded-lg text-neutral-600 hover:text-neutral-900 transition shrink-0"
+          title="Undo"
+        >
+          <Undo2 className="w-4 h-4" />
+        </button>
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().redo().run()}
+          className="p-1.5 rounded-lg text-neutral-600 hover:text-neutral-900 transition shrink-0"
+          title="Redo"
+        >
+          <Redo2 className="w-4 h-4" />
+        </button>
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().setHardBreak().run()}
+          className="p-1.5 rounded-lg text-neutral-600 hover:text-neutral-900 transition shrink-0"
+          title="Add Line with Space"
+        >
+          <Minus className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Pill 3: Structure & Blocks */}
+      <div className="flex items-center bg-neutral-100/95 rounded-full px-2 py-1 shadow-2xs shrink-0">
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("heading", { level: 2 }) ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
+          title="Heading"
+        >
+          <Heading2 className="w-4 h-4" />
+        </button>
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().toggleBulletList().run()}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("bulletList") ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
+          title="Bullet List"
+        >
+          <List className="w-4 h-4" />
+        </button>
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("blockquote") ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
+          title="Quote"
+        >
+          <Quote className="w-4 h-4" />
+        </button>
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("codeBlock") ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
+          title="Code Block"
+        >
+          <Code className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Pill 4: Alignment & Links & Media */}
+      <div className="flex items-center bg-neutral-100/95 rounded-full px-2 py-1 shadow-2xs shrink-0">
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().setTextAlign("left").run()}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive({ textAlign: "left" }) ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
+          title="Align Left"
+        >
+          <AlignLeft className="w-4 h-4" />
+        </button>
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().setTextAlign("center").run()}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive({ textAlign: "center" }) ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
+          title="Align Center"
+        >
+          <AlignCenter className="w-4 h-4" />
+        </button>
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor?.chain().focus().setTextAlign("right").run()}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive({ textAlign: "right" }) ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
+          title="Align Right"
+        >
+          <AlignRight className="w-4 h-4" />
+        </button>
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={handleToggleLinkPopover}
+          className={`p-1.5 rounded-lg transition shrink-0 ${isLinkPopoverOpen || editor?.isActive("link") ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
+          title="Add Link"
+        >
+          <LinkIcon className="w-4 h-4" />
+        </button>
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
+        <label
+          htmlFor="tiptap-chapter-image-upload"
+          className="p-1.5 rounded-lg text-neutral-600 hover:text-neutral-900 cursor-pointer transition shrink-0"
+          title="Upload Image"
+        >
+          <ImageIcon className="w-4 h-4" />
+        </label>
+      </div>
     </div>
   );
 
@@ -412,8 +578,7 @@ export default function ChapterWorkspacePage() {
   // --- RENDER BLOCK A: EDITABLE WORKSPACE MODE ---
   if (canEdit) {
     return (
-      <main className="min-h-[calc(100vh-56px)] bg-neutral-50/40 pb-20 sm:pb-20 relative">
-        {/* GitHub Dark Syntax Highlighting Theme */}
+      <main className="min-h-[calc(100vh-56px)] bg-white pb-20 sm:pb-20 relative">
         <style jsx global>{`
           .hljs-comment,
           .hljs-quote {
@@ -540,8 +705,7 @@ export default function ChapterWorkspacePage() {
         <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-neutral-200 shadow-sm w-full transition-all duration-200">
           <div className="max-w-4xl mx-auto px-3 sm:px-6 py-2 sm:py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-6 relative">
             
-            {/* Action Row - Top on mobile, Right on desktop */}
-            <div className="flex items-center justify-between sm:justify-end gap-4 order-1 sm:order-2 w-full sm:w-auto shrink-0">
+            <div className="flex items-center justify-between sm:justify-end gap-3 order-1 sm:order-2 w-full sm:w-auto shrink-0">
               <div className="flex items-center gap-2">
                 <button 
                   onClick={() => router.back()}
@@ -550,32 +714,26 @@ export default function ChapterWorkspacePage() {
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </button>
-                
-                <div className="flex items-center gap-1.5 text-xs text-neutral-400 font-medium ml-2">
-                  {status === "Publishing payload..." ? (
-                    <span className="flex items-center gap-1 text-amber-500 animate-pulse">
-                      <CloudLightning className="w-3.5 h-3.5" /> Publishing...
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1 text-neutral-400"><Bookmark className="w-3.5 h-3.5" /> Draft Ready</span>
-                  )}
-                </div>
-              </div>
 
-              <button 
-                onClick={handlePublishClick}
-                className="h-9 px-5 bg-[#0084FF] hover:bg-[#0073e6] active:bg-[#0062c4] text-white rounded-lg text-sm font-bold shadow-sm transition transform active:scale-95 shrink-0"
-              >
-               Done
-              </button>
+                <button
+                  onClick={() => {}}
+                  className="h-9 px-4 bg-neutral-100 hover:bg-neutral-200 active:bg-neutral-300 text-neutral-700 rounded-lg text-sm font-semibold transition transform active:scale-95"
+                >
+                  Save as Draft
+                </button>
+                <button
+                  onClick={handlePublishClick}
+                  className="h-9 px-5 bg-[#0084FF] hover:bg-[#0073e6] active:bg-[#0062c4] text-white rounded-lg text-sm font-bold shadow-sm transition transform active:scale-95"
+                >
+                  Done
+                </button>
+              </div>
             </div>
 
-            {/* Formatting Controls - Bottom on mobile, Left on desktop */}
-            <div className="flex items-center w-full order-2 sm:order-1 bg-neutral-50 sm:bg-transparent rounded-lg px-1 sm:px-0 border border-neutral-200 sm:border-none">
+            <div className="flex items-center w-full order-2 sm:order-1 rounded-lg px-1 sm:px-0">
               <FormattingControls />
             </div>
 
-            {/* Link Popover - Dropdown from the sticky header */}
             {isLinkPopoverOpen && (
               <div className="absolute left-3 right-3 sm:left-6 sm:right-auto top-[calc(100%+8px)] z-50 max-w-sm p-2 bg-white border border-neutral-200 rounded-xl shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
                 <div className="px-2 text-neutral-400"><ExternalLink className="w-4 h-4" /></div>
@@ -604,14 +762,14 @@ export default function ChapterWorkspacePage() {
           </div>
         </div>
 
-        {/* WORKSPACE AREA - BORDERLESS / INFINITE FEEL */}
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 mt-6 sm:mt-10">
+        {/* WORKSPACE AREA */}
+        <div className="max-w-3xl mx-auto px-4 sm:px-8 mt-6 sm:mt-10">
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Chapter Title"
-            className="w-full bg-transparent text-2xl sm:text-3xl font-black placeholder:text-neutral-300 border-none focus:outline-none focus:ring-0 mb-4 sm:mb-6 text-neutral-900 tracking-tight"
+            className="w-full bg-transparent text-3xl sm:text-4xl font-black placeholder:text-neutral-300 border-none focus:outline-none focus:ring-0 mb-6 sm:mb-8 text-neutral-900 tracking-tight"
           />
           <div className="min-h-[350px] sm:min-h-[450px]">
             <EditorContent editor={editor} />
@@ -624,7 +782,6 @@ export default function ChapterWorkspacePage() {
   // --- RENDER BLOCK B: PUBLIC READ FORMAT CANVAS ---
   return (
     <main className="py-6 max-w-2xl mx-auto px-4 space-y-8">
-      {/* GitHub Dark Syntax Highlighting Theme for Readers */}
       <style jsx global>{`
         .hljs-comment,
         .hljs-quote {
