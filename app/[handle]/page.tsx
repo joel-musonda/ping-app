@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   databases,
@@ -14,12 +14,18 @@ import {
   getPingByUserId,
   getFollowerCount,
   getFollowingCount,
+  updateNotebookVisibility,
+  deleteNotebookCascade
 } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
 import { Query } from "appwrite";
-import { Book, MapPin, Link2, Users, FileText, Lock, Link, Globe } from "lucide-react";
+import { 
+  Book, MapPin, Users, FileText, Lock, Globe, MoreVertical, 
+  Edit3, PlusCircle, Globe2, Trash2, Link as LinkIcon, Pin, AlertCircle, Check,
+  GitFork, Flag
+} from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Modal, Button, Avatar, ListBox, Label, Description } from "@heroui/react";
+import { Modal, Avatar, ListBox, Label, Description } from "@heroui/react";
 
 function ProfileSkeleton() {
   return (
@@ -70,6 +76,7 @@ export default function PingProfilePage() {
   const router = useRouter();
   const [ping, setPing] = useState<any>(null);
   const [notebooks, setNotebooks] = useState<any[]>([]);
+  const [pinnedIds, setPinnedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -79,7 +86,6 @@ export default function PingProfilePage() {
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   
-  // Streak tracking states: Maps date strings to activity types ("notebook" | "chapter")
   const [activityMap, setActivityMap] = useState<Map<string, "notebook" | "chapter">>(new Map());
 
   // Modal State for Followers & Following Lists
@@ -87,6 +93,27 @@ export default function PingProfilePage() {
   const [modalType, setModalType] = useState<"followers" | "following">("followers");
   const [userList, setUserList] = useState<any[]>([]);
   const [listLoading, setListLoading] = useState(false);
+
+  // Dropdown & Dialog States for Notebook Actions
+  const [openMenuNotebookId, setOpenMenuNotebookId] = useState<string | null>(null);
+  const [visibilityModalNotebook, setVisibilityModalNotebook] = useState<any | null>(null);
+  const [deleteModalNotebook, setDeleteModalNotebook] = useState<any | null>(null);
+  const [copyModalUrl, setCopyModalUrl] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Load local pinned notebooks storage for current viewer
+    try {
+      const savedPins = localStorage.getItem(`pinned_notebooks_${handle}`);
+      if (savedPins) {
+        setPinnedIds(JSON.parse(savedPins));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [handle]);
 
   useEffect(() => {
     if (!handle) return;
@@ -129,18 +156,15 @@ export default function PingProfilePage() {
         setFollowerCount(followers);
         setFollowingCount(following);
 
-        // Map notebook creation vs chapter updates/creation
         const newActivityMap = new Map<string, "notebook" | "chapter">();
         
         nbs.forEach((nb: any) => {
-          // Check for chapter creation dates if chapters exist on the notebook object
           const chapters = nb.chapters || nb.chapterList || nb.items || [];
           if (Array.isArray(chapters) && chapters.length > 0) {
             chapters.forEach((ch: any) => {
               const chDate = ch.$createdAt || ch.created_at;
               if (chDate) {
                 const dateStr = chDate.split("T")[0];
-                // Chapter activity sets lighter blue unless already overridden by a notebook
                 if (!newActivityMap.has(dateStr)) {
                   newActivityMap.set(dateStr, "chapter");
                 }
@@ -148,7 +172,6 @@ export default function PingProfilePage() {
             });
           }
 
-          // Notebook creation takes precedence (blue dot)
           if (nb.$createdAt) {
             const dateStr = nb.$createdAt.split("T")[0];
             newActivityMap.set(dateStr, "notebook");
@@ -172,7 +195,17 @@ export default function PingProfilePage() {
     };
   }, [handle]);
 
-  // Dynamic Page Title Effect
+  // Close dropdown menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuNotebookId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   useEffect(() => {
     if (ping) {
       const displayName = ping.name || ping.handle || handle;
@@ -253,6 +286,84 @@ export default function PingProfilePage() {
     }
   };
 
+  const handleTogglePin = (nbId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    let updatedPins = [...pinnedIds];
+    if (updatedPins.includes(nbId)) {
+      updatedPins = updatedPins.filter((id) => id !== nbId);
+    } else {
+      if (updatedPins.length >= 4) {
+        alert("You can only pin up to 4 notebooks.");
+        return;
+      }
+      updatedPins.push(nbId);
+    }
+    setPinnedIds(updatedPins);
+    try {
+      localStorage.setItem(`pinned_notebooks_${handle}`, JSON.stringify(updatedPins));
+    } catch (err) {
+      console.error(err);
+    }
+    setOpenMenuNotebookId(null);
+  };
+
+  const handleOpenCopyModal = (nbId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = `${window.location.origin}/notebooks/${nbId}`;
+    setCopyModalUrl(url);
+    setOpenMenuNotebookId(null);
+  };
+
+  const executeCopyLink = () => {
+    if (!copyModalUrl) return;
+    navigator.clipboard.writeText(copyModalUrl);
+    setCopyModalUrl(null);
+    setToastMessage("Link copied successfully");
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 3000);
+  };
+
+  const confirmToggleVisibility = async () => {
+    if (!visibilityModalNotebook) return;
+    const nb = visibilityModalNotebook;
+    const nextState = !nb.is_public;
+    try {
+      await updateNotebookVisibility(nb.$id, nextState);
+      setNotebooks((prev) =>
+        prev.map((item) => (item.$id === nb.$id ? { ...item, is_public: nextState } : item))
+      );
+    } catch (err) {
+      console.error("Failed to change visibility:", err);
+    } finally {
+      setVisibilityModalNotebook(null);
+    }
+  };
+
+  const confirmDeleteNotebook = async () => {
+    if (!deleteModalNotebook) return;
+    const nb = deleteModalNotebook;
+    try {
+      await deleteNotebookCascade(nb.$id);
+      setNotebooks((prev) => prev.filter((item) => item.$id !== nb.$id));
+    } catch (err) {
+      console.error("Failed to delete notebook:", err);
+    } finally {
+      setDeleteModalNotebook(null);
+    }
+  };
+
+  // Sort notebooks: Pinned ones first (max 4), followed by unpinned
+  const sortedNotebooks = [...notebooks].sort((a, b) => {
+    const aPinned = pinnedIds.includes(a.$id);
+    const bPinned = pinnedIds.includes(b.$id);
+    if (aPinned && !bPinned) return -1;
+    if (!aPinned && bPinned) return 1;
+    return 0;
+  });
+
   if (!loading && !ping) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] bg-white text-center p-4">
@@ -263,7 +374,7 @@ export default function PingProfilePage() {
   }
 
   return (
-    <main className="max-w-6xl w-full mx-auto px-4 md:px-6 py-4 bg-white text-neutral-900 md:h-[calc(100vh-65px)] md:overflow-hidden">
+    <main className="max-w-6xl w-full mx-auto px-4 md:px-6 py-4 bg-white text-neutral-900 md:h-[calc(100vh-65px)] md:overflow-hidden relative">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12 h-full">
 
         {/* Left Profile Sidebar */}
@@ -272,7 +383,6 @@ export default function PingProfilePage() {
             <ProfileSkeleton />
           ) : (
             <>
-              {/* High-Quality Profile Avatar */}
               <div className="w-32 h-32 md:w-40 md:h-40 bg-neutral-100 rounded-full border border-neutral-200 overflow-hidden flex items-center justify-center shrink-0 shadow-sm relative">
                 {ping?.avatar_url ? (
                   <img
@@ -321,7 +431,6 @@ export default function PingProfilePage() {
                 {ping?.bio || "Hello There, Welcome to my Ping"}
               </p>
 
-              {/* Clickable Follow Stats */}
               <div className="flex items-center gap-3 text-xs text-neutral-600 pt-1 shrink-0">
                 <div 
                   onClick={() => handleOpenModal("followers")}
@@ -364,7 +473,7 @@ export default function PingProfilePage() {
                   )}
                   {ping?.github && (
                     <div className="flex items-center gap-2">
-                      <Link className="w-4 h-4 text-neutral-400" />
+                      <Globe className="w-4 h-4 text-neutral-400" />
                       <a
                         href={ping.github.startsWith("http") ? ping.github : `https://${ping.github.replace('@', '')}`}
                         target="_blank"
@@ -377,7 +486,7 @@ export default function PingProfilePage() {
                   )}
                   {ping?.twitter && (
                     <div className="flex items-center gap-2">
-                      <Link className="w-4 h-4 text-neutral-400 " />
+                      <Globe className="w-4 h-4 text-neutral-400 " />
                       <a
                         href={ping.twitter.startsWith("http") ? ping.twitter : `https://${ping.twitter.replace('@', '')}`}
                         target="_blank"
@@ -414,7 +523,7 @@ export default function PingProfilePage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {notebooks.map((nb) => {
+                {sortedNotebooks.map((nb) => {
                   const createdDate = nb.$createdAt
                     ? new Date(nb.$createdAt).toLocaleDateString("en-US", {
                         month: "short",
@@ -423,34 +532,175 @@ export default function PingProfilePage() {
                       })
                     : "Recently";
 
-                  return (
-                    <a key={nb.$id} href={`/notebooks/${nb.$id}`} className="block group">
-                      <Card className="h-full border-neutral-200 bg-white hover:border-neutral-300 hover:shadow-sm transition-all duration-200 rounded-xl">
-                        <CardHeader className="p-4 flex flex-col justify-between h-full space-y-3">
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <Book className="w-4 h-4 text-neutral-500 shrink-0" />
-                                <CardTitle className="text-sm font-bold text-neutral-900 line-clamp-2 underline-offset-2 decoration-1">
-                                  {nb.title}
-                                </CardTitle>
-                              </div>
-                              {!nb.is_public && <Lock className="w-3.5 h-3.5 text-neutral-400 shrink-0" />}
-                            </div>
-                            <CardDescription className="text-xs text-neutral-500 font-normal line-clamp-2 pt-0.5 leading-relaxed">
-                              Click to open this synchronized notebook and manage its active layout chapters.
-                            </CardDescription>
-                          </div>
+                  const isPinned = pinnedIds.includes(nb.$id);
+                  const isMenuOpen = openMenuNotebookId === nb.$id;
+                  const notebookSnapshot = nb.snapshot || nb.description || "No snapshot available for this notebook yet.";
 
-                          <div className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-wider text-neutral-400 pt-1">
-                            <span className="px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600 border border-neutral-200 font-semibold text-[9px]">
-                              {nb.is_public ? "Public" : "Private"}
-                            </span>
-                            <span>• Created {createdDate}</span>
+                  return (
+                    <div key={nb.$id} className="relative group">
+                      <a href={`/notebooks/${nb.$id}`} className="block h-full">
+                        <Card className={`h-full border-neutral-200 bg-white hover:border-neutral-300 hover:shadow-sm transition-all duration-200 rounded-xl relative ${isPinned ? 'ring-1 ring-[#0084FF]/40 border-[#0084FF]/50 bg-blue-50/10' : ''}`}>
+                          <CardHeader className="p-4 flex flex-col justify-between h-full space-y-3">
+                            <div className="space-y-1 pr-6">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  {isPinned && <Pin className="w-3.5 h-3.5 text-[#0084FF] fill-[#0084FF] shrink-0 rotate-45" />}
+                                  <Book className="w-4 h-4 text-neutral-500 shrink-0" />
+                                  <CardTitle className="text-sm font-bold text-neutral-900 line-clamp-2 underline-offset-2 decoration-1">
+                                    {nb.title}
+                                  </CardTitle>
+                                </div>
+                                {!nb.is_public && <Lock className="w-3.5 h-3.5 text-neutral-400 shrink-0" />}
+                              </div>
+                              <CardDescription className="text-xs text-neutral-600 font-normal line-clamp-2 pt-0.5 leading-relaxed">
+                                {notebookSnapshot}
+                              </CardDescription>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-wider text-neutral-400 pt-1">
+                              <span className="px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600 border border-neutral-200 font-semibold text-[9px]">
+                                {nb.is_public ? "Public" : "Private"}
+                              </span>
+                              <span>• Created {createdDate}</span>
+                            </div>
+                          </CardHeader>
+                        </Card>
+                      </a>
+
+                      {/* Top-Right Options Dot Menu (Always visible on mobile, visible on hover on desktop) */}
+                      <div 
+                        className={`absolute top-3.5 right-3.5 z-20 md:opacity-0 md:group-hover:opacity-100 transition-opacity ${isMenuOpen ? 'md:opacity-100' : ''}`}
+                        ref={isMenuOpen ? menuRef : null}
+                      >
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setOpenMenuNotebookId(isMenuOpen ? null : nb.$id);
+                          }}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors bg-white/90 backdrop-blur-sm border border-neutral-200/80 shadow-sm"
+                          title="Notebook options"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+
+                        {isMenuOpen && (
+                          <div className="absolute right-0 mt-1 w-52 rounded-2xl bg-white border border-neutral-200 shadow-xl py-1.5 z-30 animate-in fade-in slide-in-from-top-1 text-xs text-neutral-800">
+                            {isOwnProfile ? (
+                              <>
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setOpenMenuNotebookId(null);
+                                    router.push(`/notebooks/${nb.$id}/edit`);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-3.5 py-2 hover:bg-neutral-100 text-left text-neutral-700 font-medium"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5 text-neutral-400" />
+                                  <span>Edit notebook</span>
+                                </button>
+
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setOpenMenuNotebookId(null);
+                                    router.push(`/notebooks/${nb.$id}/chapters/new`);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-3.5 py-2 hover:bg-neutral-100 text-left text-neutral-700 font-medium"
+                                >
+                                  <PlusCircle className="w-3.5 h-3.5 text-neutral-400" />
+                                  <span>Add a chapter</span>
+                                </button>
+
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setOpenMenuNotebookId(null);
+                                    setVisibilityModalNotebook(nb);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-3.5 py-2 hover:bg-neutral-100 text-left text-neutral-700 font-medium"
+                                >
+                                  <Globe2 className="w-3.5 h-3.5 text-neutral-400" />
+                                  <span>Make {nb.is_public ? "private" : "public"}</span>
+                                </button>
+
+                                <button
+                                  onClick={(e) => handleOpenCopyModal(nb.$id, e)}
+                                  className="w-full flex items-center gap-2.5 px-3.5 py-2 hover:bg-neutral-100 text-left text-neutral-700 font-medium"
+                                >
+                                  <LinkIcon className="w-3.5 h-3.5 text-neutral-400" />
+                                  <span>Copy link</span>
+                                </button>
+
+                                <button
+                                  onClick={(e) => handleTogglePin(nb.$id, e)}
+                                  className="w-full flex items-center gap-2.5 px-3.5 py-2 hover:bg-neutral-100 text-left text-neutral-700 font-medium border-t border-neutral-100 mt-0.5 pt-2"
+                                >
+                                  <Pin className={`w-3.5 h-3.5 ${isPinned ? 'text-[#0084FF] fill-[#0084FF]' : 'text-neutral-400'}`} />
+                                  <span>{isPinned ? "Unpin notebook" : "Pin notebook"}</span>
+                                </button>
+
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setOpenMenuNotebookId(null);
+                                    setDeleteModalNotebook(nb);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-3.5 py-2 hover:bg-red-50 text-left text-red-600 font-medium border-t border-neutral-100 mt-0.5 pt-2"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                                  <span>Delete notebook</span>
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={(e) => handleOpenCopyModal(nb.$id, e)}
+                                  className="w-full flex items-center gap-2.5 px-3.5 py-2 hover:bg-neutral-100 text-left text-neutral-700 font-medium"
+                                >
+                                  <LinkIcon className="w-3.5 h-3.5 text-neutral-400" />
+                                  <span>Copy link</span>
+                                </button>
+
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setOpenMenuNotebookId(null);
+                                    // TODO: Implement fork functionality later
+                                    setToastMessage("Fork functionality coming soon");
+                                    setTimeout(() => setToastMessage(null), 3000);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-3.5 py-2 hover:bg-neutral-100 text-left text-neutral-700 font-medium"
+                                >
+                                  <GitFork className="w-3.5 h-3.5 text-neutral-400" />
+                                  <span>Fork notebook</span>
+                                </button>
+
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setOpenMenuNotebookId(null);
+                                    // TODO: Implement report functionality
+                                    setToastMessage("Notebook reported successfully");
+                                    setTimeout(() => setToastMessage(null), 3000);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-3.5 py-2 hover:bg-red-50 text-left text-red-600 font-medium border-t border-neutral-100 mt-0.5 pt-2"
+                                >
+                                  <Flag className="w-3.5 h-3.5 text-red-500" />
+                                  <span>Report notebook</span>
+                                </button>
+                              </>
+                            )}
                           </div>
-                        </CardHeader>
-                      </Card>
-                    </a>
+                        )}
+                      </div>
+                    </div>
                   );
                 })}
               </div>
@@ -461,7 +711,6 @@ export default function PingProfilePage() {
           <div className="space-y-4 pt-4 border-t border-neutral-100 shrink-0">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Activity</h3>
-             
             </div>
 
             <div className="flex items-center gap-6 text-xs font-bold text-neutral-400 border-b border-b-neutral-100 pb-2">
@@ -490,7 +739,7 @@ export default function PingProfilePage() {
                       return {
                         date,
                         dateStr,
-                        activityType, // "notebook" | "chapter" | undefined
+                        activityType,
                         isFuture: date > today,
                       };
                     });
@@ -559,9 +808,9 @@ export default function PingProfilePage() {
                                 let bg = "#F4F4F5";
                                 if (!loading && !day.isFuture) {
                                   if (day.activityType === "notebook") {
-                                    bg = "#3B82F6"; // Darker blue for notebook creation
+                                    bg = "#3B82F6";
                                   } else if (day.activityType === "chapter") {
-                                    bg = "#93C5FD"; // Lighter blue for chapter creation
+                                    bg = "#93C5FD";
                                   }
                                 }
 
@@ -588,6 +837,124 @@ export default function PingProfilePage() {
         </div>
 
       </div>
+
+      {/* Visibility Toggle Alert Dialog */}
+      {visibilityModalNotebook && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-neutral-200 animate-in zoom-in-95 duration-150 text-neutral-900">
+            <div className="flex flex-col items-start gap-3 mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#0084FF] shadow-sm">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-neutral-900 tracking-tight">
+                  Make notebook {visibilityModalNotebook.is_public ? "private" : "public"}?
+                </h3>
+                <p className="text-xs text-neutral-500 mt-1 leading-relaxed">
+                  {visibilityModalNotebook.is_public
+                    ? "Setting this notebook to private will hide it from public feeds and community members."
+                    : "Setting this notebook to public will allow anyone on Ping to view its contents and chapters."}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5">
+              <button
+                onClick={() => setVisibilityModalNotebook(null)}
+                className="px-4 py-2.5 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-semibold transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmToggleVisibility}
+                className="px-4 py-2.5 rounded-full bg-[#0084FF] hover:bg-[#0073e6] text-white text-xs font-semibold shadow-md transition-all"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteModalNotebook && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-neutral-200 animate-in zoom-in-95 duration-150 text-neutral-900">
+            <div className="flex flex-col items-start gap-3 mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center text-red-600 shadow-sm">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-neutral-900 tracking-tight">Delete notebook?</h3>
+                <p className="text-xs text-neutral-500 mt-1 leading-relaxed">
+                  Are you sure you want to delete <span className="font-semibold text-neutral-800">&ldquo;{deleteModalNotebook.title}&rdquo;</span>? This action cannot be undone and all chapters will be permanently removed.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5">
+              <button
+                onClick={() => setDeleteModalNotebook(null)}
+                className="px-4 py-2.5 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-semibold transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteNotebook}
+                className="px-4 py-2.5 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-semibold shadow-md transition-all"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Copy Link Confirmation Modal */}
+      {copyModalUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-neutral-200 animate-in zoom-in-95 duration-150 text-neutral-900">
+            <div className="flex flex-col items-start gap-3 mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#0084FF] shadow-sm">
+                <LinkIcon className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-neutral-900 tracking-tight">Copy notebook link</h3>
+                <p className="text-xs text-neutral-500 mt-1 leading-relaxed">
+                  Would you like to copy the direct link to your clipboard so you can share it with others?
+                </p>
+                <div className="mt-3 p-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-[11px] text-neutral-600 break-all font-mono">
+                  {copyModalUrl}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5">
+              <button
+                onClick={() => setCopyModalUrl(null)}
+                className="px-4 py-2.5 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-semibold transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeCopyLink}
+                className="px-4 py-2.5 rounded-full bg-[#0084FF] hover:bg-[#0073e6] text-white text-xs font-semibold shadow-md transition-all flex items-center gap-1.5"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Copy Link</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification for Link Copied */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 bg-neutral-900 text-white px-4 py-3 rounded-2xl shadow-xl text-xs font-medium animate-in slide-in-from-bottom-5 duration-200">
+          <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
 
       {/* HeroUI Followers / Following Modal */}
       <Modal isOpen={modalOpen} onOpenChange={setModalOpen}>

@@ -12,7 +12,7 @@ import {
 import { useRouter, usePathname } from "next/navigation";
 import {
   Search, Bell, Plus, User, Book, Heart, Settings,
-  Paintbrush, LogOut, ArrowLeftRight, Home, Info, AlertCircle, Trash2, UserPlus, X, Flame, Check, BarChart3
+  Paintbrush, LogOut, ArrowLeftRight, Home, Info, AlertCircle, Trash2, UserPlus, X, Flame, Check, BarChart3, HelpCircle
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -50,6 +50,7 @@ export default function Navbar() {
   const [hasUnread, setHasUnread] = useState(false);
 
   const [profileOpen, setProfileOpen] = useState(false);
+  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -166,6 +167,7 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     setProfileOpen(false);
+    setLogoutModalOpen(false);
     await logOut();
     setProfileData(null);
     router.push("/");
@@ -270,29 +272,32 @@ export default function Navbar() {
           {searchResults.pings.length > 0 && (
             <div className="mb-1">
               <p className="px-3 py-1.5 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">People</p>
-              {searchResults.pings.map((p) => {
-                const avatar = p.avatar_url || p.avatarUrl;
-                return (
-                  <HoverCard key={p.$id} handle={p.handle}>
-                    <a
-                      href={`/${p.handle}`}
-                      onClick={handleSearchResultClick}
-                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-neutral-100 text-xs transition-colors duration-150 group"
-                    >
-                      <div className="w-6 h-6 rounded-full bg-neutral-200 overflow-hidden flex items-center justify-center shrink-0 border border-neutral-200 shadow-sm">
-                        {avatar ? (
-                          <img src={avatar} alt={p.handle} className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-[10px] font-bold text-neutral-700 uppercase">{p.handle.charAt(0)}</span>
-                        )}
-                      </div>
-                      <span className="text-neutral-900 font-medium group-hover:text-[#0084FF] transition-colors truncate">
-                        @{p.handle}
-                      </span>
-                    </a>
-                  </HoverCard>
-                );
-              })}
+              <div className="grid grid-cols-1 gap-1">
+                {searchResults.pings.map((p) => {
+                  const avatar = p.avatar_url || p.avatarUrl;
+                  const displayName = p.name && p.name.trim() !== "" ? p.name : `@${p.handle}`;
+                  return (
+                    <HoverCard key={p.$id} handle={p.handle}>
+                      <a
+                        href={`/${p.handle}`}
+                        onClick={handleSearchResultClick}
+                        className="flex items-center gap-3 px-3 py-2 rounded-2xl hover:bg-neutral-100/80 bg-neutral-100/40 border border-neutral-200/50 text-xs transition-all duration-150 group shadow-sm"
+                      >
+                        <div className="w-7 h-7 rounded-full bg-neutral-200 overflow-hidden flex items-center justify-center shrink-0 border border-white shadow-sm">
+                          {avatar ? (
+                            <img src={avatar} alt={p.handle} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-[10px] font-bold text-neutral-700 uppercase">{p.handle.charAt(0)}</span>
+                          )}
+                        </div>
+                        <span className="text-neutral-900 font-semibold group-hover:text-[#0084FF] transition-colors truncate">
+                          {displayName}
+                        </span>
+                      </a>
+                    </HoverCard>
+                  );
+                })}
+              </div>
             </div>
           )}
           {searchResults.notebooks.length > 0 && (
@@ -644,7 +649,10 @@ export default function Navbar() {
 
                       <div className="p-2">
                         <button
-                          onClick={handleLogout}
+                          onClick={() => {
+                            setProfileOpen(false);
+                            setLogoutModalOpen(true);
+                          }}
                           className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-xl text-left text-red-600 hover:bg-red-50 transition-colors duration-150"
                         >
                           <LogOut className="w-4 h-4 text-red-500 shrink-0" />
@@ -757,6 +765,46 @@ export default function Navbar() {
             ) : (
               notifications.map((notif) => <NotificationRow key={notif.$id} notif={notif} />)
             )}
+          </div>
+        </div>
+      )}
+
+      {logoutModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-neutral-200/80 animate-in zoom-in-95 duration-200 text-neutral-900">
+            <button
+              onClick={() => setLogoutModalOpen(false)}
+              className="absolute right-4 top-4 w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-500 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex flex-col items-start gap-3 mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#0084FF] shadow-sm">
+                <Info className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-neutral-900 tracking-tight">Sign out of your account?</h3>
+                <p className="text-xs text-neutral-500 mt-1 leading-relaxed">
+                  You&apos;ll need to sign in again to access your account. Any unsaved changes will be lost.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5">
+              <button
+                onClick={() => setLogoutModalOpen(false)}
+                className="px-4 py-2.5 rounded-full bg-neutral-100 hover:bg-neutral-200 active:bg-neutral-300 text-neutral-800 text-xs font-semibold transition-all shadow-sm"
+              >
+                Stay Signed In
+              </button>
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2.5 rounded-full bg-[#0084FF] hover:bg-[#0073e6] active:bg-[#0062c4] text-white text-xs font-semibold shadow-md transition-all"
+              >
+                Sign Out
+              </button>
+            </div>
           </div>
         </div>
       )}

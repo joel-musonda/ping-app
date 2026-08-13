@@ -48,24 +48,27 @@ function TrendingList({ loading, trendingNotebooks }: { loading: boolean; trendi
 
   return (
     <ol className="space-y-4">
-      {trendingNotebooks.map((nb, index) => (
-        <li key={nb.$id} className="flex items-start gap-3.5 group relative">
-          <span className="text-xl font-black text-neutral-300 group-hover:text-[#0084FF] transition-colors leading-none select-none w-4">
-            0{index + 1}
-          </span>
-          <div className="space-y-0.5 min-w-0 flex-1">
-            <a href={`/notebooks/${nb.$id}`} className="block text-xs font-bold text-neutral-900 group-hover:text-[#0084FF] transition-colors leading-snug truncate">
-              {nb.title}
-            </a>
-            <p className="text-[11px] text-neutral-500 font-medium truncate">
-              by{" "}
-              <HoverCard handle={nb.authorHandle}>
-                <span className="text-neutral-700 font-semibold hover:text-[#0084FF] transition-colors">@{nb.authorHandle}</span>
-              </HoverCard>
-            </p>
-          </div>
-        </li>
-      ))}
+      {trendingNotebooks.map((nb, index) => {
+        const displayName = nb.authorName && nb.authorName.trim() !== "" ? nb.authorName : `@${nb.authorHandle}`;
+        return (
+          <li key={nb.$id} className="flex items-start gap-3.5 group relative">
+            <span className="text-xl font-black text-neutral-300 group-hover:text-neutral-900 transition-colors leading-none select-none w-4">
+              0{index + 1}
+            </span>
+            <div className="space-y-0.5 min-w-0 flex-1">
+              <a href={`/notebooks/${nb.$id}`} className="block text-xs font-bold text-neutral-900 transition-colors leading-snug truncate">
+                {nb.title}
+              </a>
+              <p className="text-[11px] text-neutral-500 font-medium truncate">
+                by{" "}
+                <HoverCard handle={nb.authorHandle}>
+                  <span className="text-neutral-700 font-semibold hover:text-neutral-900 transition-colors">{displayName}</span>
+                </HoverCard>
+              </p>
+            </div>
+          </li>
+        );
+      })}
     </ol>
   );
 }
@@ -83,46 +86,78 @@ function HomePageInner() {
   }, []);
 
   useEffect(() => {
-    getPublicNotebooks()
-      .then(async (nbs) => {
+    let isMounted = true;
+
+    async function loadFeedData() {
+      try {
+        const nbs = await getPublicNotebooks();
+        if (!isMounted) return;
+
+        // Process all notebooks in parallel using Promise.all to drastically reduce network latency
         const enriched = await Promise.all(
           nbs.map(async (nb) => {
-            const [ping, engagement] = await Promise.all([
-              getPingByUserId(nb.owner_id),
-              getNotebookEngagement(nb.$id),
-            ]);
+            try {
+              const [ping, engagement] = await Promise.all([
+                getPingByUserId(nb.owner_id).catch(() => null),
+                getNotebookEngagement(nb.$id).catch(() => ({ likes: 0, comments: 0, chapterCount: 0 })),
+              ]);
 
-            let collaboratorProfiles: any[] = [];
-            if (nb.collaborator_ids && nb.collaborator_ids.length > 0) {
-              const profiles = await Promise.all(
-                nb.collaborator_ids.map((id: string) => getPingByUserId(id).catch(() => null))
-              );
-              collaboratorProfiles = profiles.filter(Boolean);
+              let collaboratorProfiles: any[] = [];
+              if (nb.collaborator_ids && nb.collaborator_ids.length > 0) {
+                const profiles = await Promise.all(
+                  nb.collaborator_ids.map((id: string) => getPingByUserId(id).catch(() => null))
+                );
+                collaboratorProfiles = profiles.filter(Boolean);
+              }
+
+              return {
+                ...nb,
+                authorHandle: ping?.handle ?? "unknown",
+                authorName: ping?.name ?? "",
+                authorAvatar: ping?.avatar_url ?? "",
+                authorId: nb.owner_id,
+                collaboratorProfiles,
+                likeCount: engagement.likes,
+                commentCount: engagement.comments,
+                chapterCount: engagement.chapterCount,
+              };
+            } catch (innerErr) {
+              console.error("Failed to enrich notebook:", innerErr);
+              return {
+                ...nb,
+                authorHandle: "unknown",
+                authorName: "",
+                authorAvatar: "",
+                authorId: nb.owner_id,
+                collaboratorProfiles: [],
+                likeCount: 0,
+                commentCount: 0,
+                chapterCount: 0,
+              };
             }
-
-            return {
-              ...nb,
-              authorHandle: ping?.handle ?? "unknown",
-              authorName: ping?.name ?? ping.handle,
-              authorAvatar: ping?.avatar_url ?? "",
-              authorId: nb.owner_id,
-              collaboratorProfiles,
-              likeCount: engagement.likes,
-              commentCount: engagement.comments,
-              chapterCount: engagement.chapterCount,
-            };
           })
         );
 
-        // Sort notebooks so that most recently updated ones (including new chapters) appear at the top
+        if (!isMounted) return;
+
+        // Sort notebooks so that most recently updated ones appear at the top
         const sorted = enriched.sort(
           (a, b) => new Date(b.$updatedAt || b.$createdAt).getTime() - new Date(a.$updatedAt || a.$createdAt).getTime()
         );
 
         setNotebooks(sorted);
-      })
-      .catch((err) => console.error(err))
-      .finally(() => setLoading(false));
+      } catch (err) {
+        console.error("Failed to load public notebooks feed:", err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    loadFeedData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -171,6 +206,10 @@ function HomePageInner() {
                 const displayedParticipants = allParticipants.slice(0, maxDisplay);
                 const overflowCount = allParticipants.length - maxDisplay;
 
+                // Fallback logic: if authorName is missing or empty, use @handle
+                const hasName = nb.authorName && nb.authorName.trim() !== "";
+                const authorDisplay = hasName ? nb.authorName : `@${nb.authorHandle}`;
+
                 return (
                   <article
                     key={nb.$id}
@@ -183,7 +222,7 @@ function HomePageInner() {
                       {/* Cover image thumbnail */}
                       {nb.cover_image_url ? (
                         <div className="w-full sm:w-28 sm:h-28 h-40 shrink-0 rounded-xl overflow-hidden bg-neutral-200 border border-neutral-200/80 shadow-sm">
-                          <img src={nb.cover_image_url} alt="" className="w-full h-full object-cover" />
+                          <img src={nb.cover_image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
                         </div>
                       ) : (
                         <div className="w-full sm:w-28 sm:h-28 h-32 shrink-0 rounded-xl overflow-hidden bg-neutral-200/70 border border-neutral-200/80 flex items-center justify-center text-neutral-400">
@@ -218,12 +257,9 @@ function HomePageInner() {
 
                             <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                               <HoverCard handle={nb.authorHandle}>
-                                <span className="font-semibold text-neutral-900 hover:text-[#0084FF] transition-colors cursor-pointer truncate max-w-[120px] sm:max-w-none">
-                                  {nb.authorName}
+                                <span className="font-semibold text-neutral-900 hover:text-neutral-950 transition-colors cursor-pointer truncate max-w-[200px] sm:max-w-none">
+                                  {authorDisplay}
                                 </span>
-                              </HoverCard>
-                              <HoverCard handle={nb.authorHandle}>
-                                <span className="text-neutral-500 font-normal hover:text-[#0084FF] transition-colors cursor-pointer truncate max-w-[100px] sm:max-w-none">@{nb.authorHandle}</span>
                               </HoverCard>
                               <span className="text-neutral-300 select-none">·</span>
                              
@@ -234,11 +270,11 @@ function HomePageInner() {
                             </div>
                           </div>
 
-                          <ArrowUpRight className="w-4 h-4 text-neutral-400 group-hover:text-[#0084FF] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0 hidden sm:block" />
+                          <ArrowUpRight className="w-4 h-4 text-neutral-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0 hidden sm:block" />
                         </div>
 
                         {/* Notebook Title */}
-                        <h3 className="text-base sm:text-lg font-bold tracking-tight text-neutral-900 group-hover:text-[#0084FF] leading-snug transition-colors break-words mb-1">
+                        <h3 className="text-base sm:text-lg font-bold tracking-tight text-neutral-900 leading-snug transition-colors break-words mb-1">
                           {nb.title}
                         </h3>
 
@@ -252,12 +288,12 @@ function HomePageInner() {
                         {/* Bottom Actions / Metrics as Pill Buttons */}
                         <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-3 text-xs font-semibold text-neutral-600 relative z-10 pt-1 flex-wrap">
                           <div className="flex items-center gap-2 sm:gap-3">
-                            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-200/70 hover:bg-blue-50 hover:text-[#0084FF] transition-colors group/btn">
+                            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-200/70 hover:bg-neutral-200 transition-colors group/btn">
                               <Heart className="w-3.5 h-3.5 text-neutral-500 group-hover/btn:text-rose-600 transition-colors" />
                               <span>{nb.likeCount}</span>
                             </button>
                             
-                            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-200/70 hover:bg-blue-50 hover:text-[#0084FF] transition-colors group/btn">
+                            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-200/70 hover:bg-neutral-200 transition-colors group/btn">
                               <MessageCircle className="w-3.5 h-3.5 text-neutral-500 group-hover/btn:text-blue-600 transition-colors" />
                               <span>{nb.commentCount}</span>
                             </button>

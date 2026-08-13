@@ -604,3 +604,21 @@ export async function deleteChapter(chapterId: string) {
     chapterId
   );
 }
+export async function updateNotebookVisibility(notebookId: string, isPublic: boolean) {
+  return await databases.updateDocument(
+    DATABASE_ID,
+    NOTEBOOKS_COLLECTION_ID,
+    notebookId,
+    {
+      is_public: isPublic,
+    }
+  );
+}
+
+export async function deleteNotebook(notebookId: string) {
+  return await databases.deleteDocument(
+    DATABASE_ID,
+    NOTEBOOKS_COLLECTION_ID,
+    notebookId
+  );
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Book, Users, UserPlus, UserCheck } from "lucide-react";
+import { Book, Users, UserPlus, UserCheck, Search } from "lucide-react";
 import { 
   databases, 
   DATABASE_ID, 
@@ -12,7 +12,7 @@ import {
   unfollowUser,
   getNotebooksForUser,
   getFollowerCount
-} from "@/lib/appwrite"; //[cite: 1]
+} from "@/lib/appwrite";
 import { Query } from "appwrite";
 
 interface CommunityUser {
@@ -31,21 +31,22 @@ export default function CommunityPage() {
   const [users, setUsers] = useState<CommunityUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     async function loadCommunityData() {
       try {
         let activeUser = null;
         try {
-          activeUser = await account.get(); //[cite: 1]
+          activeUser = await account.get();
           setCurrentUser(activeUser);
         } catch (e) {
           console.warn("No active authenticated session detected.");
         }
 
         const pingsResponse = await databases.listDocuments(
-          DATABASE_ID, //[cite: 1]
-          PINGS_COLLECTION_ID, //[cite: 1]
+          DATABASE_ID,
+          PINGS_COLLECTION_ID,
           [Query.limit(100)]
         );
 
@@ -59,17 +60,17 @@ export default function CommunityPage() {
 
             if (profileUserId) {
               try {
-                const books = await getNotebooksForUser(profileUserId, true); //[cite: 1]
+                const books = await getNotebooksForUser(profileUserId, true);
                 notebooksCount = books.length;
               } catch (_) {}
 
               try {
-                followersCount = await getFollowerCount(profileUserId); //[cite: 1]
+                followersCount = await getFollowerCount(profileUserId);
               } catch (_) {}
 
               if (activeUser && activeUser.$id !== profileUserId) {
                 try {
-                  followDocId = await checkIsFollowing(activeUser.$id, profileUserId); //[cite: 1]
+                  followDocId = await checkIsFollowing(activeUser.$id, profileUserId);
                 } catch (_) {}
               }
             }
@@ -120,11 +121,11 @@ export default function CommunityPage() {
 
     try {
       if (targetUser.followDocId) {
-        await unfollowUser(targetUser.followDocId); //[cite: 1]
+        await unfollowUser(targetUser.followDocId);
         setUsers((prev) => prev.map((u) => u.id === targetUser.id ? { ...u, followDocId: null } : u));
       } else {
-        await followUser(currentUser.$id, targetUser.userId, currentUser.name, targetUser.handle); //[cite: 1]
-        const newId = await checkIsFollowing(currentUser.$id, targetUser.userId); //[cite: 1]
+        await followUser(currentUser.$id, targetUser.userId, currentUser.name, targetUser.handle);
+        const newId = await checkIsFollowing(currentUser.$id, targetUser.userId);
         setUsers((prev) => prev.map((u) => u.id === targetUser.id ? { ...u, followDocId: newId } : u));
       }
     } catch (err) {
@@ -132,20 +133,42 @@ export default function CommunityPage() {
     }
   };
 
+  // Dynamic Page Title Effect
+  useEffect(() => {
+    document.title = "Community | Ping";
+  }, []);
 
-         // Dynamic Page Title Effect
-              useEffect(() => {
-                document.title = "Community | Ping";
-              }, []);
-
+  // Filter users based on search query
+  const filteredUsers = users.filter((user) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      user.name.toLowerCase().includes(query) ||
+      user.handle.toLowerCase().includes(query) ||
+      user.bio.toLowerCase().includes(query)
+    );
+  });
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-15 space-y-8 bg-transparent text-neutral-900">
-      <div>
-        <h1 className="text-xl font-bold tracking-tight text-neutral-900">Community Space</h1>
-        <p className="text-xs text-neutral-500 mt-1">
-          Discover and track notable authors sharing perspectives on various topics.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight text-neutral-900">Community Space</h1>
+          <p className="text-xs text-neutral-500 mt-1">
+            Discover and track notable authors sharing perspectives on various topics.
+          </p>
+        </div>
+
+        {/* Search Filter Input */}
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+          <input
+            type="text"
+            placeholder="Search authors or handles..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-white border border-neutral-200 rounded-lg pl-9 pr-4 py-2 text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-400 transition-colors"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -173,13 +196,15 @@ export default function CommunityPage() {
               </div>
             </div>
           ))
-        ) : users.length === 0 ? (
+        ) : filteredUsers.length === 0 ? (
           <div className="col-span-full py-12 text-center border border-dashed border-neutral-200 rounded-xl">
-            <p className="text-xs text-neutral-400">No community directory profiles indexed yet.</p>
+            <p className="text-xs text-neutral-400">
+              {users.length === 0 ? "No community directory profiles indexed yet." : "No authors matched your search criteria."}
+            </p>
           </div>
         ) : (
           // LIGHT THEME CREATOR CARDS
-          users.map((user) => (
+          filteredUsers.map((user) => (
             <div 
               key={user.id} 
               className="bg-white border border-neutral-200 hover:border-neutral-400 rounded-xl p-5 flex flex-col justify-between hover:shadow-sm transition-all duration-200"
