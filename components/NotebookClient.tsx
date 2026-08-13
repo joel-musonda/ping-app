@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useTransition } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   getNotebook, getChaptersForNotebook, createChapter, deleteChapter,
@@ -10,8 +10,8 @@ import {
 } from "@/lib/appwrite";
 import { getCurrentUser } from "@/lib/auth";
 import { 
-  BookOpen, Plus, Edit2, MessageSquare, FileText, Menu, X, Heart, 
-  Send, Trash2, Users, MessageSquarePlus, Lock, Eye, CheckCircle2, ArrowRight, CornerDownRight, Reply
+  BookOpen, Plus, Edit2, MessageSquare, FileText, Menu, X, ThumbsUp, 
+  Send, Trash2, Users, MessageSquarePlus, Lock, Eye, CheckCircle2, ArrowRight, CornerDownRight, Reply, AlertTriangle
 } from "lucide-react";
 import ChapterContent from "@/components/ChapterContent";
 import HoverCard from "@/components/HoverCard";
@@ -72,6 +72,7 @@ export default function NotebookPage() {
   const [likeId, setLikeId] = useState<string | null>(null);
   const [likeCount, setLikeCount] = useState(0);
   const [likeLoading, setLikeLoading] = useState(false);
+  const [likerProfiles, setLikerProfiles] = useState<any[]>([]);
   
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -83,6 +84,8 @@ export default function NotebookPage() {
   const [annotationMenuPos, setAnnotationMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [flashedCommentId, setFlashedCommentId] = useState<string | null>(null);
 
+  const [itemToDelete, setItemToDelete] = useState<{ type: "chapter" | "comment"; id: string } | null>(null);
+
   const [headings, setHeadings] = useState<HeadingItem[]>([]);
   const [activeHeadingId, setActiveHeadingId] = useState<string>("");
 
@@ -90,6 +93,7 @@ export default function NotebookPage() {
   const [replyText, setReplyText] = useState("");
   const [postingReply, setPostingReply] = useState(false);
 
+  const [, startTransition] = useTransition();
   const lastScrollY = useRef(0);
   
   const contentWrapperRef = useRef<HTMLDivElement>(null);
@@ -104,53 +108,54 @@ export default function NotebookPage() {
     }, 3500);
   };
 
-  const loadData = async () => {
-    try {
-      const nb = await getNotebook(notebookId);
-      const ch = await getChaptersForNotebook(notebookId);
-      setNotebook(nb);
-      setChapters(ch);
-
-      const [user, author] = await Promise.all([
-        getCurrentUser(),
-        getPingByUserId(nb.owner_id),
-      ]);
-      
-      const ownerCheck = !!user && user.$id === nb.owner_id;
-      const editorCheck = !!user && (user.$id === nb.owner_id || (nb.collaborator_ids && nb.collaborator_ids.includes(user.$id)));
-      
-      setIsOwner(ownerCheck);
-      setCanEdit(editorCheck);
-      setAuthorProfile(author);
-      setCurrentUser(user);
-
-      if (user) {
-        const profile = await getPingByUserId(user.$id);
-        setCurrentUserProfile(profile);
-      }
-
-      if (nb.collaborator_ids && nb.collaborator_ids.length > 0) {
-        const profiles = await Promise.all(
-          nb.collaborator_ids.map((id: string) => getPingByUserId(id).catch(() => null))
-        );
-        setCollaboratorProfiles(profiles.filter(Boolean));
-      }
-
-      if (ch.length > 0) {
-        setSelectedChapter(ch[0]);
-        setViewMode("chapter");
-      } else {
-        setViewMode("root");
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadData();
+    let isMounted = true;
+    async function load() {
+      try {
+        const [nb, ch, user] = await Promise.all([
+          getNotebook(notebookId),
+          getChaptersForNotebook(notebookId),
+          getCurrentUser(),
+        ]);
+
+        if (!isMounted) return;
+        setNotebook(nb);
+        setChapters(ch);
+        setCurrentUser(user);
+
+        if (ch.length > 0) {
+          setSelectedChapter(ch[0]);
+          setViewMode("chapter");
+        } else {
+          setViewMode("root");
+        }
+        setLoading(false);
+
+        Promise.all([
+          getPingByUserId(nb.owner_id),
+          user ? getPingByUserId(user.$id) : Promise.resolve(null),
+          nb.collaborator_ids && nb.collaborator_ids.length > 0
+            ? Promise.all(nb.collaborator_ids.map((id: string) => getPingByUserId(id).catch(() => null)))
+            : Promise.resolve([]),
+        ]).then(([author, userProfile, collabs]) => {
+          if (!isMounted) return;
+          setAuthorProfile(author);
+          if (userProfile) setCurrentUserProfile(userProfile);
+          if (collabs) setCollaboratorProfiles(collabs.filter(Boolean));
+
+          const ownerCheck = !!user && user.$id === nb.owner_id;
+          const editorCheck = !!user && (user.$id === nb.owner_id || (nb.collaborator_ids && nb.collaborator_ids.includes(user.$id)));
+          setIsOwner(ownerCheck);
+          setCanEdit(editorCheck);
+        });
+
+      } catch (err) {
+        console.error(err);
+        if (isMounted) setLoading(false);
+      }
+    }
+    load();
+    return () => { isMounted = false; };
   }, [notebookId]);
 
   useEffect(() => {
@@ -267,13 +272,13 @@ export default function NotebookPage() {
       lastScrollY.current = currentScrollY;
 
       if (viewMode === "chapter" && headings.length > 0) {
-        const scrollPos = currentScrollY + 140;
         let currentActive = headings[0].id;
 
         for (const h of headings) {
           const el = document.getElementById(h.id);
           if (el) {
-            if (el.offsetTop <= scrollPos) {
+            const rect = el.getBoundingClientRect();
+            if (rect.top <= 140) {
               currentActive = h.id;
             }
           }
@@ -291,7 +296,6 @@ export default function NotebookPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [viewMode, headings]);
 
-  // Fix: Robust selection change handler checking container bounds to prevent incorrect root selections
   useEffect(() => {
     const handleSelectionChange = () => {
       const selection = window.getSelection();
@@ -302,7 +306,6 @@ export default function NotebookPage() {
       }
 
       if (contentWrapperRef.current && contentWrapperRef.current.contains(selection.anchorNode)) {
-        // Ensure range is strictly valid inside content wrapper
         const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
         
@@ -327,9 +330,12 @@ export default function NotebookPage() {
     setActiveHeadingId(headingId);
     const el = document.getElementById(headingId);
     if (el) {
-      const offsetTop = el.offsetTop - 80;
+      const rect = el.getBoundingClientRect();
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const targetTop = rect.top + scrollTop - 80;
+
       window.scrollTo({
-        top: offsetTop,
+        top: targetTop,
         behavior: "smooth",
       });
     }
@@ -368,11 +374,7 @@ export default function NotebookPage() {
     }
   };
 
-  const handleDeleteChapter = async (chapterId: string, e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    if (!canEdit) return;
-    if (!window.confirm("Are you sure you want to delete this chapter?")) return;
-
+  const executeDeleteChapter = async (chapterId: string) => {
     try {
       await deleteChapter(chapterId);
       const updatedChapters = chapters.filter((c) => c.$id !== chapterId);
@@ -390,23 +392,29 @@ export default function NotebookPage() {
     } catch (err) {
       console.error("Failed to delete chapter:", err);
       alert("Could not delete chapter.");
+    } finally {
+      setItemToDelete(null);
     }
   };
 
   const handleSelectChapter = (ch: any) => {
-    setSelectedChapter(ch);
-    setViewMode("chapter");
-    setSidebarOpen(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    startTransition(() => {
+      setSelectedChapter(ch);
+      setViewMode("chapter");
+      setSidebarOpen(false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
   };
 
   const handleNotebookClick = () => {
-    if (chapters.length > 0) {
-      handleSelectChapter(chapters[0]);
-    } else {
-      setViewMode("root");
-    }
-    setSidebarOpen(false);
+    startTransition(() => {
+      if (chapters.length > 0) {
+        handleSelectChapter(chapters[0]);
+      } else {
+        setViewMode("root");
+      }
+      setSidebarOpen(false);
+    });
   };
 
   const handleLikeToggle = async () => {
@@ -493,11 +501,35 @@ export default function NotebookPage() {
     }
   };
 
-  const handleDeleteComment = async (commentId: string) => {
+  const executeDeleteComment = async (commentId: string) => {
     try {
       await deleteComment(commentId);
       setComments((prev) => prev.filter((c) => c.$id !== commentId && parseAnnotationMeta(c.content).replyToId !== commentId));
       showToast("Comment deleted");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setItemToDelete(null);
+    }
+  };
+
+  const handleLikeCommentToggle = async (comment: any) => {
+    if (!currentUser) {
+      router.push("/signup");
+      return;
+    }
+    try {
+      let likedBy = comment.liked_by || [];
+      const userLiked = likedBy.includes(currentUser.$id);
+      if (userLiked) {
+        likedBy = likedBy.filter((id: string) => id !== currentUser.$id);
+      } else {
+        likedBy = [...likedBy, currentUser.$id];
+      }
+
+      setComments((prev) =>
+        prev.map((c) => (c.$id === comment.$id ? { ...c, liked_by: likedBy } : c))
+      );
     } catch (err) {
       console.error(err);
     }
@@ -538,6 +570,20 @@ export default function NotebookPage() {
       target.scrollIntoView({ behavior: "smooth", block: "center" });
     }
     setTimeout(() => setFlashedCommentId(null), 2000);
+  };
+
+  const calculateReadingTime = (contentJson: any) => {
+    if (!contentJson) return "1 min read";
+    let text = "";
+    try {
+      const parsed = typeof contentJson === "string" ? JSON.parse(contentJson) : contentJson;
+      text = JSON.stringify(parsed).replace(/<[^>]*>?/gm, '');
+    } catch {
+      text = String(contentJson).replace(/<[^>]*>?/gm, '');
+    }
+    const words = text.trim().split(/\s+/).filter(Boolean).length;
+    const minutes = Math.ceil(words / 200);
+    return `${Math.max(1, minutes)} min read`;
   };
 
   if (loading) return <NotebookPageSkeleton />;
@@ -618,6 +664,46 @@ export default function NotebookPage() {
         </button>
       )}
 
+      {itemToDelete && (
+        <div className="fixed inset-0 z-50 bg-neutral-950/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-neutral-200 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-neutral-900">
+                  Delete {itemToDelete.type === "chapter" ? "chapter" : "comment"}?
+                </h3>
+                <p className="text-[11px] text-neutral-500 mt-0.5">
+                  This action is permanent and cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                onClick={() => setItemToDelete(null)}
+                className="px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100 rounded-xl transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (itemToDelete.type === "chapter") {
+                    executeDeleteChapter(itemToDelete.id);
+                  } else {
+                    executeDeleteComment(itemToDelete.id);
+                  }
+                }}
+                className="px-3.5 py-1.5 text-xs font-semibold bg-red-600 hover:bg-red-700 text-white rounded-xl transition shadow-sm"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {viewMode === "chapter" && headings.length > 0 && (
         <div className="hidden lg:flex fixed right-3 top-1/2 -translate-y-1/2 z-40 items-center">
           <div className="relative group/toc py-4 px-2">
@@ -656,7 +742,6 @@ export default function NotebookPage() {
         </div>
       )}
 
-      {/* Top Mobile Chapter Header */}
       <div className={`md:hidden fixed left-0 right-0 z-30 flex items-center gap-3 px-4 h-12 border-b border-neutral-200 bg-white/95 backdrop-blur-md shadow-xs transition-all duration-300 ${isGlobalNavVisible ? "top-14" : "top-0"}`}>
         <button onClick={() => setSidebarOpen(true)} className="p-1.5 -ml-1.5 rounded-md text-neutral-600 hover:bg-neutral-100 transition">
           <Menu className="w-5 h-5" />
@@ -666,7 +751,6 @@ export default function NotebookPage() {
 
       {sidebarOpen && <div onClick={() => setSidebarOpen(false)} className="md:hidden fixed inset-0 bg-neutral-950/40 z-40" />}
 
-      {/* Sticky Desktop & Off-Canvas Mobile Sidebar */}
       <aside
         className={`fixed top-0 md:top-14 h-screen md:h-[calc(100vh-56px)] w-80 max-w-[85vw] border-r border-neutral-200 flex flex-col bg-white md:bg-neutral-50/50 shrink-0 z-50 transition-transform duration-200 ease-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 overflow-y-auto`}
       >
@@ -719,7 +803,7 @@ export default function NotebookPage() {
                       <button onClick={(e) => { e.stopPropagation(); router.push(`/notebooks/${notebookId}/chapters/${ch.$id}`); }} className="p-1.5 rounded-md md:bg-white md:border border-neutral-200 shadow-sm text-neutral-600 hover:text-neutral-900 transition" title="Edit Chapter">
                         <Edit2 className="w-3 h-3" />
                       </button>
-                      <button onClick={(e) => handleDeleteChapter(ch.$id, e)} className="p-1.5 rounded-md md:bg-white md:border border-neutral-200 shadow-sm text-neutral-400 hover:text-rose-600 transition" title="Delete Chapter">
+                      <button onClick={(e) => { e.stopPropagation(); setItemToDelete({ type: "chapter", id: ch.$id }); }} className="p-1.5 rounded-md md:bg-white md:border border-neutral-200 shadow-sm text-neutral-400 hover:text-rose-600 transition" title="Delete Chapter">
                         <Trash2 className="w-3 h-3" />
                       </button>
                     </div>
@@ -731,7 +815,6 @@ export default function NotebookPage() {
         </div>
       </aside>
 
-      {/* Main Content Pane */}
       <div className={`flex-1 min-w-0 flex flex-col bg-white transition-all duration-300 md:pl-80 relative shadow-[inset_0_-24px_24px_-16px_rgba(0,0,0,0.03)] ${isGlobalNavVisible ? "pt-14 md:pt-0" : "pt-0"}`}>
         {viewMode === "root" && (
           <div className="max-w-3xl w-full mx-auto px-6 md:px-12 pt-6 pb-24 md:pb-10 flex flex-col min-h-full">
@@ -780,14 +863,24 @@ export default function NotebookPage() {
                 <h2 className="text-2xl font-bold tracking-tight text-neutral-900 leading-tight">
                   {selectedChapter.title || "Untitled chapter"}
                 </h2>
-                <div className="flex flex-col gap-1.5">
+                
+                <div className="flex items-center gap-3 text-xs text-neutral-500 pt-1">
+                  {selectedChapter.$createdAt && (
+                    <span>{new Date(selectedChapter.$createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                  )}
+                  {selectedChapter.$updatedAt && selectedChapter.$updatedAt !== selectedChapter.$createdAt && (
+                    <span className="text-neutral-400">Last updated {new Date(selectedChapter.$updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                  )}
+                  <span>{calculateReadingTime(selectedChapter.content_json)}</span>
+                </div>
+
+                <div className="flex flex-col gap-1.5 pt-1">
                   <AuthorByline />
                   <CollaborationStack />
                 </div>
               </div>
             </div>
 
-            {/* Added scroll shadow wrapper class for bottom depth indicator */}
             <div className="flex-1 relative selection:bg-green-100/90 selection:text-neutral-900 pb-12 shadow-[inset_0_-30px_20px_-20px_rgba(0,0,0,0.04)]" ref={contentWrapperRef}>
               <div className="prose prose-neutral max-w-none text-neutral-800 tracking-normal leading-relaxed break-words">
                 <ChapterContent contentJson={selectedChapter.content_json} />
@@ -824,11 +917,39 @@ export default function NotebookPage() {
             )}
 
             <div ref={commentSectionRef} className="mt-12 pt-8 border-t border-neutral-200 bg-white scroll-mt-20">
-              <div className="flex items-center gap-2 mb-8">
-                <button onClick={handleLikeToggle} disabled={likeLoading} className={`flex items-center gap-1.5 text-sm rounded-full px-3 py-1.5 border transition-colors ${likeId ? "bg-red-50 border-red-200 text-red-600" : "bg-white border-neutral-300 text-neutral-600 hover:border-neutral-400"}`}>
-                  <Heart className={`w-4 h-4 ${likeId ? "fill-red-500 text-red-500" : ""}`} />
-                  <span>{likeCount}</span>
-                </button>
+              
+              <div className="flex items-center gap-3 mb-8">
+                <div className="flex items-center">
+                  <button
+                    onClick={handleLikeToggle}
+                    disabled={likeLoading}
+                    className={`flex items-center gap-2.5 text-xs font-semibold rounded-full px-4 py-2 border transition-all shadow-2xs ${
+                      likeId
+                        ? "bg-blue-50 border-blue-200 text-[#0084FF]"
+                        : "bg-white border-neutral-200 text-neutral-700 hover:border-neutral-300"
+                    }`}
+                  >
+                    {likerProfiles.length > 0 && (
+                      <div className="flex items-center -space-x-1.5 mr-0.5">
+                        {likerProfiles.slice(0, 3).map((liker, idx) => (
+                          <div
+                            key={liker?.$id || idx}
+                            className="w-5 h-5 rounded-full bg-neutral-900 text-white text-[9px] font-bold flex items-center justify-center uppercase overflow-hidden border-2 border-white shrink-0"
+                          >
+                            {liker?.avatar_url ? (
+                              <img src={liker.avatar_url} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              liker?.handle?.charAt(0) || "?"
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <ThumbsUp className={`w-4 h-4 ${likeId ? "fill-[#0084FF]" : ""}`} />
+                    <span>{likeCount}</span>
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-center gap-2 mb-6">
@@ -847,10 +968,12 @@ export default function NotebookPage() {
                     const { quote, isPrivate, bodyText } = parseAnnotationMeta(c.content);
                     const isFlashed = flashedCommentId === c.$id;
                     const replies = getRepliesForComment(c.$id);
+                    const commentLiked = currentUser && (c.liked_by || []).includes(currentUser.$id);
+                    const likedByList: string[] = c.liked_by || [];
 
                     return (
                       <div key={c.$id} className="space-y-3">
-                        <div ref={(el) => { commentElementsRef.current[c.$id] = el; }} className={`flex gap-3 items-start group p-4 rounded-2xl transition-all duration-500 border bg-white ${isFlashed ? "border-blue-300 shadow-md ring-2 ring-blue-100" : "border-neutral-200/80 hover:border-neutral-300 shadow-2xs"}`}>
+                        <div ref={(el) => { commentElementsRef.current[c.$id] = el; }} className={`flex gap-3 items-start group/card p-4 rounded-2xl transition-all duration-500 border bg-white ${isFlashed ? "border-blue-300 shadow-md ring-2 ring-blue-100" : "border-neutral-200/80 hover:border-neutral-300 shadow-2xs"}`}>
                           <HoverCard handle={c.handle}>
                             <div className="w-8 h-8 rounded-full bg-neutral-900 text-white text-[11px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden cursor-pointer shadow-sm">
                               {c.avatar_url ? <img src={c.avatar_url} alt="" className="w-full h-full object-cover" /> : c.handle?.charAt(0) || "?"}
@@ -871,15 +994,26 @@ export default function NotebookPage() {
                                 )}
                               </div>
 
-                              <div className="flex items-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                              <div className="flex items-center gap-3 opacity-100 md:opacity-0 md:group-hover/card:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => handleLikeCommentToggle(c)}
+                                  className={`flex items-center gap-1 text-[11px] font-semibold transition ${
+                                    commentLiked ? "text-[#0084FF]" : "text-neutral-500 hover:text-neutral-900"
+                                  }`}
+                                >
+                                  <ThumbsUp className={`w-3.5 h-3.5 ${commentLiked ? "fill-[#0084FF]" : ""}`} />
+                                  <span>{likedByList.length > 0 ? likedByList.length : "Like"}</span>
+                                </button>
+
                                 {currentUser && (
                                   <button onClick={() => setReplyingToId(replyingToId === c.$id ? null : c.$id)} style={{ color: "#0084FF" }} className="text-[11px] font-semibold hover:opacity-80 flex items-center gap-1 transition">
-                                    <Reply className="w-3 h-3" />
+                                    <Reply className="w-3.5 h-3.5" />
                                     <span>Reply</span>
                                   </button>
                                 )}
+
                                 {currentUser?.$id === c.user_id && (
-                                  <button onClick={() => handleDeleteComment(c.$id)} className="p-1 rounded text-neutral-400 hover:text-rose-600 transition" title="Delete comment">
+                                  <button onClick={() => setItemToDelete({ type: "comment", id: c.$id })} className="text-neutral-400 hover:text-rose-600 transition" title="Delete comment">
                                     <Trash2 className="w-3.5 h-3.5" />
                                   </button>
                                 )}
@@ -901,8 +1035,11 @@ export default function NotebookPage() {
                             {replies.map((reply) => {
                               const replyMeta = parseAnnotationMeta(reply.content);
                               const isReplyFlashed = flashedCommentId === reply.$id;
+                              const replyLiked = currentUser && (reply.liked_by || []).includes(currentUser.$id);
+                              const replyLikedByList: string[] = reply.liked_by || [];
+
                               return (
-                                <div key={reply.$id} ref={(el) => { commentElementsRef.current[reply.$id] = el; }} className={`flex gap-3 items-start group p-3.5 rounded-xl border bg-neutral-50/60 transition-all duration-300 ${isReplyFlashed ? "border-blue-300 shadow-sm bg-blue-50/20" : "border-neutral-200/60"}`}>
+                                <div key={reply.$id} ref={(el) => { commentElementsRef.current[reply.$id] = el; }} className={`flex gap-3 items-start group/replycard p-3.5 rounded-xl border bg-neutral-50/60 transition-all duration-300 ${isReplyFlashed ? "border-blue-300 shadow-sm bg-blue-50/20" : "border-neutral-200/60"}`}>
                                   <HoverCard handle={reply.handle}>
                                     <div className="w-7 h-7 rounded-full bg-neutral-900 text-white text-[10px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden cursor-pointer">
                                       {reply.avatar_url ? <img src={reply.avatar_url} alt="" className="w-full h-full object-cover" /> : reply.handle?.charAt(0) || "?"}
@@ -913,12 +1050,26 @@ export default function NotebookPage() {
                                       <HoverCard handle={reply.handle}>
                                         <span className="text-xs font-bold text-neutral-900 cursor-pointer hover:underline truncate">{reply.name || `@${reply.handle}`}</span>
                                       </HoverCard>
-                                      {currentUser?.$id === reply.user_id && (
-                                        <button onClick={() => handleDeleteComment(reply.$id)} className="p-1 rounded text-neutral-400 hover:text-rose-600 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition" title="Delete reply">
-                                          <Trash2 className="w-3 h-3" />
+
+                                      <div className="flex items-center gap-3 opacity-100 md:opacity-0 md:group-hover/replycard:opacity-100 transition-opacity">
+                                        <button
+                                          onClick={() => handleLikeCommentToggle(reply)}
+                                          className={`flex items-center gap-1 text-[11px] font-semibold transition ${
+                                            replyLiked ? "text-[#0084FF]" : "text-neutral-500 hover:text-neutral-900"
+                                          }`}
+                                        >
+                                          <ThumbsUp className={`w-3.5 h-3.5 ${replyLiked ? "fill-[#0084FF]" : ""}`} />
+                                          <span>{replyLikedByList.length > 0 ? replyLikedByList.length : "Like"}</span>
                                         </button>
-                                      )}
+
+                                        {currentUser?.$id === reply.user_id && (
+                                          <button onClick={() => setItemToDelete({ type: "comment", id: reply.$id })} className="text-neutral-400 hover:text-rose-600 transition" title="Delete reply">
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                          </button>
+                                        )}
+                                      </div>
                                     </div>
+
                                     <p className="text-xs text-neutral-700 leading-relaxed break-words">{replyMeta.bodyText}</p>
                                   </div>
                                 </div>
