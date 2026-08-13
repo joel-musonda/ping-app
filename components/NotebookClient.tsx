@@ -881,8 +881,8 @@ export default function NotebookPage() {
               </div>
             </div>
 
-            <div className="flex-1 relative selection:bg-green-100/90 selection:text-neutral-900 pb-12 shadow-[inset_0_-30px_20px_-20px_rgba(0,0,0,0.04)]" ref={contentWrapperRef}>
-              <div className="prose prose-neutral max-w-none text-neutral-800 tracking-normal leading-relaxed break-words">
+            <div className="flex-1 relative selection:bg-green-100/90 selection:text-neutral-900 pb-12 shadow-[inset_0_-40px_30px_-20px_rgba(255,255,255,0.9)]" ref={contentWrapperRef}>
+              <div className="prose prose-lg prose-neutral max-w-none text-neutral-800 tracking-normal leading-relaxed break-words">
                 <ChapterContent contentJson={selectedChapter.content_json} />
               </div>
               

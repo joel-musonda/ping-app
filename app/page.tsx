@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getPublicNotebooks, getPingByUserId, getNotebookEngagement } from "@/lib/appwrite";
-import { Heart, MessageCircle, Book, ArrowUpRight, Folder, Flame, X } from "lucide-react";
+import { Heart, MessageCircle, Book, ArrowUpRight, Folder, Flame, X, Loader2 } from "lucide-react";
 import HoverCard from "@/components/HoverCard";
 
 function FeedCardSkeleton() {
@@ -76,76 +76,49 @@ function TrendingList({ loading, trendingNotebooks }: { loading: boolean; trendi
 function HomePageInner() {
   const [notebooks, setNotebooks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
   const [trendingSheetOpen, setTrendingSheetOpen] = useState(false);
+  
+  const loaderRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  const PAGE_SIZE = 15;
 
   // Dynamic Page Title Effect
   useEffect(() => {
     document.title = "Homepage | Ping";
   }, []);
 
+  // Initial load and enrichment function
   useEffect(() => {
     let isMounted = true;
 
-    async function loadFeedData() {
+    async function loadInitialFeed() {
       try {
         const nbs = await getPublicNotebooks();
         if (!isMounted) return;
 
-        // Process all notebooks in parallel using Promise.all to drastically reduce network latency
-        const enriched = await Promise.all(
-          nbs.map(async (nb) => {
-            try {
-              const [ping, engagement] = await Promise.all([
-                getPingByUserId(nb.owner_id).catch(() => null),
-                getNotebookEngagement(nb.$id).catch(() => ({ likes: 0, comments: 0, chapterCount: 0 })),
-              ]);
-
-              let collaboratorProfiles: any[] = [];
-              if (nb.collaborator_ids && nb.collaborator_ids.length > 0) {
-                const profiles = await Promise.all(
-                  nb.collaborator_ids.map((id: string) => getPingByUserId(id).catch(() => null))
-                );
-                collaboratorProfiles = profiles.filter(Boolean);
-              }
-
-              return {
-                ...nb,
-                authorHandle: ping?.handle ?? "unknown",
-                authorName: ping?.name ?? "",
-                authorAvatar: ping?.avatar_url ?? "",
-                authorId: nb.owner_id,
-                collaboratorProfiles,
-                likeCount: engagement.likes,
-                commentCount: engagement.comments,
-                chapterCount: engagement.chapterCount,
-              };
-            } catch (innerErr) {
-              console.error("Failed to enrich notebook:", innerErr);
-              return {
-                ...nb,
-                authorHandle: "unknown",
-                authorName: "",
-                authorAvatar: "",
-                authorId: nb.owner_id,
-                collaboratorProfiles: [],
-                likeCount: 0,
-                commentCount: 0,
-                chapterCount: 0,
-              };
-            }
-          })
-        );
-
-        if (!isMounted) return;
-
-        // Sort notebooks so that most recently updated ones appear at the top
-        const sorted = enriched.sort(
+        // Sort notebooks so that most recently updated ones appear at the top first
+        const sortedRaw = nbs.sort(
           (a, b) => new Date(b.$updatedAt || b.$createdAt).getTime() - new Date(a.$updatedAt || a.$createdAt).getTime()
         );
 
-        setNotebooks(sorted);
+        // Slice only the first page items to enrich
+        const firstPageItems = sortedRaw.slice(0, PAGE_SIZE);
+        setHasMore(sortedRaw.length > PAGE_SIZE);
+
+        const enriched = await enrichNotebooks(firstPageItems);
+        if (!isMounted) return;
+
+        // Keep the full sorted raw list or cached state for pagination slices
+        // Store raw items in a data attribute or state if needed, or simply slice from sortedRaw
+        // For simplicity, let's keep sortedRaw in a ref or local state
+        (window as any).__pingSortedRaw = sortedRaw;
+
+        setNotebooks(enriched);
       } catch (err) {
         console.error("Failed to load public notebooks feed:", err);
       } finally {
@@ -153,12 +126,114 @@ function HomePageInner() {
       }
     }
 
-    loadFeedData();
+    loadInitialFeed();
 
     return () => {
       isMounted = false;
     };
   }, []);
+
+  async function enrichNotebooks(nbs: any[]) {
+    return await Promise.all(
+      nbs.map(async (nb) => {
+        try {
+          const [ping, engagement] = await Promise.all([
+            getPingByUserId(nb.owner_id).catch(() => null),
+            getNotebookEngagement(nb.$id).catch(() => ({ likes: 0, comments: 0, chapterCount: 0 })),
+          ]);
+
+          let collaboratorProfiles: any[] = [];
+          if (nb.collaborator_ids && nb.collaborator_ids.length > 0) {
+            const profiles = await Promise.all(
+              nb.collaborator_ids.map((id: string) => getPingByUserId(id).catch(() => null))
+            );
+            collaboratorProfiles = profiles.filter(Boolean);
+          }
+
+          return {
+            ...nb,
+            authorHandle: ping?.handle ?? "unknown",
+            authorName: ping?.name ?? "",
+            authorAvatar: ping?.avatar_url ?? "",
+            authorId: nb.owner_id,
+            collaboratorProfiles,
+            likeCount: engagement.likes,
+            commentCount: engagement.comments,
+            chapterCount: engagement.chapterCount,
+          };
+        } catch (innerErr) {
+          console.error("Failed to enrich notebook:", innerErr);
+          return {
+            ...nb,
+            authorHandle: "unknown",
+            authorName: "",
+            authorAvatar: "",
+            authorId: nb.owner_id,
+            collaboratorProfiles: [],
+            likeCount: 0,
+            commentCount: 0,
+            chapterCount: 0,
+          };
+        }
+      })
+    );
+  }
+
+  // Load more pages for infinite scroll
+  const loadMoreNotebooks = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+
+    try {
+      const sortedRaw = (window as any).__pingSortedRaw || [];
+      const nextPage = page + 1;
+      const startIndex = page * PAGE_SIZE;
+      const endIndex = startIndex + PAGE_SIZE;
+      const nextBatchRaw = sortedRaw.slice(startIndex, endIndex);
+
+      if (nextBatchRaw.length === 0) {
+        setHasMore(false);
+        setLoadingMore(false);
+        return;
+      }
+
+      const enrichedBatch = await enrichNotebooks(nextBatchRaw);
+
+      setNotebooks((prev) => [...prev, ...enrichedBatch]);
+      setPage(nextPage);
+      if (endIndex >= sortedRaw.length) {
+        setHasMore(false);
+      }
+    } catch (err) {
+      console.error("Failed to load more notebooks:", err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  // Intersection Observer for Infinite Scroll
+  useEffect(() => {
+    const currentLoader = loaderRef.current;
+    if (!currentLoader) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (first.isIntersecting && hasMore && !loading && !loadingMore) {
+          loadMoreNotebooks();
+        }
+      },
+      { threshold: 0.1, rootMargin: "200px" }
+    );
+
+    observer.observe(currentLoader);
+
+    return () => {
+      if (currentLoader) {
+        observer.unobserve(currentLoader);
+      }
+    };
+  }, [hasMore, loading, loadingMore, page]);
 
   useEffect(() => {
     if (searchParams.get("trending") === "1") {
@@ -311,6 +386,19 @@ function HomePageInner() {
                   </article>
                 );
               })}
+
+              {/* Infinite scroll loader trigger element */}
+              <div ref={loaderRef} className="py-6 flex justify-center items-center w-full">
+                {loadingMore && (
+                  <div className="flex items-center gap-2 text-xs font-medium text-neutral-500">
+                    <Loader2 className="w-4 h-4 animate-spin text-neutral-400" />
+                    <span>Loading more notebooks...</span>
+                  </div>
+                )}
+                {!hasMore && notebooks.length > 0 && (
+                  <p className="text-xs text-neutral-400 font-medium">You have reached the end of the feed.</p>
+                )}
+              </div>
             </div>
           )}
         </div>

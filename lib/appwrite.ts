@@ -192,13 +192,16 @@ export async function getNotebooksForUser(userId: string, publicOnly: boolean) {
   return Array.from(uniqueMap.values());
 }
 
+
 export async function getPublicNotebooks() {
   const result = await databases.listDocuments(DATABASE_ID, NOTEBOOKS_COLLECTION_ID, [
     Query.equal("is_public", true),
+    Query.limit(100), // Increase or set high enough to grab all notebooks for client-side pagination
     Query.orderDesc("$updatedAt"),
   ]);
   return result.documents;
 }
+
 
 export async function getPingByUserId(userId: string) {
   const result = await databases.listDocuments(DATABASE_ID, PINGS_COLLECTION_ID, [
