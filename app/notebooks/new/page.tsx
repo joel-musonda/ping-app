@@ -23,7 +23,7 @@ import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   Heading2, List, ImageIcon, Upload, FileText, Globe, X, Camera, Trash2, Users,
   Link as LinkIcon, Quote, Code, Check, ExternalLink, GripVertical,
-  AlignLeft, AlignCenter, AlignRight, Lock, Unlock, Undo2, Redo2, Minus, Moon, Sun
+  AlignLeft, AlignCenter, AlignRight, Lock, Unlock, Undo2, Redo2, Minus
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -40,7 +40,7 @@ const ImageWithCaptionComponent = ({ node, updateAttributes }: NodeViewProps) =>
 
   return (
     <NodeViewWrapper className="my-6 max-w-full flex flex-col items-center">
-      <div className="relative group rounded-xl overflow-hidden border border-neutral-200 dark:border-neutral-800 shadow-sm max-h-[300px] sm:max-h-[400px]">
+      <div className="relative group rounded-xl overflow-hidden border border-neutral-200 shadow-sm max-h-[300px] sm:max-h-[400px]">
         <img src={src} alt="" className="w-auto h-auto max-h-[300px] sm:max-h-[400px] object-cover mx-auto" />
       </div>
       <input
@@ -49,7 +49,7 @@ const ImageWithCaptionComponent = ({ node, updateAttributes }: NodeViewProps) =>
         placeholder="Type a reference or caption for this image..."
         value={caption || ""}
         onChange={(e) => updateAttributes({ caption: e.target.value })}
-        className="mt-2 w-full max-w-md text-center text-xs text-neutral-500 dark:text-neutral-400 bg-transparent border-b border-transparent hover:border-neutral-200 dark:hover:border-neutral-700 focus:border-neutral-400 dark:focus:border-neutral-500 focus:outline-none py-1 placeholder:text-neutral-400/70 transition"
+        className="mt-2 w-full max-w-md text-center text-xs text-neutral-500 bg-transparent border-b border-transparent hover:border-neutral-200 focus:border-neutral-400 focus:outline-none py-1 placeholder:text-neutral-400/70 transition"
       />
     </NodeViewWrapper>
   );
@@ -134,7 +134,6 @@ export default function CreateNotebookPage() {
   const [isPublic, setIsPublic] = useState(true);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
 
   const [snapshot, setSnapshot] = useState("");
   const [coverImageUrl, setCoverImageUrl] = useState("");
@@ -164,7 +163,7 @@ export default function CreateNotebookPage() {
       }),
       Link.configure({
         openOnClick: false,
-        HTMLAttributes: { class: "text-blue-600 dark:text-blue-400 underline cursor-pointer" },
+        HTMLAttributes: { class: "text-blue-600 underline cursor-pointer" },
       }),
       CustomImageExtension,
       TextAlign.configure({ types: ["heading", "paragraph"] }),
@@ -173,7 +172,7 @@ export default function CreateNotebookPage() {
     editorProps: {
       attributes: {
         class:
-          "prose dark:prose-invert focus:outline-none min-h-[60vh] max-w-none text-neutral-800 dark:text-neutral-100 " +
+          "prose focus:outline-none min-h-[60vh] max-w-none text-neutral-800 " +
           "[&_.is-editor-empty:first-child::before]:text-neutral-400/70 " +
           "[&_.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] " +
           "[&_.is-editor-empty:first-child::before]:float-left " +
@@ -337,38 +336,38 @@ export default function CreateNotebookPage() {
   const FormattingControls = () => (
     <div className="flex items-center gap-1 overflow-x-auto no-scrollbar overscroll-contain py-1 sm:py-0 w-full">
       {/* Pill 1: Text Styling */}
-      <div className="flex items-center bg-neutral-100/90 dark:bg-neutral-800/90 rounded-full px-2 py-1 shadow-2xs shrink-0">
+      <div className="flex items-center bg-neutral-100/90 rounded-full px-2 py-1 shadow-2xs shrink-0">
         <button
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor?.chain().focus().toggleBold().run()}
-          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("bold") ? "bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 shadow-xs font-bold" : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"}`}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("bold") ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
           title="Bold"
         >
           <Bold className="w-4 h-4" />
         </button>
-        <div className="w-px h-3.5 bg-neutral-300 dark:bg-neutral-700 mx-1 shrink-0" />
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
         <button
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor?.chain().focus().toggleItalic().run()}
-          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("italic") ? "bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 shadow-xs font-bold" : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"}`}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("italic") ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
           title="Italic"
         >
           <Italic className="w-4 h-4" />
         </button>
-        <div className="w-px h-3.5 bg-neutral-300 dark:bg-neutral-700 mx-1 shrink-0" />
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
         <button
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor?.chain().focus().toggleUnderline().run()}
-          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("underline") ? "bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 shadow-xs font-bold" : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"}`}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("underline") ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
           title="Underline"
         >
           <UnderlineIcon className="w-4 h-4" />
         </button>
-        <div className="w-px h-3.5 bg-neutral-300 dark:bg-neutral-700 mx-1 shrink-0" />
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
         <button
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor?.chain().focus().toggleStrike().run()}
-          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("strike") ? "bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 shadow-xs font-bold" : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"}`}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("strike") ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
           title="Strikethrough"
         >
           <Strikethrough className="w-4 h-4" />
@@ -376,29 +375,29 @@ export default function CreateNotebookPage() {
       </div>
 
       {/* Pill 2: History & Layout */}
-      <div className="flex items-center bg-neutral-100/90 dark:bg-neutral-800/90 rounded-full px-2 py-1 shadow-2xs shrink-0">
+      <div className="flex items-center bg-neutral-100/90 rounded-full px-2 py-1 shadow-2xs shrink-0">
         <button
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor?.chain().focus().undo().run()}
-          className="p-1.5 rounded-lg text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition shrink-0"
+          className="p-1.5 rounded-lg text-neutral-600 hover:text-neutral-900 transition shrink-0"
           title="Undo"
         >
           <Undo2 className="w-4 h-4" />
         </button>
-        <div className="w-px h-3.5 bg-neutral-300 dark:bg-neutral-700 mx-1 shrink-0" />
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
         <button
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor?.chain().focus().redo().run()}
-          className="p-1.5 rounded-lg text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition shrink-0"
+          className="p-1.5 rounded-lg text-neutral-600 hover:text-neutral-900 transition shrink-0"
           title="Redo"
         >
           <Redo2 className="w-4 h-4" />
         </button>
-        <div className="w-px h-3.5 bg-neutral-300 dark:bg-neutral-700 mx-1 shrink-0" />
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
         <button
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor?.chain().focus().setHardBreak().run()}
-          className="p-1.5 rounded-lg text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition shrink-0"
+          className="p-1.5 rounded-lg text-neutral-600 hover:text-neutral-900 transition shrink-0"
           title="Add Line with Space"
         >
           <Minus className="w-4 h-4" />
@@ -406,38 +405,38 @@ export default function CreateNotebookPage() {
       </div>
 
       {/* Pill 3: Structure & Blocks */}
-      <div className="flex items-center bg-neutral-100/90 dark:bg-neutral-800/90 rounded-full px-2 py-1 shadow-2xs shrink-0">
+      <div className="flex items-center bg-neutral-100/90 rounded-full px-2 py-1 shadow-2xs shrink-0">
         <button
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
-          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("heading", { level: 2 }) ? "bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 shadow-xs font-bold" : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"}`}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("heading", { level: 2 }) ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
           title="Heading"
         >
           <Heading2 className="w-4 h-4" />
         </button>
-        <div className="w-px h-3.5 bg-neutral-300 dark:bg-neutral-700 mx-1 shrink-0" />
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
         <button
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor?.chain().focus().toggleBulletList().run()}
-          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("bulletList") ? "bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 shadow-xs font-bold" : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"}`}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("bulletList") ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
           title="Bullet List"
         >
           <List className="w-4 h-4" />
         </button>
-        <div className="w-px h-3.5 bg-neutral-300 dark:bg-neutral-700 mx-1 shrink-0" />
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
         <button
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor?.chain().focus().toggleBlockquote().run()}
-          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("blockquote") ? "bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 shadow-xs font-bold" : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"}`}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("blockquote") ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
           title="Quote"
         >
           <Quote className="w-4 h-4" />
         </button>
-        <div className="w-px h-3.5 bg-neutral-300 dark:bg-neutral-700 mx-1 shrink-0" />
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
         <button
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
-          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("codeBlock") ? "bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 shadow-xs font-bold" : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"}`}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive("codeBlock") ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
           title="Code Block"
         >
           <Code className="w-4 h-4" />
@@ -445,46 +444,46 @@ export default function CreateNotebookPage() {
       </div>
 
       {/* Pill 4: Alignment & Links & Media */}
-      <div className="flex items-center bg-neutral-100/90 dark:bg-neutral-800/90 rounded-full px-2 py-1 shadow-2xs shrink-0">
+      <div className="flex items-center bg-neutral-100/90 rounded-full px-2 py-1 shadow-2xs shrink-0">
         <button
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor?.chain().focus().setTextAlign("left").run()}
-          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive({ textAlign: "left" }) ? "bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 shadow-xs font-bold" : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"}`}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive({ textAlign: "left" }) ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
           title="Align Left"
         >
           <AlignLeft className="w-4 h-4" />
         </button>
-        <div className="w-px h-3.5 bg-neutral-300 dark:bg-neutral-700 mx-1 shrink-0" />
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
         <button
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor?.chain().focus().setTextAlign("center").run()}
-          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive({ textAlign: "center" }) ? "bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 shadow-xs font-bold" : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"}`}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive({ textAlign: "center" }) ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
           title="Align Center"
         >
           <AlignCenter className="w-4 h-4" />
         </button>
-        <div className="w-px h-3.5 bg-neutral-300 dark:bg-neutral-700 mx-1 shrink-0" />
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
         <button
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor?.chain().focus().setTextAlign("right").run()}
-          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive({ textAlign: "right" }) ? "bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 shadow-xs font-bold" : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"}`}
+          className={`p-1.5 rounded-lg transition shrink-0 ${editor?.isActive({ textAlign: "right" }) ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
           title="Align Right"
         >
           <AlignRight className="w-4 h-4" />
         </button>
-        <div className="w-px h-3.5 bg-neutral-300 dark:bg-neutral-700 mx-1 shrink-0" />
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
         <button
           onMouseDown={(e) => e.preventDefault()}
           onClick={handleToggleLinkPopover}
-          className={`p-1.5 rounded-lg transition shrink-0 ${isLinkPopoverOpen || editor?.isActive("link") ? "bg-white dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 shadow-xs font-bold" : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"}`}
+          className={`p-1.5 rounded-lg transition shrink-0 ${isLinkPopoverOpen || editor?.isActive("link") ? "bg-white text-neutral-900 shadow-xs font-bold" : "text-neutral-600 hover:text-neutral-900"}`}
           title="Add Link"
         >
           <LinkIcon className="w-4 h-4" />
         </button>
-        <div className="w-px h-3.5 bg-neutral-300 dark:bg-neutral-700 mx-1 shrink-0" />
+        <div className="w-px h-3.5 bg-neutral-300 mx-1 shrink-0" />
         <label
           htmlFor="tiptap-image-upload"
-          className="p-1.5 rounded-lg text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 cursor-pointer transition shrink-0"
+          className="p-1.5 rounded-lg text-neutral-600 hover:text-neutral-900 cursor-pointer transition shrink-0"
           title="Upload Image"
         >
           <ImageIcon className="w-4 h-4" />
@@ -494,7 +493,7 @@ export default function CreateNotebookPage() {
   );
 
   return (
-    <main className={`min-h-screen pb-32 transition-colors duration-200 ${darkMode ? "dark bg-neutral-950 text-neutral-100" : "bg-white text-neutral-900"}`}>
+    <main className="min-h-screen bg-white pb-32">
       <style jsx global>{`
         .hljs-comment, .hljs-quote { color: #8b949e; font-style: italic; }
         .hljs-keyword, .hljs-selector-tag, .hljs-subst { color: #ff7b72; font-weight: 600; }
@@ -511,21 +510,14 @@ export default function CreateNotebookPage() {
       <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleCoverImageUpload} />
 
       {/* Unified Sticky Top Toolbar */}
-      <div className="sticky top-0 z-40 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800 shadow-sm w-full transition-all duration-200">
+      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-neutral-200 shadow-sm w-full transition-all duration-200">
         <div className="max-w-4xl mx-auto px-3 sm:px-6 py-2 sm:py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-6 relative">
           
           <div className="flex items-center justify-between sm:justify-end gap-3 order-1 sm:order-2 w-full sm:w-auto shrink-0">
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setDarkMode(!darkMode)}
-                className="h-9 w-9 flex items-center justify-center bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 rounded-lg transition transform active:scale-95"
-                title="Toggle Dark Mode"
-              >
-                {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
-              </button>
-              <button
                 onClick={() => {}}
-                className="h-9 px-4 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 rounded-lg text-sm font-semibold transition transform active:scale-95"
+                className="h-9 px-4 bg-neutral-100 hover:bg-neutral-200 active:bg-neutral-300 text-neutral-700 rounded-lg text-sm font-semibold transition transform active:scale-95"
               >
                 Save as Draft
               </button>
@@ -543,7 +535,7 @@ export default function CreateNotebookPage() {
           </div>
 
           {isLinkPopoverOpen && (
-            <div className="absolute left-3 right-3 sm:left-6 sm:right-auto top-[calc(100%+8px)] z-50 max-w-sm p-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+            <div className="absolute left-3 right-3 sm:left-6 sm:right-auto top-[calc(100%+8px)] z-50 max-w-sm p-2 bg-white border border-neutral-200 rounded-xl shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
               <div className="px-2 text-neutral-400"><ExternalLink className="w-4 h-4" /></div>
               <input
                 type="text"
@@ -551,18 +543,18 @@ export default function CreateNotebookPage() {
                 value={linkInputUrl}
                 onChange={(e) => setLinkInputUrl(e.target.value)}
                 autoFocus
-                className="flex-1 text-sm bg-transparent border-none focus:outline-none focus:ring-0 text-neutral-800 dark:text-neutral-100"
+                className="flex-1 text-sm bg-transparent border-none focus:outline-none focus:ring-0 text-neutral-800"
               />
               <button type="button" onClick={handleApplyLink} className="h-8 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition">
                 <Check className="w-3.5 h-3.5" />
                 <span>Apply</span>
               </button>
               {editor?.isActive("link") && (
-                <button type="button" onClick={handleRemoveLink} className="h-8 px-2 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 text-rose-600 dark:text-rose-400 rounded-lg text-xs font-semibold transition">
+                <button type="button" onClick={handleRemoveLink} className="h-8 px-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-semibold transition">
                   Unlink
                 </button>
               )}
-              <button type="button" onClick={() => setIsLinkPopoverOpen(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 rounded-lg">
+              <button type="button" onClick={() => setIsLinkPopoverOpen(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -577,21 +569,21 @@ export default function CreateNotebookPage() {
           placeholder="Notebook Title Goes here"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full bg-transparent text-3xl sm:text-4xl font-black placeholder:text-neutral-300 dark:placeholder:text-neutral-700 border-none focus:outline-none focus:ring-0 mb-6 sm:mb-8 text-neutral-900 dark:text-neutral-100 tracking-tight"
+          className="w-full bg-transparent text-3xl sm:text-4xl font-black placeholder:text-neutral-300 border-none focus:outline-none focus:ring-0 mb-6 sm:mb-8 text-neutral-900 tracking-tight"
         />
         <EditorContent editor={editor} />
       </div>
 
       {/* Publish / Onboarding Modal */}
       {isPublishModalOpen && (
-        <div className="fixed inset-0 z-[60] bg-neutral-950/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 max-w-md w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="px-5 py-4 border-b border-neutral-100 dark:border-neutral-800 flex justify-between items-center bg-neutral-50 dark:bg-neutral-800/50 shrink-0">
+        <div className="fixed inset-0 z-[60] bg-neutral-950/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-neutral-200 max-w-md w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-5 py-4 border-b border-neutral-100 flex justify-between items-center bg-neutral-50 shrink-0">
               <div className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-neutral-900 dark:text-neutral-100" />
-                <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-100">Publishing Your Notebook</h3>
+                <Globe className="w-4 h-4 text-neutral-900" />
+                <h3 className="text-sm font-bold text-neutral-900">Publishing Your Notebook</h3>
               </div>
-              <button onClick={() => setIsPublishModalOpen(false)} className="p-1 rounded-md text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"><X className="w-4 h-4" /></button>
+              <button onClick={() => setIsPublishModalOpen(false)} className="p-1 rounded-md text-neutral-400 hover:text-neutral-900"><X className="w-4 h-4" /></button>
             </div>
 
             <div className="p-5 space-y-4 flex-1 overflow-y-auto">
@@ -600,18 +592,18 @@ export default function CreateNotebookPage() {
                   <Globe className="w-3 h-3" />
                   <span>Visibility</span>
                 </label>
-                <div className="flex items-center justify-between p-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/30">
+                <div className="flex items-center justify-between p-3 rounded-xl border border-neutral-200 bg-neutral-50/50">
                   <div className="flex items-center gap-2.5">
                     {isPublic ? (
-                      <Globe className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <Globe className="w-4 h-4 text-emerald-600" />
                     ) : (
-                      <Lock className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                      <Lock className="w-4 h-4 text-rose-600" />
                     )}
                     <div>
-                      <p className="text-xs font-bold text-neutral-800 dark:text-neutral-200">
+                      <p className="text-xs font-bold text-neutral-800">
                         {isPublic ? "Public Notebook" : "Private Notebook"}
                       </p>
-                      <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                      <p className="text-[11px] text-neutral-500">
                         {isPublic ? "Anyone can discover and view this notebook" : "Only you and invited collaborators can view"}
                       </p>
                     </div>
@@ -648,7 +640,7 @@ export default function CreateNotebookPage() {
                   placeholder="e.g. Technology, Design, Engineering..."
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full text-sm p-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/30 focus:bg-white dark:focus:bg-neutral-800 focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-600 text-neutral-800 dark:text-neutral-100"
+                  className="w-full text-sm p-3 rounded-xl border border-neutral-200 bg-neutral-50/50 focus:bg-white focus:outline-none focus:border-neutral-400 text-neutral-800"
                 />
               </div>
 
@@ -662,7 +654,7 @@ export default function CreateNotebookPage() {
                   value={snapshot}
                   onChange={(e) => setSnapshot(e.target.value)}
                   maxLength={160}
-                  className="w-full text-sm p-3 min-h-[80px] rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/30 focus:bg-white dark:focus:bg-neutral-800 focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-600 resize-none text-neutral-800 dark:text-neutral-100"
+                  className="w-full text-sm p-3 min-h-[80px] rounded-xl border border-neutral-200 bg-neutral-50/50 focus:bg-white focus:outline-none focus:border-neutral-400 resize-none text-neutral-800"
                 />
               </div>
 
@@ -673,7 +665,7 @@ export default function CreateNotebookPage() {
                 </label>
 
                 {coverImageUrl ? (
-                  <div className="relative rounded-xl border border-neutral-200 dark:border-neutral-800 aspect-[2/1] bg-neutral-50 dark:bg-neutral-800 overflow-hidden group">
+                  <div className="relative rounded-xl border aspect-[2/1] bg-neutral-50 overflow-hidden group">
                     <img src={coverImageUrl} alt="Cover Preview" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-neutral-950/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-150">
                       <button type="button" onClick={() => setCoverImageUrl("")} className="p-2 rounded-lg bg-rose-600 text-white"><Trash2 className="w-4 h-4" /></button>
@@ -683,7 +675,7 @@ export default function CreateNotebookPage() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full rounded-xl border-2 border-dashed border-neutral-200 dark:border-neutral-800 aspect-[2/1] bg-neutral-50/50 dark:bg-neutral-800/30 flex flex-col items-center justify-center gap-2 text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition duration-150"
+                    className="w-full rounded-xl border-2 border-dashed border-neutral-200 aspect-[2/1] bg-neutral-50/50 flex flex-col items-center justify-center gap-2 text-neutral-400 hover:bg-neutral-100 transition duration-150"
                   >
                     <Camera className="w-6 h-6" />
                     <span className="text-sm font-semibold">Set Feed Thumbnail</span>
@@ -703,10 +695,10 @@ export default function CreateNotebookPage() {
                     value={collabQuery}
                     onChange={(e) => handleCollabSearchChange(e.target.value)}
                     placeholder="Search by @handle..."
-                    className="w-full text-sm p-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/30 focus:bg-white dark:focus:bg-neutral-800 focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-600 text-neutral-800 dark:text-neutral-100"
+                    className="w-full text-sm p-3 rounded-xl border border-neutral-200 bg-neutral-50/50 focus:bg-white focus:outline-none focus:border-neutral-400 text-neutral-800"
                   />
                   {collabQuery.length > 0 && (
-                    <div className="absolute z-10 mt-1 w-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg max-h-40 overflow-y-auto">
+                    <div className="absolute z-10 mt-1 w-full bg-white border border-neutral-200 rounded-xl shadow-lg max-h-40 overflow-y-auto">
                       {collabSearching ? (
                         <p className="text-sm text-neutral-400 p-3">Searching...</p>
                       ) : collabResults.length === 0 ? (
@@ -717,7 +709,7 @@ export default function CreateNotebookPage() {
                             key={ping.$id}
                             type="button"
                             onClick={() => handleAddCollaborator(ping)}
-                            className="w-full text-left px-3 py-2 text-sm text-neutral-800 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition"
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 transition"
                           >
                             @{ping.handle}
                           </button>
@@ -734,10 +726,10 @@ export default function CreateNotebookPage() {
                       const dotGradient = gradients[index % gradients.length];
 
                       return (
-                        <span key={c.$id} className="flex items-center gap-1.5 text-xs font-medium bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-900 text-blue-900 dark:text-blue-300 rounded-full pl-2.5 pr-1.5 py-1.5">
+                        <span key={c.$id} className="flex items-center gap-1.5 text-xs font-medium bg-blue-50/80 border border-blue-100 text-blue-900 rounded-full pl-2.5 pr-1.5 py-1.5">
                           <span className={`w-3.5 h-3.5 rounded-full bg-gradient-to-tr ${dotGradient} shadow-sm shrink-0`} />
                           @{c.handle}
-                          <button type="button" onClick={() => handleRemoveCollaborator(c.$id)} className="p-0.5 rounded-full hover:bg-blue-200/60 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 transition">
+                          <button type="button" onClick={() => handleRemoveCollaborator(c.$id)} className="p-0.5 rounded-full hover:bg-blue-200/60 text-blue-700 transition">
                             <X className="w-3.5 h-3.5" />
                           </button>
                         </span>
@@ -748,7 +740,7 @@ export default function CreateNotebookPage() {
               </div>
 
               <div className="pt-4 flex items-center justify-end gap-2">
-                <button type="button" onClick={() => setIsPublishModalOpen(false)} className="h-10 px-4 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 rounded-lg text-sm font-semibold transition">
+                <button type="button" onClick={() => setIsPublishModalOpen(false)} className="h-10 px-4 bg-white border border-neutral-200 hover:bg-neutral-50 text-neutral-700 rounded-lg text-sm font-semibold transition">
                   Back
                 </button>
                 <button
