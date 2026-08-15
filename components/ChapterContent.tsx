@@ -47,7 +47,7 @@ export default function ChapterContent({ contentJson }: { contentJson: string | 
 
   return (
     <div
-      className="prose prose-neutral max-w-none"
+      className="prose prose-lg prose-neutral dark:prose-invert max-w-none text-neutral-900 dark:text-neutral-100 tracking-normal leading-relaxed break-words"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

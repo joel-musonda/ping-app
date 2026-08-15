@@ -882,9 +882,9 @@ export default function NotebookPage() {
             </div>
 
             <div className="flex-1 relative selection:bg-green-100 dark:selection:bg-green-950 selection:text-neutral-900 dark:selection:text-neutral-100 pb-12 shadow-[inset_0_-40px_30px_-20px_rgba(255,255,255,0.9)] dark:shadow-[inset_0_-40px_30px_-20px_rgba(10,10,10,0.9)]" ref={contentWrapperRef}>
-              <div className="prose prose-lg prose-neutral dark:prose-invert max-w-none text-neutral-800 dark:text-neutral-200 tracking-normal leading-relaxed break-words">
-                <ChapterContent contentJson={selectedChapter.content_json} />
-              </div>
+             <div className="prose prose-lg prose-neutral dark:prose-invert dark:text-neutral-100 max-w-none text-neutral-900 dark:text-neutral-100 tracking-normal leading-relaxed break-words">
+  <ChapterContent contentJson={selectedChapter.content_json} />
+</div>
               
               <div className="absolute top-0 -right-5 md:-right-8 flex flex-col gap-2 select-none h-full border-l border-neutral-100/60 dark:border-neutral-800/60 pl-1.5">
                 {visibleComments.map((c) => {
