@@ -149,84 +149,84 @@ export default function CommunityPage() {
   });
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-15 space-y-8 bg-transparent text-neutral-900">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-15 space-y-8 bg-transparent text-neutral-900 dark:text-neutral-100">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-neutral-900">Community Space</h1>
-          <p className="text-xs text-neutral-500 mt-1">
+          <h1 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">Community Space</h1>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
             Discover and track notable authors sharing perspectives on various topics.
           </p>
         </div>
 
         {/* Search Filter Input */}
         <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 dark:text-neutral-500" />
           <input
             type="text"
             placeholder="Search authors or handles..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-neutral-200 rounded-lg pl-9 pr-4 py-2 text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-400 transition-colors"
+            className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg pl-9 pr-4 py-2 text-xs text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500 focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-600 transition-colors"
           />
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading ? (
-          // CLEAN LIGHT SKELETON LOADERS
+          // SKELETON LOADERS WITH DARK MODE
           Array.from({ length: 6 }).map((_, index) => (
-            <div key={index} className="bg-white border border-neutral-200 rounded-xl p-5 space-y-5 animate-pulse">
+            <div key={index} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 space-y-5 animate-pulse">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-full bg-neutral-100" />
+                  <div className="w-11 h-11 rounded-full bg-neutral-100 dark:bg-neutral-800" />
                   <div className="space-y-2">
-                    <div className="h-3 w-24 bg-neutral-100 rounded" />
-                    <div className="h-2 w-16 bg-neutral-100 rounded" />
+                    <div className="h-3 w-24 bg-neutral-100 dark:bg-neutral-800 rounded" />
+                    <div className="h-2 w-16 bg-neutral-100 dark:bg-neutral-800 rounded" />
                   </div>
                 </div>
-                <div className="h-7 w-20 bg-neutral-100 rounded-md" />
+                <div className="h-7 w-20 bg-neutral-100 dark:bg-neutral-800 rounded-md" />
               </div>
               <div className="space-y-2">
-                <div className="h-2 w-full bg-neutral-100 rounded" />
-                <div className="h-2 w-4/5 bg-neutral-100 rounded" />
+                <div className="h-2 w-full bg-neutral-100 dark:bg-neutral-800 rounded" />
+                <div className="h-2 w-4/5 bg-neutral-100 dark:bg-neutral-800 rounded" />
               </div>
-              <div className="pt-4 border-t border-neutral-100 flex gap-4">
-                <div className="h-3 w-16 bg-neutral-100 rounded" />
-                <div className="h-3 w-16 bg-neutral-100 rounded" />
+              <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800 flex gap-4">
+                <div className="h-3 w-16 bg-neutral-100 dark:bg-neutral-800 rounded" />
+                <div className="h-3 w-16 bg-neutral-100 dark:bg-neutral-800 rounded" />
               </div>
             </div>
           ))
         ) : filteredUsers.length === 0 ? (
-          <div className="col-span-full py-12 text-center border border-dashed border-neutral-200 rounded-xl">
-            <p className="text-xs text-neutral-400">
+          <div className="col-span-full py-12 text-center border border-dashed border-neutral-200 dark:border-neutral-800 rounded-xl">
+            <p className="text-xs text-neutral-400 dark:text-neutral-500">
               {users.length === 0 ? "No community directory profiles indexed yet." : "No authors matched your search criteria."}
             </p>
           </div>
         ) : (
-          // LIGHT THEME CREATOR CARDS
+          // CREATOR CARDS WITH DARK THEME
           filteredUsers.map((user) => (
             <div 
               key={user.id} 
-              className="bg-white border border-neutral-200 hover:border-neutral-400 rounded-xl p-5 flex flex-col justify-between hover:shadow-sm transition-all duration-200"
+              className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-700 rounded-xl p-5 flex flex-col justify-between hover:shadow-sm transition-all duration-200"
             >
               <div>
                 <div className="flex items-start justify-between gap-3">
                   {/* Identity Avatar Link */}
                   <a href={`/${user.handle}`} className="flex items-center gap-3 group">
-                    <div className="w-11 h-11 rounded-full overflow-hidden bg-neutral-50 border border-neutral-200 flex-shrink-0 flex items-center justify-center">
+                    <div className="w-11 h-11 rounded-full overflow-hidden bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex-shrink-0 flex items-center justify-center">
                       {user.avatarUrl ? (
                         <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-xs font-bold text-neutral-400">
+                        <span className="text-xs font-bold text-neutral-400 dark:text-neutral-500">
                           {user.name.substring(0, 2).toUpperCase()}
                         </span>
                       )}
                     </div>
                     <div>
-                      <h2 className="text-xs font-bold text-neutral-900 group-hover:underline line-clamp-1">
+                      <h2 className="text-xs font-bold text-neutral-900 dark:text-neutral-100 group-hover:underline line-clamp-1">
                         {user.name}
                       </h2>
-                      <p className="text-[11px] text-neutral-400">@{user.handle}</p>
+                      <p className="text-[11px] text-neutral-400 dark:text-neutral-500">@{user.handle}</p>
                     </div>
                   </a>
 
@@ -236,8 +236,8 @@ export default function CommunityPage() {
                       onClick={() => handleFollowAction(user)}
                       className={`flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-md border transition-colors ${
                         user.followDocId
-                          ? "bg-neutral-50 border-neutral-200 text-neutral-600 hover:bg-neutral-100"
-                          : "bg-neutral-950 border-neutral-950 text-white hover:bg-neutral-800"
+                          ? "bg-neutral-50 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                          : "bg-neutral-950 dark:bg-white border-neutral-950 dark:border-white text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200"
                       }`}
                     >
                       {user.followDocId ? (
@@ -255,20 +255,20 @@ export default function CommunityPage() {
                   )}
                 </div>
 
-                <p className="text-[11px] text-neutral-600 mt-4 line-clamp-2 min-h-[2rem]">
+                <p className="text-[11px] text-neutral-600 dark:text-neutral-400 mt-4 line-clamp-2 min-h-[2rem]">
                   {user.bio || "Hello There, Welcome to my Ping."}
                 </p>
               </div>
 
               {/* Bottom Card Context Metadata */}
-              <div className="flex items-center gap-4 mt-4 pt-3 border-t border-neutral-100 text-[11px] font-medium text-neutral-400">
+              <div className="flex items-center gap-4 mt-4 pt-3 border-t border-neutral-100 dark:border-neutral-800 text-[11px] font-medium text-neutral-400 dark:text-neutral-500">
                 <div className="flex items-center gap-1">
                   <Book className="w-3.5 h-3.5" />
-                  <span className="text-neutral-500">{user.notebooksCount} notebooks</span>
+                  <span className="text-neutral-500 dark:text-neutral-400">{user.notebooksCount} notebooks</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Users className="w-3.5 h-3.5" />
-                  <span className="text-neutral-500">{user.followersCount} followers</span>
+                  <span className="text-neutral-500 dark:text-neutral-400">{user.followersCount} followers</span>
                 </div>
               </div>
             </div>

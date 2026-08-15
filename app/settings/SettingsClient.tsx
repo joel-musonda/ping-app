@@ -227,52 +227,52 @@ export default function SettingsClient() {
 
   if (loading) {
     return (
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6 bg-transparent text-neutral-900 select-none animate-pulse">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6 bg-transparent text-neutral-900 dark:text-neutral-100 select-none animate-pulse">
         {/* Header Skeleton */}
         <div className="space-y-2 hidden sm:block">
-          <div className="h-7 w-32 bg-neutral-200 rounded-lg" />
-          <div className="h-4 w-64 bg-neutral-100 rounded-lg" />
+          <div className="h-7 w-32 bg-neutral-200 dark:bg-neutral-800 rounded-lg" />
+          <div className="h-4 w-64 bg-neutral-100 dark:bg-neutral-900 rounded-lg" />
         </div>
 
         {/* Desktop Tabs Skeleton */}
         <div className="hidden sm:flex items-center gap-2 overflow-x-auto pb-2">
           {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-            <div key={i} className="h-9 w-24 bg-neutral-200 rounded-xl shrink-0" />
+            <div key={i} className="h-9 w-24 bg-neutral-200 dark:bg-neutral-800 rounded-xl shrink-0" />
           ))}
         </div>
 
         {/* Mobile Main Menu / Content Skeleton */}
         <div className="sm:hidden space-y-4">
-          <div className="h-20 bg-neutral-200 rounded-2xl w-full" />
+          <div className="h-20 bg-neutral-200 dark:bg-neutral-800 rounded-2xl w-full" />
           <div className="space-y-2">
-            <div className="h-3 w-28 bg-neutral-200 rounded ml-1" />
-            <div className="bg-neutral-200 rounded-2xl h-60 w-full" />
+            <div className="h-3 w-28 bg-neutral-200 dark:bg-neutral-800 rounded ml-1" />
+            <div className="bg-neutral-200 dark:bg-neutral-800 rounded-2xl h-60 w-full" />
           </div>
         </div>
 
         {/* Desktop Main Content Area Skeleton */}
-        <div className="hidden sm:block bg-neutral-100 border border-neutral-200/80 rounded-2xl p-6 space-y-6">
-          <div className="h-4 w-40 bg-neutral-200 rounded" />
+        <div className="hidden sm:block bg-neutral-100 dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 rounded-2xl p-6 space-y-6">
+          <div className="h-4 w-40 bg-neutral-200 dark:bg-neutral-800 rounded" />
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-neutral-200 shrink-0" />
+            <div className="w-14 h-14 rounded-full bg-neutral-200 dark:bg-neutral-800 shrink-0" />
             <div className="space-y-2">
-              <div className="h-4 w-32 bg-neutral-200 rounded" />
-              <div className="h-3 w-48 bg-neutral-200 rounded" />
+              <div className="h-4 w-32 bg-neutral-200 dark:bg-neutral-800 rounded" />
+              <div className="h-3 w-48 bg-neutral-200 dark:bg-neutral-800 rounded" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="h-10 bg-neutral-200 rounded-xl" />
-            <div className="h-10 bg-neutral-200 rounded-xl" />
+            <div className="h-10 bg-neutral-200 dark:bg-neutral-800 rounded-xl" />
+            <div className="h-10 bg-neutral-200 dark:bg-neutral-800 rounded-xl" />
           </div>
-          <div className="h-24 bg-neutral-200 rounded-xl" />
-          <div className="h-10 w-32 bg-neutral-200 rounded-xl" />
+          <div className="h-24 bg-neutral-200 dark:bg-neutral-800 rounded-xl" />
+          <div className="h-10 w-32 bg-neutral-200 dark:bg-neutral-800 rounded-xl" />
         </div>
       </main>
     );
   }
 
   return (
-    <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6 bg-transparent text-neutral-900 select-none">
+    <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6 bg-transparent text-neutral-900 dark:text-neutral-100 select-none transition-colors">
       
       {/* Header section / Back button for mobile view when inside a tab */}
       {activeTab !== "Main" && (
@@ -287,8 +287,8 @@ export default function SettingsClient() {
       )}
 
       <div className="space-y-1 hidden sm:block">
-        <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Settings</h1>
-        <p className="text-xs text-neutral-500">Manage your account settings and preferences</p>
+        <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">Settings</h1>
+        <p className="text-xs text-neutral-500 dark:text-neutral-400">Manage your account settings and preferences</p>
       </div>
 
       {/* Desktop Pill Navigation Bar */}
@@ -309,8 +309,8 @@ export default function SettingsClient() {
               onClick={() => setActiveTab(tab.name as any)}
               className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 shadow-sm ${
                 isActive
-                  ? "bg-neutral-950 text-white shadow-md"
-                  : "bg-white border border-neutral-200/80 text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
+                  ? "bg-neutral-950 dark:bg-white text-white dark:text-neutral-900 shadow-md"
+                  : "bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white"
               }`}
             >
               {tab.name}
@@ -325,118 +325,118 @@ export default function SettingsClient() {
           {/* Profile Card Header */}
           <div
             onClick={() => setActiveTab("Account")}
-            className="bg-white border border-neutral-200/80 rounded-2xl p-4 flex items-center justify-between shadow-sm cursor-pointer hover:border-neutral-300 transition"
+            className="bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 rounded-2xl p-4 flex items-center justify-between shadow-sm cursor-pointer hover:border-neutral-300 dark:hover:border-neutral-700 transition"
           >
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-12 h-12 rounded-full bg-neutral-100 border border-neutral-200 flex items-center justify-center overflow-hidden shrink-0">
+              <div className="w-12 h-12 rounded-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center overflow-hidden shrink-0">
                 {avatarDataUrl ? (
                   <img src={avatarDataUrl} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
-                  <User className="w-5 h-5 text-neutral-400" />
+                  <User className="w-5 h-5 text-neutral-400 dark:text-neutral-500" />
                 )}
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-bold text-neutral-900 truncate">{name || profileDoc?.name || "User"}</p>
-                <p className="text-[11px] text-neutral-400 truncate">@{handle || profileDoc?.handle || "user"}</p>
+                <p className="text-xs font-bold text-neutral-900 dark:text-white truncate">{name || profileDoc?.name || "User"}</p>
+                <p className="text-[11px] text-neutral-400 dark:text-neutral-500 truncate">@{handle || profileDoc?.handle || "user"}</p>
               </div>
             </div>
-            <ChevronRight className="w-4 h-4 text-neutral-400 shrink-0" />
+            <ChevronRight className="w-4 h-4 text-neutral-400 dark:text-neutral-500 shrink-0" />
           </div>
 
           <div className="space-y-2">
-            <p className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider px-1">Other settings</p>
+            <p className="text-[11px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider px-1">Other settings</p>
             
             {/* Group 1 */}
-            <div className="bg-white border border-neutral-200/80 rounded-2xl divide-y divide-neutral-100 overflow-hidden shadow-sm">
+            <div className="bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 rounded-2xl divide-y divide-neutral-100 dark:divide-neutral-800 overflow-hidden shadow-sm">
               <button
                 onClick={() => setActiveTab("Account")}
-                className="w-full flex items-center justify-between p-4 text-left hover:bg-neutral-50/50 transition"
+                className="w-full flex items-center justify-between p-4 text-left hover:bg-neutral-50/50 dark:hover:bg-neutral-800/50 transition"
               >
                 <div className="flex items-center gap-3">
-                  <User className="w-4 h-4 text-neutral-700" />
-                  <span className="text-xs font-semibold text-neutral-900">Profile details</span>
+                  <User className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />
+                  <span className="text-xs font-semibold text-neutral-900 dark:text-white">Profile details</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-neutral-400" />
+                <ChevronRight className="w-4 h-4 text-neutral-400 dark:text-neutral-500" />
               </button>
 
               <button
                 onClick={() => setActiveTab("Notebooks")}
-                className="w-full flex items-center justify-between p-4 text-left hover:bg-neutral-50/50 transition"
+                className="w-full flex items-center justify-between p-4 text-left hover:bg-neutral-50/50 dark:hover:bg-neutral-800/50 transition"
               >
                 <div className="flex items-center gap-3">
-                  <Book className="w-4 h-4 text-neutral-700" />
-                  <span className="text-xs font-semibold text-neutral-900">Notebooks</span>
+                  <Book className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />
+                  <span className="text-xs font-semibold text-neutral-900 dark:text-white">Notebooks</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-neutral-400" />
+                <ChevronRight className="w-4 h-4 text-neutral-400 dark:text-neutral-500" />
               </button>
 
               <button
                 onClick={() => setActiveTab("Notifications")}
-                className="w-full flex items-center justify-between p-4 text-left hover:bg-neutral-50/50 transition"
+                className="w-full flex items-center justify-between p-4 text-left hover:bg-neutral-50/50 dark:hover:bg-neutral-800/50 transition"
               >
                 <div className="flex items-center gap-3">
-                  <Bell className="w-4 h-4 text-neutral-700" />
-                  <span className="text-xs font-semibold text-neutral-900">Notifications</span>
+                  <Bell className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />
+                  <span className="text-xs font-semibold text-neutral-900 dark:text-white">Notifications</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-neutral-400" />
+                <ChevronRight className="w-4 h-4 text-neutral-400 dark:text-neutral-500" />
               </button>
 
               <button
                 onClick={() => setActiveTab("Social Links")}
-                className="w-full flex items-center justify-between p-4 text-left hover:bg-neutral-50/50 transition"
+                className="w-full flex items-center justify-between p-4 text-left hover:bg-neutral-50/50 dark:hover:bg-neutral-800/50 transition"
               >
                 <div className="flex items-center gap-3">
-                  <Share2 className="w-4 h-4 text-neutral-700" />
-                  <span className="text-xs font-semibold text-neutral-900">Social Links</span>
+                  <Share2 className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />
+                  <span className="text-xs font-semibold text-neutral-900 dark:text-white">Social Links</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-neutral-400" />
+                <ChevronRight className="w-4 h-4 text-neutral-400 dark:text-neutral-500" />
               </button>
 
               <button
                 onClick={() => setActiveTab("Billing")}
-                className="w-full flex items-center justify-between p-4 text-left hover:bg-neutral-50/50 transition"
+                className="w-full flex items-center justify-between p-4 text-left hover:bg-neutral-50/50 dark:hover:bg-neutral-800/50 transition"
               >
                 <div className="flex items-center gap-3">
-                  <CreditCard className="w-4 h-4 text-neutral-700" />
-                  <span className="text-xs font-semibold text-neutral-900">Billing</span>
+                  <CreditCard className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />
+                  <span className="text-xs font-semibold text-neutral-900 dark:text-white">Billing</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-neutral-400" />
+                <ChevronRight className="w-4 h-4 text-neutral-400 dark:text-neutral-500" />
               </button>
             </div>
 
             {/* Group 2 */}
-            <div className="bg-white border border-neutral-200/80 rounded-2xl divide-y divide-neutral-100 overflow-hidden shadow-sm">
+            <div className="bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 rounded-2xl divide-y divide-neutral-100 dark:divide-neutral-800 overflow-hidden shadow-sm">
               <button
                 onClick={() => setActiveTab("Rules")}
-                className="w-full flex items-center justify-between p-4 text-left hover:bg-neutral-50/50 transition"
+                className="w-full flex items-center justify-between p-4 text-left hover:bg-neutral-50/50 dark:hover:bg-neutral-800/50 transition"
               >
                 <div className="flex items-center gap-3">
-                  <FileText className="w-4 h-4 text-neutral-700" />
-                  <span className="text-xs font-semibold text-neutral-900">About application</span>
+                  <FileText className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />
+                  <span className="text-xs font-semibold text-neutral-900 dark:text-white">About application</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-neutral-400" />
+                <ChevronRight className="w-4 h-4 text-neutral-400 dark:text-neutral-500" />
               </button>
 
               <button
                 onClick={() => setActiveTab("Privacy Policy")}
-                className="w-full flex items-center justify-between p-4 text-left hover:bg-neutral-50/50 transition"
+                className="w-full flex items-center justify-between p-4 text-left hover:bg-neutral-50/50 dark:hover:bg-neutral-800/50 transition"
               >
                 <div className="flex items-center gap-3">
-                  <ShieldCheck className="w-4 h-4 text-neutral-700" />
-                  <span className="text-xs font-semibold text-neutral-900">Privacy Policy</span>
+                  <ShieldCheck className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />
+                  <span className="text-xs font-semibold text-neutral-900 dark:text-white">Privacy Policy</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-neutral-400" />
+                <ChevronRight className="w-4 h-4 text-neutral-400 dark:text-neutral-500" />
               </button>
 
               <button
                 onClick={() => setActiveTab("Account")}
-                className="w-full flex items-center justify-between p-4 text-left hover:bg-neutral-50/50 transition"
+                className="w-full flex items-center justify-between p-4 text-left hover:bg-neutral-50/50 dark:hover:bg-neutral-800/50 transition"
               >
                 <div className="flex items-center gap-3">
                   <Trash2 className="w-4 h-4 text-red-500" />
-                  <span className="text-xs font-semibold text-red-600">Deactivate my account</span>
+                  <span className="text-xs font-semibold text-red-600 dark:text-red-400">Deactivate my account</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-neutral-400" />
+                <ChevronRight className="w-4 h-4 text-neutral-400 dark:text-neutral-500" />
               </button>
             </div>
           </div>
@@ -447,16 +447,16 @@ export default function SettingsClient() {
       <div className={`${activeTab === "Main" ? "hidden sm:block" : "block"}`}>
         {activeTab === "Account" && (
           <div className="space-y-6 animate-fadeIn">
-            <section className="bg-white border border-neutral-200/80 rounded-2xl p-5 sm:p-6 space-y-5 shadow-sm">
-              <h2 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Profile Information</h2>
+            <section className="bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 rounded-2xl p-5 sm:p-6 space-y-5 shadow-sm">
+              <h2 className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">Profile Information</h2>
 
               <div className="flex items-center gap-4">
                 <label className="relative group cursor-pointer">
-                  <div className="w-14 h-14 rounded-full bg-neutral-50 border border-neutral-200 flex items-center justify-center overflow-hidden shrink-0">
+                  <div className="w-14 h-14 rounded-full bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center overflow-hidden shrink-0">
                     {avatarDataUrl ? (
                       <img src={avatarDataUrl} alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
-                      <User className="w-6 h-6 text-neutral-400" />
+                      <User className="w-6 h-6 text-neutral-400 dark:text-neutral-500" />
                     )}
                     <div className="absolute inset-0 bg-neutral-900/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition rounded-full">
                       <Camera className="w-4 h-4 text-white" />
@@ -465,42 +465,42 @@ export default function SettingsClient() {
                   <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                 </label>
                 <div>
-                  <p className="text-xs font-bold text-neutral-900">@{handle || profileDoc?.handle || "user"}</p>
-                  <p className="text-[11px] text-neutral-400 mt-0.5">Click your avatar to upload a new profile photo</p>
+                  <p className="text-xs font-bold text-neutral-900 dark:text-white">@{handle || profileDoc?.handle || "user"}</p>
+                  <p className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-0.5">Click your avatar to upload a new profile photo</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                 <div>
-                  <label className="text-xs font-semibold text-neutral-700 block mb-1">Display Name</label>
+                  <label className="text-xs font-semibold text-neutral-700 dark:text-neutral-300 block mb-1">Display Name</label>
                   <input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-900 focus:outline-none focus:border-[#0084FF] transition-colors shadow-sm"
+                    className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-3 py-2 text-xs text-neutral-900 dark:text-white focus:outline-none focus:border-[#0084FF] transition-colors shadow-sm"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-neutral-700 block mb-1">Handle (@username)</label>
+                  <label className="text-xs font-semibold text-neutral-700 dark:text-neutral-300 block mb-1">Handle (@username)</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400 font-medium">@</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400 dark:text-neutral-500 font-medium">@</span>
                     <input
                       value={handle}
                       onChange={(e) => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""))}
                       placeholder="yourhandle"
-                      className="w-full bg-white border border-neutral-200 rounded-xl pl-7 pr-3 py-2 text-xs text-neutral-900 focus:outline-none focus:border-[#0084FF] transition-colors shadow-sm"
+                      className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl pl-7 pr-3 py-2 text-xs text-neutral-900 dark:text-white focus:outline-none focus:border-[#0084FF] transition-colors shadow-sm"
                     />
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-neutral-700 block mb-1">Bio</label>
+                <label className="text-xs font-semibold text-neutral-700 dark:text-neutral-300 block mb-1">Bio</label>
                 <textarea
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
                   rows={3}
                   placeholder="Write a short author bio..."
-                  className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-900 focus:outline-none focus:border-[#0084FF] transition-colors resize-none shadow-sm"
+                  className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-3 py-2 text-xs text-neutral-900 dark:text-white focus:outline-none focus:border-[#0084FF] transition-colors resize-none shadow-sm"
                 />
               </div>
 
@@ -512,28 +512,28 @@ export default function SettingsClient() {
                 >
                   {saving ? "Saving..." : "Save Changes"}
                 </Button>
-                {saveStatus && <span className="text-xs text-emerald-600 font-medium">{saveStatus}</span>}
+                {saveStatus && <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{saveStatus}</span>}
               </div>
             </section>
 
             {/* Danger Zone */}
-            <section className="bg-white border border-red-200/80 rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm">
+            <section className="bg-white dark:bg-neutral-900 border border-red-200/80 dark:border-red-900/50 rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-red-500" />
-                <h2 className="text-xs font-bold text-red-600 uppercase tracking-wider">Danger Zone</h2>
+                <h2 className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">Danger Zone</h2>
               </div>
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs text-neutral-500 dark:text-neutral-400">
                 Deleting your account permanently removes your profile, notebooks, and chapters. This cannot be undone.
               </p>
 
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-neutral-700 block">
-                  Type <span className="font-mono bg-neutral-100 px-1 py-0.5 rounded text-neutral-900">DELETE</span> to confirm
+                <label className="text-xs font-semibold text-neutral-700 dark:text-neutral-300 block">
+                  Type <span className="font-mono bg-neutral-100 dark:bg-neutral-800 px-1 py-0.5 rounded text-neutral-900 dark:text-white">DELETE</span> to confirm
                 </label>
                 <input
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-900 focus:outline-none focus:border-red-400 transition-colors shadow-sm"
+                  className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-3 py-2 text-xs text-neutral-900 dark:text-white focus:outline-none focus:border-red-400 transition-colors shadow-sm"
                 />
               </div>
 
@@ -551,28 +551,28 @@ export default function SettingsClient() {
         )}
 
         {activeTab === "Notebooks" && (
-          <div className="bg-white border border-neutral-200/80 rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm animate-fadeIn">
-            <h2 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Notebooks Settings</h2>
-            <p className="text-xs text-neutral-500">Manage all your created notebooks and privacy settings.</p>
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm animate-fadeIn">
+            <h2 className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">Notebooks Settings</h2>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">Manage all your created notebooks and privacy settings.</p>
 
             {notebooks.length === 0 ? (
-              <p className="text-xs text-neutral-400 italic pt-2">You haven't created any notebooks yet.</p>
+              <p className="text-xs text-neutral-400 dark:text-neutral-500 italic pt-2">You haven't created any notebooks yet.</p>
             ) : (
               <div className="space-y-2 pt-2">
                 {notebooks.map((nb) => (
                   <div
                     key={nb.$id}
-                    className="flex items-center justify-between gap-3 border border-neutral-100 rounded-xl px-3.5 py-2.5 bg-neutral-50/50 hover:bg-neutral-50 transition-colors"
+                    className="flex items-center justify-between gap-3 border border-neutral-100 dark:border-neutral-800 rounded-xl px-3.5 py-2.5 bg-neutral-50/50 dark:bg-neutral-800/40 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <Book className="w-4 h-4 text-neutral-400 shrink-0" />
-                      <span className="text-xs font-bold text-neutral-900 truncate">{nb.title}</span>
-                      {!nb.is_public && <Lock className="w-3 h-3 text-neutral-400 shrink-0" />}
+                      <Book className="w-4 h-4 text-neutral-400 dark:text-neutral-500 shrink-0" />
+                      <span className="text-xs font-bold text-neutral-900 dark:text-white truncate">{nb.title}</span>
+                      {!nb.is_public && <Lock className="w-3 h-3 text-neutral-400 dark:text-neutral-500 shrink-0" />}
                     </div>
                     <Button
                       onPress={() => setNotebookToDelete(nb)}
                       isDisabled={deletingNotebookId === nb.$id}
-                      className="p-1.5 rounded-lg text-neutral-400 hover:text-red-600 hover:bg-red-50 transition shrink-0 disabled:opacity-50 h-auto min-w-0 bg-transparent border-0 shadow-none"
+                      className="p-1.5 rounded-lg text-neutral-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition shrink-0 disabled:opacity-50 h-auto min-w-0 bg-transparent border-0 shadow-none"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -584,44 +584,44 @@ export default function SettingsClient() {
         )}
 
         {activeTab === "Social Links" && (
-          <div className="bg-white border border-neutral-200/80 rounded-2xl p-5 sm:p-6 space-y-5 shadow-sm animate-fadeIn">
-            <h2 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Links & Social Profiles</h2>
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 rounded-2xl p-5 sm:p-6 space-y-5 shadow-sm animate-fadeIn">
+            <h2 className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">Links & Social Profiles</h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-neutral-700 block mb-1">Location</label>
+                <label className="text-xs font-semibold text-neutral-700 dark:text-neutral-300 block mb-1">Location</label>
                 <input
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                   placeholder="Kitwe, Zambia"
-                  className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-900 focus:outline-none focus:border-[#0084FF] transition-colors shadow-sm"
+                  className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-3 py-2 text-xs text-neutral-900 dark:text-white focus:outline-none focus:border-[#0084FF] transition-colors shadow-sm"
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-neutral-700 block mb-1">Website</label>
+                <label className="text-xs font-semibold text-neutral-700 dark:text-neutral-300 block mb-1">Website</label>
                 <input
                   value={website}
                   onChange={(e) => setWebsite(e.target.value)}
                   placeholder="joel-musonda.framer.website"
-                  className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-900 focus:outline-none focus:border-[#0084FF] transition-colors shadow-sm"
+                  className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-3 py-2 text-xs text-neutral-900 dark:text-white focus:outline-none focus:border-[#0084FF] transition-colors shadow-sm"
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-neutral-700 block mb-1">Twitter / X Username</label>
+                <label className="text-xs font-semibold text-neutral-700 dark:text-neutral-300 block mb-1">Twitter / X Username</label>
                 <input
                   value={twitter}
                   onChange={(e) => setTwitter(e.target.value)}
                   placeholder="github.com/joel-musonda"
-                  className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-900 focus:outline-none focus:border-[#0084FF] transition-colors shadow-sm"
+                  className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-3 py-2 text-xs text-neutral-900 dark:text-white focus:outline-none focus:border-[#0084FF] transition-colors shadow-sm"
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-neutral-700 block mb-1">GitHub Username</label>
+                <label className="text-xs font-semibold text-neutral-700 dark:text-neutral-300 block mb-1">GitHub Username</label>
                 <input
                   value={github}
                   onChange={(e) => setGithub(e.target.value)}
                   placeholder="Instagram.com/joel__musonda"
-                  className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs text-neutral-900 focus:outline-none focus:border-[#0084FF] transition-colors shadow-sm"
+                  className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-3 py-2 text-xs text-neutral-900 dark:text-white focus:outline-none focus:border-[#0084FF] transition-colors shadow-sm"
                 />
               </div>
             </div>
@@ -634,27 +634,27 @@ export default function SettingsClient() {
               >
                 {saving ? "Saving..." : "Save Changes"}
               </Button>
-              {saveStatus && <span className="text-xs text-emerald-600 font-medium">{saveStatus}</span>}
+              {saveStatus && <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{saveStatus}</span>}
             </div>
           </div>
         )}
 
         {activeTab === "Notifications" && (
-          <div className="bg-white border border-neutral-200/80 rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm animate-fadeIn">
-            <h2 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Notification Preferences</h2>
-            <p className="text-xs text-neutral-500">Manage how you receive alerts and updates about your notebooks and followers.</p>
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm animate-fadeIn">
+            <h2 className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">Notification Preferences</h2>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">Manage how you receive alerts and updates about your notebooks and followers.</p>
             <div className="space-y-3 pt-2">
-              <label className="flex items-center justify-between p-3 bg-neutral-50 rounded-xl border border-neutral-100 cursor-pointer">
+              <label className="flex items-center justify-between p-3 bg-neutral-50 dark:bg-neutral-800/40 rounded-xl border border-neutral-100 dark:border-neutral-800 cursor-pointer">
                 <div>
-                  <p className="text-xs font-bold text-neutral-900">Email Notifications for Likes & Comments</p>
-                  <p className="text-[11px] text-neutral-400">Receive an email when someone interacts with your notebook.</p>
+                  <p className="text-xs font-bold text-neutral-900 dark:text-white">Email Notifications for Likes & Comments</p>
+                  <p className="text-[11px] text-neutral-400 dark:text-neutral-500">Receive an email when someone interacts with your notebook.</p>
                 </div>
                 <input type="checkbox" defaultChecked className="rounded accent-[#0084FF] w-4 h-4 cursor-pointer" />
               </label>
-              <label className="flex items-center justify-between p-3 bg-neutral-50 rounded-xl border border-neutral-100 cursor-pointer">
+              <label className="flex items-center justify-between p-3 bg-neutral-50 dark:bg-neutral-800/40 rounded-xl border border-neutral-100 dark:border-neutral-800 cursor-pointer">
                 <div>
-                  <p className="text-xs font-bold text-neutral-900">New Follower Alerts</p>
-                  <p className="text-[11px] text-neutral-400">Get notified when a new writer follows your account.</p>
+                  <p className="text-xs font-bold text-neutral-900 dark:text-white">New Follower Alerts</p>
+                  <p className="text-[11px] text-neutral-400 dark:text-neutral-500">Get notified when a new writer follows your account.</p>
                 </div>
                 <input type="checkbox" defaultChecked className="rounded accent-[#0084FF] w-4 h-4 cursor-pointer" />
               </label>
@@ -663,13 +663,13 @@ export default function SettingsClient() {
         )}
 
         {activeTab === "Billing" && (
-          <div className="bg-white border border-neutral-200/80 rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm animate-fadeIn">
-            <h2 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Billing & Subscription</h2>
-            <p className="text-xs text-neutral-500">You are currently on the <span className="font-bold text-neutral-900">Free Creator Plan</span>.</p>
-            <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-xl flex items-center justify-between">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm animate-fadeIn">
+            <h2 className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">Billing & Subscription</h2>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">You are currently on the <span className="font-bold text-neutral-900 dark:text-white">Free Creator Plan</span>.</p>
+            <div className="p-4 bg-blue-50/50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 rounded-xl flex items-center justify-between">
               <div>
-                <p className="text-xs font-bold text-neutral-900">Ping Pro Tier</p>
-                <p className="text-[11px] text-neutral-500">Unlock advanced custom domains and unlimited analytics storage.</p>
+                <p className="text-xs font-bold text-neutral-900 dark:text-white">Ping Pro Tier</p>
+                <p className="text-[11px] text-neutral-500 dark:text-neutral-400">Unlock advanced custom domains and unlimited analytics storage.</p>
               </div>
               <button onClick={() => alert("Pro tier upgrade coming soon!")} className="px-3.5 py-1.5 bg-[#0084FF] text-white text-xs font-semibold rounded-xl shadow-sm hover:bg-[#0073e6] transition-colors">
                 Upgrade
@@ -679,56 +679,56 @@ export default function SettingsClient() {
         )}
 
         {activeTab === "Rules" && (
-          <div className="bg-white border border-neutral-200/80 rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm animate-fadeIn">
-            <h2 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Community Rules & Guidelines</h2>
-            <div className="space-y-3 pt-1 text-xs text-neutral-600">
-              <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 space-y-1">
-                <p className="font-bold text-neutral-900">1. Be Respectful and Constructive</p>
-                <p className="text-neutral-500">Treat all writers, readers, and community members with dignity. Harassment, hate speech, bullying, or abusive language of any kind will result in an immediate account ban.</p>
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm animate-fadeIn">
+            <h2 className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">Community Rules & Guidelines</h2>
+            <div className="space-y-3 pt-1 text-xs text-neutral-600 dark:text-neutral-300">
+              <div className="p-3 bg-neutral-50 dark:bg-neutral-800/40 rounded-xl border border-neutral-100 dark:border-neutral-800 space-y-1">
+                <p className="font-bold text-neutral-900 dark:text-white">1. Be Respectful and Constructive</p>
+                <p className="text-neutral-500 dark:text-neutral-400">Treat all writers, readers, and community members with dignity. Harassment, hate speech, bullying, or abusive language of any kind will result in an immediate account ban.</p>
               </div>
-              <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 space-y-1">
-                <p className="font-bold text-neutral-900">2. Share Authentic Content</p>
-                <p className="text-neutral-500">Document your genuine thoughts, lessons, life reflections, and technical insights. Avoid uploading automated spam, plagiarized text, or misleading information.</p>
+              <div className="p-3 bg-neutral-50 dark:bg-neutral-800/40 rounded-xl border border-neutral-100 dark:border-neutral-800 space-y-1">
+                <p className="font-bold text-neutral-900 dark:text-white">2. Share Authentic Content</p>
+                <p className="text-neutral-500 dark:text-neutral-400">Document your genuine thoughts, lessons, life reflections, and technical insights. Avoid uploading automated spam, plagiarized text, or misleading information.</p>
               </div>
-              <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 space-y-1">
-                <p className="font-bold text-neutral-900">3. Respect Intellectual Property</p>
-                <p className="text-neutral-500">Only publish notebooks and chapters that you own or have explicit legal permission to share. Give proper attribution where referencing external sources or quotes.</p>
+              <div className="p-3 bg-neutral-50 dark:bg-neutral-800/40 rounded-xl border border-neutral-100 dark:border-neutral-800 space-y-1">
+                <p className="font-bold text-neutral-900 dark:text-white">3. Respect Intellectual Property</p>
+                <p className="text-neutral-500 dark:text-neutral-400">Only publish notebooks and chapters that you own or have explicit legal permission to share. Give proper attribution where referencing external sources or quotes.</p>
               </div>
-              <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 space-y-1">
-                <p className="font-bold text-neutral-900">4. No Malicious Activity</p>
-                <p className="text-neutral-500">Do not attempt to exploit, hack, scrape, overload, or compromise the security infrastructure, databases, or API endpoints of Ping.</p>
+              <div className="p-3 bg-neutral-50 dark:bg-neutral-800/40 rounded-xl border border-neutral-100 dark:border-neutral-800 space-y-1">
+                <p className="font-bold text-neutral-900 dark:text-white">4. No Malicious Activity</p>
+                <p className="text-neutral-500 dark:text-neutral-400">Do not attempt to exploit, hack, scrape, overload, or compromise the security infrastructure, databases, or API endpoints of Ping.</p>
               </div>
-              <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 space-y-1">
-                <p className="font-bold text-neutral-900">5. Safety First</p>
-                <p className="text-neutral-500">Do not share sensitive personally identifiable information (PII) such as government IDs, private financial details, or passwords within public notebooks.</p>
+              <div className="p-3 bg-neutral-50 dark:bg-neutral-800/40 rounded-xl border border-neutral-100 dark:border-neutral-800 space-y-1">
+                <p className="font-bold text-neutral-900 dark:text-white">5. Safety First</p>
+                <p className="text-neutral-500 dark:text-neutral-400">Do not share sensitive personally identifiable information (PII) such as government IDs, private financial details, or passwords within public notebooks.</p>
               </div>
             </div>
           </div>
         )}
 
         {activeTab === "Privacy Policy" && (
-          <div className="bg-white border border-neutral-200/80 rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm animate-fadeIn">
-            <h2 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Privacy Policy</h2>
-            <div className="space-y-3 pt-1 text-xs text-neutral-600">
-              <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 space-y-1">
-                <p className="font-bold text-neutral-900">1. Information We Collect</p>
-                <p className="text-neutral-500">We collect account credentials, profile details (name, handle, bio, avatar), and user-generated notebooks and chapters stored securely via Appwrite. We also gather standard diagnostic and usage telemetry to maintain application performance.</p>
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm animate-fadeIn">
+            <h2 className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">Privacy Policy</h2>
+            <div className="space-y-3 pt-1 text-xs text-neutral-600 dark:text-neutral-300">
+              <div className="p-3 bg-neutral-50 dark:bg-neutral-800/40 rounded-xl border border-neutral-100 dark:border-neutral-800 space-y-1">
+                <p className="font-bold text-neutral-900 dark:text-white">1. Information We Collect</p>
+                <p className="text-neutral-500 dark:text-neutral-400">We collect account credentials, profile details (name, handle, bio, avatar), and user-generated notebooks and chapters stored securely via Appwrite. We also gather standard diagnostic and usage telemetry to maintain application performance.</p>
               </div>
-              <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 space-y-1">
-                <p className="font-bold text-neutral-900">2. How We Use Your Data</p>
-                <p className="text-neutral-500">Your information is used strictly to authenticate your identity, display your public author profile, sync your notes across devices, and deliver core application features. Your personal information is never sold or rented to third-party advertisers.</p>
+              <div className="p-3 bg-neutral-50 dark:bg-neutral-800/40 rounded-xl border border-neutral-100 dark:border-neutral-800 space-y-1">
+                <p className="font-bold text-neutral-900 dark:text-white">2. How We Use Your Data</p>
+                <p className="text-neutral-500 dark:text-neutral-400">Your information is used strictly to authenticate your identity, display your public author profile, sync your notes across devices, and deliver core application features. Your personal information is never sold or rented to third-party advertisers.</p>
               </div>
-              <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 space-y-1">
-                <p className="font-bold text-neutral-900">3. Data Security</p>
-                <p className="text-neutral-500">We implement industry-standard encryption protocols and secure database access rules through Appwrite to protect your personal files and notes against unauthorized access, alteration, or disclosure.</p>
+              <div className="p-3 bg-neutral-50 dark:bg-neutral-800/40 rounded-xl border border-neutral-100 dark:border-neutral-800 space-y-1">
+                <p className="font-bold text-neutral-900 dark:text-white">3. Data Security</p>
+                <p className="text-neutral-500 dark:text-neutral-400">We implement industry-standard encryption protocols and secure database access rules through Appwrite to protect your personal files and notes against unauthorized access, alteration, or disclosure.</p>
               </div>
-              <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 space-y-1">
-                <p className="font-bold text-neutral-900">4. User Control & Data Deletion</p>
-                <p className="text-neutral-500">You retain full ownership and copyright over all your written content. You can modify your public profile details at any time or permanently wipe your entire account, notebooks, and associated records instantly from the Account settings tab.</p>
+              <div className="p-3 bg-neutral-50 dark:bg-neutral-800/40 rounded-xl border border-neutral-100 dark:border-neutral-800 space-y-1">
+                <p className="font-bold text-neutral-900 dark:text-white">4. User Control & Data Deletion</p>
+                <p className="text-neutral-500 dark:text-neutral-400">You retain full ownership and copyright over all your written content. You can modify your public profile details at any time or permanently wipe your entire account, notebooks, and associated records instantly from the Account settings tab.</p>
               </div>
-              <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100 space-y-1">
-                <p className="font-bold text-neutral-900">5. Cookies & Local Storage</p>
-                <p className="text-neutral-500">We utilize secure browser cookies and local storage tokens exclusively to maintain active user session authentication and remember your local UI preferences.</p>
+              <div className="p-3 bg-neutral-50 dark:bg-neutral-800/40 rounded-xl border border-neutral-100 dark:border-neutral-800 space-y-1">
+                <p className="font-bold text-neutral-900 dark:text-white">5. Cookies & Local Storage</p>
+                <p className="text-neutral-500 dark:text-neutral-400">We utilize secure browser cookies and local storage tokens exclusively to maintain active user session authentication and remember your local UI preferences.</p>
               </div>
             </div>
           </div>
@@ -738,20 +738,20 @@ export default function SettingsClient() {
       {/* Save Changes Confirmation Modal */}
       {showSaveModal && (
         <div className="fixed inset-0 z-50 bg-neutral-950/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white border border-neutral-200 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-full bg-blue-50 dark:bg-blue-950/45 flex items-center justify-center shrink-0">
                 <Info className="w-5 h-5 text-[#0084FF]" />
               </div>
               <div>
-                <h3 className="text-xs font-bold text-neutral-900">Save social changes?</h3>
-                <p className="text-[11px] text-neutral-500 mt-0.5">Are you sure you want to update your links and social profiles?</p>
+                <h3 className="text-xs font-bold text-neutral-900 dark:text-white">Save social changes?</h3>
+                <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">Are you sure you want to update your links and social profiles?</p>
               </div>
             </div>
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 onClick={() => setShowSaveModal(false)}
-                className="px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100 rounded-xl transition"
+                className="px-3 py-1.5 text-xs font-medium text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition"
               >
                 Cancel
               </button>
@@ -772,14 +772,14 @@ export default function SettingsClient() {
       {/* Delete Notebook Confirmation Modal */}
       {notebookToDelete && (
         <div className="fixed inset-0 z-50 bg-neutral-950/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white border border-neutral-200 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+              <div className="w-9 h-9 rounded-full bg-red-50 dark:bg-red-950/45 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <h3 className="text-xs font-bold text-neutral-900">Delete notebook permanently?</h3>
-                <p className="text-[11px] text-neutral-500 mt-0.5">
+                <h3 className="text-xs font-bold text-neutral-900 dark:text-white">Delete notebook permanently?</h3>
+                <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">
                   This will permanently delete <strong>{notebookToDelete.title}</strong> and all of its chapters.
                 </p>
               </div>
@@ -787,7 +787,7 @@ export default function SettingsClient() {
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 onClick={() => setNotebookToDelete(null)}
-                className="px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100 rounded-xl transition"
+                className="px-3 py-1.5 text-xs font-medium text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition"
               >
                 Cancel
               </button>
@@ -806,14 +806,14 @@ export default function SettingsClient() {
       {/* Delete Account Confirmation Modal */}
       {showDeleteAccountModal && (
         <div className="fixed inset-0 z-50 bg-neutral-950/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white border border-neutral-200 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+              <div className="w-9 h-9 rounded-full bg-red-50 dark:bg-red-950/45 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <h3 className="text-xs font-bold text-neutral-900">Delete account permanently?</h3>
-                <p className="text-[11px] text-neutral-500 mt-0.5">
+                <h3 className="text-xs font-bold text-neutral-900 dark:text-white">Delete account permanently?</h3>
+                <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">
                   This will permanently delete your profile, notebooks, and chapters. This action cannot be undone.
                 </p>
               </div>
@@ -821,7 +821,7 @@ export default function SettingsClient() {
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 onClick={() => setShowDeleteAccountModal(false)}
-                className="px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100 rounded-xl transition"
+                className="px-3 py-1.5 text-xs font-medium text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition"
               >
                 Cancel
               </button>

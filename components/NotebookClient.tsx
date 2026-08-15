@@ -18,24 +18,24 @@ import HoverCard from "@/components/HoverCard";
 
 function NotebookPageSkeleton() {
   return (
-    <main className="w-full max-w-full overflow-x-hidden min-h-[calc(100vh-56px)] bg-white flex">
-      <div className="hidden md:flex w-80 border-r border-neutral-200 flex-col h-[calc(100vh-56px)] sticky top-14 bg-neutral-50/50 shrink-0 p-5 animate-pulse">
-        <div className="h-3 bg-neutral-200 rounded w-24 mb-3" />
-        <div className="h-5 bg-neutral-200 rounded w-full mb-2" />
-        <div className="h-3 bg-neutral-200 rounded w-3/4 mb-4" />
-        <div className="h-8 bg-neutral-200 rounded w-full mb-6" />
-        <div className="h-3 bg-neutral-200 rounded w-20 mb-3" />
+    <main className="w-full max-w-full overflow-x-hidden min-h-[calc(100vh-56px)] bg-white dark:bg-neutral-950 flex">
+      <div className="hidden md:flex w-80 border-r border-neutral-200 dark:border-neutral-800 flex-col h-[calc(100vh-56px)] sticky top-14 bg-neutral-50/50 dark:bg-neutral-900/50 shrink-0 p-5 animate-pulse">
+        <div className="h-3 bg-neutral-200 dark:bg-neutral-800 rounded w-24 mb-3" />
+        <div className="h-5 bg-neutral-200 dark:bg-neutral-800 rounded w-full mb-2" />
+        <div className="h-3 bg-neutral-200 dark:bg-neutral-800 rounded w-3/4 mb-4" />
+        <div className="h-8 bg-neutral-200 dark:bg-neutral-800 rounded w-full mb-6" />
+        <div className="h-3 bg-neutral-200 dark:bg-neutral-800 rounded w-20 mb-3" />
         <div className="space-y-3">
-          <div className="h-16 bg-neutral-100 rounded-xl w-full" />
-          <div className="h-16 bg-neutral-100 rounded-xl w-full" />
+          <div className="h-16 bg-neutral-100 dark:bg-neutral-800/60 rounded-xl w-full" />
+          <div className="h-16 bg-neutral-100 dark:bg-neutral-800/60 rounded-xl w-full" />
         </div>
       </div>
       <div className="flex-1 px-6 md:px-12 py-10 max-w-3xl mx-auto w-full animate-pulse">
-        <div className="h-7 bg-neutral-200 rounded w-2/3 mb-3" />
-        <div className="h-3 bg-neutral-200 rounded w-32 mb-8" />
+        <div className="h-7 bg-neutral-200 dark:bg-neutral-800 rounded w-2/3 mb-3" />
+        <div className="h-3 bg-neutral-200 dark:bg-neutral-800 rounded w-32 mb-8" />
         <div className="space-y-3">
-          <div className="h-32 bg-neutral-100 rounded-xl w-full" />
-          <div className="h-32 bg-neutral-100 rounded-xl w-full" />
+          <div className="h-32 bg-neutral-100 dark:bg-neutral-800/60 rounded-xl w-full" />
+          <div className="h-32 bg-neutral-100 dark:bg-neutral-800/60 rounded-xl w-full" />
         </div>
       </div>
     </main>
@@ -358,7 +358,7 @@ export default function NotebookPage() {
     setCreating(true);
     try {
       const nextOrder = chapters.length;
-      const chapter = await createChapter(
+      const chapter: any = await createChapter(
         notebookId,
         currentUser.$id, 
         notebook.is_public,
@@ -587,7 +587,7 @@ export default function NotebookPage() {
   };
 
   if (loading) return <NotebookPageSkeleton />;
-  if (!notebook) return <div className="p-8 text-sm text-neutral-500">Notebook repository not found.</div>;
+  if (!notebook) return <div className="p-8 text-sm text-neutral-500 dark:text-neutral-400">Notebook repository not found.</div>;
 
   const currentTitle = viewMode === "chapter" && selectedChapter ? selectedChapter.title : notebook.title;
 
@@ -606,8 +606,8 @@ export default function NotebookPage() {
     if (!authorProfile) return null;
     return (
       <HoverCard handle={authorProfile.handle}>
-        <a href={`/${authorProfile.handle}`} className="flex items-center gap-2 text-xs text-neutral-500 font-medium hover:text-neutral-900 transition w-fit">
-          <div className="w-5 h-5 rounded-full bg-neutral-900 text-white text-[9px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden">
+        <a href={`/${authorProfile.handle}`} className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400 font-medium hover:text-neutral-900 dark:hover:text-white transition w-fit">
+          <div className="w-5 h-5 rounded-full bg-neutral-900 dark:bg-neutral-800 text-white text-[9px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden">
             {authorProfile?.avatar_url ? (
               <img src={authorProfile.avatar_url} alt="" className="w-full h-full object-cover" />
             ) : (
@@ -623,13 +623,13 @@ export default function NotebookPage() {
   const CollaborationStack = () => {
     if (collaboratorProfiles.length === 0) return null;
     return (
-      <div className="flex flex-wrap items-center gap-x-2 text-xs text-neutral-400 font-medium">
-        <Users className="w-3 h-3 text-neutral-400" />
+      <div className="flex flex-wrap items-center gap-x-2 text-xs text-neutral-400 dark:text-neutral-500 font-medium">
+        <Users className="w-3 h-3 text-neutral-400 dark:text-neutral-500" />
         <span>with</span>
         {collaboratorProfiles.map((collab, index) => (
-          <span key={collab.$id} className="text-neutral-600 font-medium flex items-center">
+          <span key={collab.$id} className="text-neutral-600 dark:text-neutral-300 font-medium flex items-center">
             <HoverCard handle={collab.handle}>
-              <a href={`/${collab.handle}`} className="hover:text-neutral-900 hover:underline transition">
+              <a href={`/${collab.handle}`} className="hover:text-neutral-900 dark:hover:text-white hover:underline transition">
                 {collab.name || `@${collab.handle}`}
               </a>
             </HoverCard>
@@ -644,10 +644,10 @@ export default function NotebookPage() {
   const nextChapter = currentChapterIndex !== -1 && currentChapterIndex < chapters.length - 1 ? chapters[currentChapterIndex + 1] : null;
 
   return (
-    <main className="w-full max-w-full overflow-x-hidden min-h-[calc(100vh-56px)] bg-white text-neutral-900 flex relative">
+    <main className="w-full max-w-full overflow-x-hidden min-h-[calc(100vh-56px)] bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 flex relative">
 
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-neutral-950 text-white text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom-3 duration-200 border border-neutral-800">
+        <div className="fixed bottom-6 right-6 z-50 bg-neutral-950 dark:bg-neutral-900 text-white text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom-3 duration-200 border border-neutral-800 dark:border-neutral-700">
           <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
           <span className="font-medium">{toastMessage}</span>
         </div>
@@ -657,7 +657,7 @@ export default function NotebookPage() {
         <button
           style={{ top: annotationMenuPos.top, left: Math.min(annotationMenuPos.left, window.innerWidth - 80) }}
           onClick={triggerAnnotationDraft}
-          className="fixed z-[9999] -translate-x-1/2 bg-neutral-950 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-xl flex items-center gap-1.5 hover:bg-neutral-900 transition animate-in fade-in zoom-in-95 duration-100 border border-neutral-800"
+          className="fixed z-[9999] -translate-x-1/2 bg-neutral-950 dark:bg-neutral-900 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-xl flex items-center gap-1.5 hover:bg-neutral-900 dark:hover:bg-neutral-800 transition animate-in fade-in zoom-in-95 duration-100 border border-neutral-800 dark:border-neutral-700"
         >
           <MessageSquarePlus className="w-3.5 h-3.5 text-green-400" />
           <span>Annotate</span>
@@ -666,16 +666,16 @@ export default function NotebookPage() {
 
       {itemToDelete && (
         <div className="fixed inset-0 z-50 bg-neutral-950/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white border border-neutral-200 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+              <div className="w-9 h-9 rounded-full bg-red-50 dark:bg-red-950/50 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <h3 className="text-xs font-bold text-neutral-900">
+                <h3 className="text-xs font-bold text-neutral-900 dark:text-white">
                   Delete {itemToDelete.type === "chapter" ? "chapter" : "comment"}?
                 </h3>
-                <p className="text-[11px] text-neutral-500 mt-0.5">
+                <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">
                   This action is permanent and cannot be undone.
                 </p>
               </div>
@@ -683,7 +683,7 @@ export default function NotebookPage() {
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 onClick={() => setItemToDelete(null)}
-                className="px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100 rounded-xl transition"
+                className="px-3 py-1.5 text-xs font-medium text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition"
               >
                 Cancel
               </button>
@@ -707,7 +707,7 @@ export default function NotebookPage() {
       {viewMode === "chapter" && headings.length > 0 && (
         <div className="hidden lg:flex fixed right-3 top-1/2 -translate-y-1/2 z-40 items-center">
           <div className="relative group/toc py-4 px-2">
-            <div className="absolute right-8 top-1/2 -translate-y-1/2 opacity-0 pointer-events-none group-hover/toc:opacity-100 group-hover/toc:pointer-events-auto transition-all duration-200 w-64 bg-white rounded-2xl shadow-xl border border-neutral-200 p-4 z-50 max-h-[80vh] overflow-y-auto">
+            <div className="absolute right-8 top-1/2 -translate-y-1/2 opacity-0 pointer-events-none group-hover/toc:opacity-100 group-hover/toc:pointer-events-auto transition-all duration-200 w-64 bg-white dark:bg-neutral-900 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800 p-4 z-50 max-h-[80vh] overflow-y-auto">
               <div className="space-y-1">
                 {headings.map((h) => {
                   const isActive = h.id === activeHeadingId;
@@ -716,7 +716,7 @@ export default function NotebookPage() {
                     <button
                       key={`toc-popover-${h.id}`}
                       onClick={() => scrollToHeading(h.id)}
-                      className={`w-full text-left py-1.5 px-2.5 rounded-lg transition-all flex items-center gap-2.5 ${indentClass} ${isActive ? "text-green-600 font-semibold bg-green-50/60" : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50"}`}
+                      className={`w-full text-left py-1.5 px-2.5 rounded-lg transition-all flex items-center gap-2.5 ${indentClass} ${isActive ? "text-green-600 dark:text-green-400 font-semibold bg-green-50/60 dark:bg-green-950/40" : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-50 dark:hover:bg-neutral-800"}`}
                     >
                       {isActive && <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />}
                       <span className="truncate">{h.text}</span>
@@ -726,14 +726,14 @@ export default function NotebookPage() {
               </div>
             </div>
 
-            <div className="flex flex-col items-center gap-2 py-3 px-1.5 rounded-full hover:bg-neutral-100/70 transition-colors cursor-pointer">
+            <div className="flex flex-col items-center gap-2 py-3 px-1.5 rounded-full hover:bg-neutral-100/70 dark:hover:bg-neutral-800/70 transition-colors cursor-pointer">
               {headings.map((h) => {
                 const isActive = h.id === activeHeadingId;
                 return (
                   <button
                     key={h.id}
                     onClick={() => scrollToHeading(h.id)}
-                    className={`h-0.5 rounded-full transition-all duration-200 ${isActive ? "bg-neutral-900 h-1.5 w-5 shadow-xs" : "bg-neutral-300 hover:bg-neutral-400 w-4"}`}
+                    className={`h-0.5 rounded-full transition-all duration-200 ${isActive ? "bg-neutral-900 dark:bg-white h-1.5 w-5 shadow-xs" : "bg-neutral-300 dark:bg-neutral-700 hover:bg-neutral-400 dark:hover:bg-neutral-600 w-4"}`}
                   />
                 );
               })}
@@ -742,31 +742,31 @@ export default function NotebookPage() {
         </div>
       )}
 
-      <div className={`md:hidden fixed left-0 right-0 z-30 flex items-center gap-3 px-4 h-12 border-b border-neutral-200 bg-white/95 backdrop-blur-md shadow-xs transition-all duration-300 ${isGlobalNavVisible ? "top-14" : "top-0"}`}>
-        <button onClick={() => setSidebarOpen(true)} className="p-1.5 -ml-1.5 rounded-md text-neutral-600 hover:bg-neutral-100 transition">
+      <div className={`md:hidden fixed left-0 right-0 z-30 flex items-center gap-3 px-4 h-12 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-950/95 backdrop-blur-md shadow-xs transition-all duration-300 ${isGlobalNavVisible ? "top-14" : "top-0"}`}>
+        <button onClick={() => setSidebarOpen(true)} className="p-1.5 -ml-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition">
           <Menu className="w-5 h-5" />
         </button>
-        <span className="text-sm font-semibold text-neutral-900 truncate">{currentTitle}</span>
+        <span className="text-sm font-semibold text-neutral-900 dark:text-white truncate">{currentTitle}</span>
       </div>
 
       {sidebarOpen && <div onClick={() => setSidebarOpen(false)} className="md:hidden fixed inset-0 bg-neutral-950/40 z-40" />}
 
       <aside
-        className={`fixed top-0 md:top-14 h-screen md:h-[calc(100vh-56px)] w-80 max-w-[85vw] border-r border-neutral-200 flex flex-col bg-white md:bg-neutral-50/50 shrink-0 z-50 transition-transform duration-200 ease-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 overflow-y-auto`}
+        className={`fixed top-0 md:top-14 h-screen md:h-[calc(100vh-56px)] w-80 max-w-[85vw] border-r border-neutral-200 dark:border-neutral-800 flex flex-col bg-white dark:bg-neutral-900 md:bg-neutral-50/50 dark:md:bg-neutral-900 shrink-0 z-50 transition-transform duration-200 ease-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 overflow-y-auto`}
       >
         <div className="md:hidden flex justify-end p-3 shrink-0">
-          <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-md text-neutral-500 hover:bg-neutral-100 transition">
+          <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-md text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div onClick={handleNotebookClick} className={`p-5 border-b border-neutral-200/80 cursor-pointer transition-colors group/hero shrink-0 ${viewMode === "root" || (selectedChapter && chapters[0]?.$id === selectedChapter.$id) ? "bg-white" : "bg-transparent hover:bg-neutral-100/40"}`}>
-          <div className="flex items-center gap-2 text-neutral-400 mb-1.5">
-            <BookOpen className="w-3.5 h-3.5 text-neutral-500" />
-            <span className="text-[10px] font-bold uppercase tracking-wider group-hover/hero:text-neutral-600 transition-colors">Notebook</span>
+        <div onClick={handleNotebookClick} className={`p-5 border-b border-neutral-200/80 dark:border-neutral-800 cursor-pointer transition-colors group/hero shrink-0 ${viewMode === "root" || (selectedChapter && chapters[0]?.$id === selectedChapter.$id) ? "bg-white dark:bg-neutral-900" : "bg-transparent hover:bg-neutral-100/40 dark:hover:bg-neutral-800/40"}`}>
+          <div className="flex items-center gap-2 text-neutral-400 dark:text-neutral-500 mb-1.5">
+            <BookOpen className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />
+            <span className="text-[10px] font-bold uppercase tracking-wider group-hover/hero:text-neutral-600 dark:group-hover/hero:text-neutral-300 transition-colors">Notebook</span>
           </div>
-          <h1 className="text-base font-black tracking-tight text-neutral-900 leading-snug group-hover/hero:text-neutral-800">{notebook.title}</h1>
-          <p className="text-xs text-neutral-500 font-normal italic mt-1.5 leading-relaxed line-clamp-2">
+          <h1 className="text-base font-black tracking-tight text-neutral-900 dark:text-white leading-snug group-hover/hero:text-neutral-800 dark:group-hover/hero:text-neutral-200">{notebook.title}</h1>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 font-normal italic mt-1.5 leading-relaxed line-clamp-2">
             {notebook.snapshot || notebook.description || "Click to open the first chapter."}
           </p>
           <div className="mt-4" />
@@ -779,31 +779,31 @@ export default function NotebookPage() {
         </div>
 
         <div className="flex-1 flex flex-col p-4">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block mb-3 pl-1 shrink-0">Chapters ({chapters.length})</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500 block mb-3 pl-1 shrink-0">Chapters ({chapters.length})</span>
           <nav className="space-y-2 pb-6">
             {chapters.map((ch) => {
               const isActive = viewMode === "chapter" && selectedChapter?.$id === ch.$id;
               return (
-                <div key={ch.$id} onClick={() => handleSelectChapter(ch)} className={`w-full relative group/item p-2.5 rounded-xl border transition-all cursor-pointer flex items-center gap-3 ${isActive ? "bg-white text-neutral-900 border-neutral-300 shadow-sm" : "bg-white/60 hover:bg-white text-neutral-700 border-neutral-200/80 shadow-2xs hover:border-neutral-300"}`}>
-                  <div className="w-9 h-9 rounded-lg bg-neutral-100 border border-neutral-200/70 overflow-hidden flex items-center justify-center shrink-0">
+                <div key={ch.$id} onClick={() => handleSelectChapter(ch)} className={`w-full relative group/item p-2.5 rounded-xl border transition-all cursor-pointer flex items-center gap-3 ${isActive ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white border-neutral-300 dark:border-neutral-700 shadow-sm" : "bg-white/60 dark:bg-neutral-900/60 hover:bg-white dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-neutral-200/80 dark:border-neutral-800 shadow-2xs hover:border-neutral-300 dark:hover:border-neutral-700"}`}>
+                  <div className="w-9 h-9 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/70 dark:border-neutral-700 overflow-hidden flex items-center justify-center shrink-0">
                     {ch.preview_image_url ? (
                       <img src={ch.preview_image_url} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <div className="text-neutral-500 flex items-center justify-center bg-gradient-to-br from-neutral-100 to-neutral-200 w-full h-full">
-                        <BookOpen className="w-4 h-4 text-neutral-500" />
+                      <div className="text-neutral-500 dark:text-neutral-400 flex items-center justify-center bg-gradient-to-br from-neutral-100 to-neutral-200 dark:from-neutral-800 dark:to-neutral-900 w-full h-full">
+                        <BookOpen className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
                       </div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0 pr-16 md:pr-10">
-                    <h4 className="text-xs font-bold text-neutral-900 truncate">{ch.title || "Untitled chapter"}</h4>
+                    <h4 className="text-xs font-bold text-neutral-900 dark:text-white truncate">{ch.title || "Untitled chapter"}</h4>
                   </div>
 
                   {canEdit && (
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover/item:opacity-100 transition-opacity bg-white md:bg-transparent md:shadow-none p-1 md:p-0 rounded-md">
-                      <button onClick={(e) => { e.stopPropagation(); router.push(`/notebooks/${notebookId}/chapters/${ch.$id}`); }} className="p-1.5 rounded-md md:bg-white md:border border-neutral-200 shadow-sm text-neutral-600 hover:text-neutral-900 transition" title="Edit Chapter">
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover/item:opacity-100 transition-opacity bg-white dark:bg-neutral-800 md:bg-transparent md:dark:bg-transparent md:shadow-none p-1 md:p-0 rounded-md">
+                      <button onClick={(e) => { e.stopPropagation(); router.push(`/notebooks/${notebookId}/chapters/${ch.$id}`); }} className="p-1.5 rounded-md md:bg-white md:dark:bg-neutral-800 md:border border-neutral-200 dark:border-neutral-700 shadow-sm text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white transition" title="Edit Chapter">
                         <Edit2 className="w-3 h-3" />
                       </button>
-                      <button onClick={(e) => { e.stopPropagation(); setItemToDelete({ type: "chapter", id: ch.$id }); }} className="p-1.5 rounded-md md:bg-white md:border border-neutral-200 shadow-sm text-neutral-400 hover:text-rose-600 transition" title="Delete Chapter">
+                      <button onClick={(e) => { e.stopPropagation(); setItemToDelete({ type: "chapter", id: ch.$id }); }} className="p-1.5 rounded-md md:bg-white md:dark:bg-neutral-800 md:border border-neutral-200 dark:border-neutral-700 shadow-sm text-neutral-400 hover:text-rose-600 dark:hover:text-rose-400 transition" title="Delete Chapter">
                         <Trash2 className="w-3 h-3" />
                       </button>
                     </div>
@@ -815,25 +815,25 @@ export default function NotebookPage() {
         </div>
       </aside>
 
-      <div className={`flex-1 min-w-0 flex flex-col bg-white transition-all duration-300 md:pl-80 relative shadow-[inset_0_-24px_24px_-16px_rgba(0,0,0,0.03)] ${isGlobalNavVisible ? "pt-14 md:pt-0" : "pt-0"}`}>
+      <div className={`flex-1 min-w-0 flex flex-col bg-white dark:bg-neutral-950 transition-all duration-300 md:pl-80 relative shadow-[inset_0_-24px_24px_-16px_rgba(0,0,0,0.03)] ${isGlobalNavVisible ? "pt-14 md:pt-0" : "pt-0"}`}>
         {viewMode === "root" && (
           <div className="max-w-3xl w-full mx-auto px-6 md:px-12 pt-6 pb-24 md:pb-10 flex flex-col min-h-full">
-            <div className="flex justify-between items-start gap-6 border-b border-neutral-100 pb-4 mb-6 relative">
+            <div className="flex justify-between items-start gap-6 border-b border-neutral-100 dark:border-neutral-800 pb-4 mb-6 relative">
               <div className="space-y-2 min-w-0">
-                <h2 className="text-2xl font-bold tracking-tight text-neutral-900 leading-tight truncate">{notebook.title}</h2>
+                <h2 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white leading-tight truncate">{notebook.title}</h2>
                 <div className="flex flex-col gap-1.5">
                   <AuthorByline />
                   <CollaborationStack />
                 </div>
               </div>
             </div>
-            <div className="text-sm text-neutral-800 leading-relaxed font-normal whitespace-pre-wrap break-words mb-8">
+            <div className="text-sm text-neutral-800 dark:text-neutral-200 leading-relaxed font-normal whitespace-pre-wrap break-words mb-8">
               {notebook.description || <p className="italic text-neutral-400">No extended description yet.</p>}
             </div>
-            <div className="space-y-4 pt-4 border-t border-neutral-100">
+            <div className="space-y-4 pt-4 border-t border-neutral-100 dark:border-neutral-800">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-black uppercase tracking-wider text-neutral-400 flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5 text-neutral-500" />
+                  <FileText className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />
                   <span>Chapters Index ({chapters.length})</span>
                 </h3>
                 {canEdit && (
@@ -844,8 +844,8 @@ export default function NotebookPage() {
                 )}
               </div>
               {chapters.length === 0 ? (
-                <div className="border border-dashed border-neutral-200 rounded-2xl p-8 text-center space-y-3 bg-neutral-50/50">
-                  <p className="text-xs text-neutral-500 italic">No chapters published in this notebook yet.</p>
+                <div className="border border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl p-8 text-center space-y-3 bg-neutral-50/50 dark:bg-neutral-900/50">
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400 italic">No chapters published in this notebook yet.</p>
                   {canEdit && <button onClick={handleNewChapter} style={{ backgroundColor: "#0084FF" }} className="px-4 py-2 text-white rounded-lg text-xs font-semibold shadow-sm transition hover:opacity-90">Create First Chapter</button>}
                 </div>
               ) : null}
@@ -855,21 +855,21 @@ export default function NotebookPage() {
 
         {viewMode === "chapter" && selectedChapter && (
           <div className="max-w-2xl w-full mx-auto px-6 md:px-12 pt-6 pb-24 md:pb-10 flex flex-col min-h-full relative">
-            <div className="flex justify-between items-start gap-6 border-b border-neutral-100 pb-4 mb-6 relative">
+            <div className="flex justify-between items-start gap-6 border-b border-neutral-100 dark:border-neutral-800 pb-4 mb-6 relative">
               <div className="space-y-2 min-w-0">
                 <div className="flex items-center gap-2 text-xs font-semibold text-neutral-400">
                   <span>Chapter {currentChapterIndex + 1} of {chapters.length}</span>
                 </div>
-                <h2 className="text-2xl font-bold tracking-tight text-neutral-900 leading-tight">
+                <h2 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white leading-tight">
                   {selectedChapter.title || "Untitled chapter"}
                 </h2>
                 
-                <div className="flex items-center gap-3 text-xs text-neutral-500 pt-1">
+                <div className="flex items-center gap-3 text-xs text-neutral-500 dark:text-neutral-400 pt-1">
                   {selectedChapter.$createdAt && (
                     <span>{new Date(selectedChapter.$createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
                   )}
                   {selectedChapter.$updatedAt && selectedChapter.$updatedAt !== selectedChapter.$createdAt && (
-                    <span className="text-neutral-400">Last updated {new Date(selectedChapter.$updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                    <span className="text-neutral-400 dark:text-neutral-500">Last updated {new Date(selectedChapter.$updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
                   )}
                   <span>{calculateReadingTime(selectedChapter.content_json)}</span>
                 </div>
@@ -881,12 +881,12 @@ export default function NotebookPage() {
               </div>
             </div>
 
-            <div className="flex-1 relative selection:bg-green-100/90 selection:text-neutral-900 pb-12 shadow-[inset_0_-40px_30px_-20px_rgba(255,255,255,0.9)]" ref={contentWrapperRef}>
-              <div className="prose prose-lg prose-neutral max-w-none text-neutral-800 tracking-normal leading-relaxed break-words">
+            <div className="flex-1 relative selection:bg-green-100 dark:selection:bg-green-950 selection:text-neutral-900 dark:selection:text-neutral-100 pb-12 shadow-[inset_0_-40px_30px_-20px_rgba(255,255,255,0.9)] dark:shadow-[inset_0_-40px_30px_-20px_rgba(10,10,10,0.9)]" ref={contentWrapperRef}>
+              <div className="prose prose-lg prose-neutral dark:prose-invert max-w-none text-neutral-800 dark:text-neutral-200 tracking-normal leading-relaxed break-words">
                 <ChapterContent contentJson={selectedChapter.content_json} />
               </div>
               
-              <div className="absolute top-0 -right-5 md:-right-8 flex flex-col gap-2 select-none h-full border-l border-neutral-100/60 pl-1.5">
+              <div className="absolute top-0 -right-5 md:-right-8 flex flex-col gap-2 select-none h-full border-l border-neutral-100/60 dark:border-neutral-800/60 pl-1.5">
                 {visibleComments.map((c) => {
                   const { quote, isPrivate } = parseAnnotationMeta(c.content);
                   if (!quote) return null;
@@ -894,10 +894,10 @@ export default function NotebookPage() {
                     <button
                       key={`anchor-${c.$id}`}
                       onClick={() => jumpToCommentSection(c.$id)}
-                      className={`p-1.5 rounded-full border transition-all duration-200 flex items-center justify-center shadow-sm hover:scale-105 group/anchor ${isPrivate ? "bg-purple-50 border-purple-200 text-purple-600 hover:bg-purple-100" : "bg-green-50 border-green-200 text-green-700 hover:bg-green-100"}`}
+                      className={`p-1.5 rounded-full border transition-all duration-200 flex items-center justify-center shadow-sm hover:scale-105 group/anchor ${isPrivate ? "bg-purple-50 dark:bg-purple-950/60 border-purple-200 dark:border-purple-800 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900" : "bg-green-50 dark:bg-green-950/60 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900"}`}
                       title={isPrivate ? "Private Note" : `Annotation: "${quote}"`}
                     >
-                      {isPrivate ? <Lock className="w-3 h-3" /> : <MessageSquare className="w-3 h-3 text-neutral-600 shrink-0" />}
+                      {isPrivate ? <Lock className="w-3 h-3" /> : <MessageSquare className="w-3 h-3 text-neutral-600 dark:text-neutral-400 shrink-0" />}
                     </button>
                   );
                 })}
@@ -905,10 +905,10 @@ export default function NotebookPage() {
             </div>
 
             {nextChapter && (
-              <div onClick={() => handleSelectChapter(nextChapter)} className="mt-16 p-5 rounded-2xl bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/80 cursor-pointer transition group flex items-center justify-between gap-4 shadow-2xs">
+              <div onClick={() => handleSelectChapter(nextChapter)} className="mt-16 p-5 rounded-2xl bg-neutral-50 dark:bg-neutral-900 hover:bg-neutral-100 dark:hover:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-800 cursor-pointer transition group flex items-center justify-between gap-4 shadow-2xs">
                 <div className="space-y-1 min-w-0">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block">Up Next Chapter</span>
-                  <h4 className="text-sm font-bold text-neutral-900 group-hover:text-neutral-950 transition truncate">{nextChapter.title || "Untitled chapter"}</h4>
+                  <h4 className="text-sm font-bold text-neutral-900 dark:text-white group-hover:text-neutral-950 dark:group-hover:text-neutral-200 transition truncate">{nextChapter.title || "Untitled chapter"}</h4>
                 </div>
                 <div style={{ backgroundColor: "#0084FF" }} className="w-9 h-9 rounded-xl text-white flex items-center justify-center shrink-0 group-hover:translate-x-1 transition-transform">
                   <ArrowRight className="w-4 h-4" />
@@ -916,7 +916,7 @@ export default function NotebookPage() {
               </div>
             )}
 
-            <div ref={commentSectionRef} className="mt-12 pt-8 border-t border-neutral-200 bg-white scroll-mt-20">
+            <div ref={commentSectionRef} className="mt-12 pt-8 border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 scroll-mt-20">
               
               <div className="flex items-center gap-3 mb-8">
                 <div className="flex items-center">
@@ -925,8 +925,8 @@ export default function NotebookPage() {
                     disabled={likeLoading}
                     className={`flex items-center gap-2.5 text-xs font-semibold rounded-full px-4 py-2 border transition-all shadow-2xs ${
                       likeId
-                        ? "bg-blue-50 border-blue-200 text-[#0084FF]"
-                        : "bg-white border-neutral-200 text-neutral-700 hover:border-neutral-300"
+                        ? "bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800 text-[#0084FF]"
+                        : "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:border-neutral-300 dark:hover:border-neutral-700"
                     }`}
                   >
                     {likerProfiles.length > 0 && (
@@ -934,7 +934,7 @@ export default function NotebookPage() {
                         {likerProfiles.slice(0, 3).map((liker, idx) => (
                           <div
                             key={liker?.$id || idx}
-                            className="w-5 h-5 rounded-full bg-neutral-900 text-white text-[9px] font-bold flex items-center justify-center uppercase overflow-hidden border-2 border-white shrink-0"
+                            className="w-5 h-5 rounded-full bg-neutral-900 dark:bg-neutral-800 text-white text-[9px] font-bold flex items-center justify-center uppercase overflow-hidden border-2 border-white dark:border-neutral-900 shrink-0"
                           >
                             {liker?.avatar_url ? (
                               <img src={liker.avatar_url} alt="" className="w-full h-full object-cover" />
@@ -953,13 +953,13 @@ export default function NotebookPage() {
               </div>
 
               <div className="flex items-center gap-2 mb-6">
-                <MessageSquare className="w-4 h-4 text-neutral-900" />
-                <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-900">Discussions</h3>
-                <span className="text-[10px] bg-neutral-100 text-neutral-600 font-bold px-1.5 py-0.5 rounded-full">{visibleComments.length}</span>
+                <MessageSquare className="w-4 h-4 text-neutral-900 dark:text-white" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-900 dark:text-white">Discussions</h3>
+                <span className="text-[10px] bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 font-bold px-1.5 py-0.5 rounded-full">{visibleComments.length}</span>
               </div>
 
               {topLevelComments.length === 0 ? (
-                <div className="space-y-4 text-center py-8 border border-dashed border-neutral-200 rounded-2xl bg-neutral-50/50 mb-6">
+                <div className="space-y-4 text-center py-8 border border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl bg-neutral-50/50 dark:bg-neutral-900/50 mb-6">
                   <p className="text-xs text-neutral-400 italic">No discussions yet. Be the first to share your thoughts or annotation!</p>
                 </div>
               ) : (
@@ -973,9 +973,9 @@ export default function NotebookPage() {
 
                     return (
                       <div key={c.$id} className="space-y-3">
-                        <div ref={(el) => { commentElementsRef.current[c.$id] = el; }} className={`flex gap-3 items-start group/card p-4 rounded-2xl transition-all duration-500 border bg-white ${isFlashed ? "border-blue-300 shadow-md ring-2 ring-blue-100" : "border-neutral-200/80 hover:border-neutral-300 shadow-2xs"}`}>
+                        <div ref={(el) => { commentElementsRef.current[c.$id] = el; }} className={`flex gap-3 items-start group/card p-4 rounded-2xl transition-all duration-500 border bg-white dark:bg-neutral-900 ${isFlashed ? "border-blue-300 dark:border-blue-700 shadow-md ring-2 ring-blue-100 dark:ring-blue-950" : "border-neutral-200/80 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700 shadow-2xs"}`}>
                           <HoverCard handle={c.handle}>
-                            <div className="w-8 h-8 rounded-full bg-neutral-900 text-white text-[11px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden cursor-pointer shadow-sm">
+                            <div className="w-8 h-8 rounded-full bg-neutral-900 dark:bg-neutral-800 text-white text-[11px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden cursor-pointer shadow-sm">
                               {c.avatar_url ? <img src={c.avatar_url} alt="" className="w-full h-full object-cover" /> : c.handle?.charAt(0) || "?"}
                             </div>
                           </HoverCard>
@@ -984,10 +984,10 @@ export default function NotebookPage() {
                             <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
                               <div className="flex items-center gap-2 min-w-0">
                                 <HoverCard handle={c.handle}>
-                                  <span className="text-xs font-bold text-neutral-900 cursor-pointer hover:underline truncate">{c.name || `@${c.handle}`}</span>
+                                  <span className="text-xs font-bold text-neutral-900 dark:text-white cursor-pointer hover:underline truncate">{c.name || `@${c.handle}`}</span>
                                 </HoverCard>
                                 {isPrivate && (
-                                  <span className="flex items-center gap-1 text-[9px] bg-purple-50 text-purple-700 font-semibold px-1.5 py-0.5 rounded border border-purple-100 uppercase tracking-wide select-none shrink-0">
+                                  <span className="flex items-center gap-1 text-[9px] bg-purple-50 dark:bg-purple-950/65 text-purple-700 dark:text-purple-300 font-semibold px-1.5 py-0.5 rounded border border-purple-100 dark:border-purple-800 uppercase tracking-wide select-none shrink-0">
                                     <Lock className="w-2.5 h-2.5" />
                                     <span>Private Note</span>
                                   </span>
@@ -998,7 +998,7 @@ export default function NotebookPage() {
                                 <button
                                   onClick={() => handleLikeCommentToggle(c)}
                                   className={`flex items-center gap-1 text-[11px] font-semibold transition ${
-                                    commentLiked ? "text-[#0084FF]" : "text-neutral-500 hover:text-neutral-900"
+                                    commentLiked ? "text-[#0084FF]" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
                                   }`}
                                 >
                                   <ThumbsUp className={`w-3.5 h-3.5 ${commentLiked ? "fill-[#0084FF]" : ""}`} />
@@ -1013,7 +1013,7 @@ export default function NotebookPage() {
                                 )}
 
                                 {currentUser?.$id === c.user_id && (
-                                  <button onClick={() => setItemToDelete({ type: "comment", id: c.$id })} className="text-neutral-400 hover:text-rose-600 transition" title="Delete comment">
+                                  <button onClick={() => setItemToDelete({ type: "comment", id: c.$id })} className="text-neutral-400 hover:text-rose-600 dark:hover:text-rose-400 transition" title="Delete comment">
                                     <Trash2 className="w-3.5 h-3.5" />
                                   </button>
                                 )}
@@ -1021,17 +1021,17 @@ export default function NotebookPage() {
                             </div>
 
                             {quote && (
-                              <div className="mt-2 text-[11px] bg-green-50/50 text-neutral-800 border border-green-200/80 rounded-lg p-2.5 mb-2 font-medium border-l-2 border-l-green-500 break-words">
+                              <div className="mt-2 text-[11px] bg-green-50/50 dark:bg-green-950/30 text-neutral-800 dark:text-neutral-200 border border-green-200/80 dark:border-green-900/60 rounded-lg p-2.5 mb-2 font-medium border-l-2 border-l-green-500 break-words">
                                 <span className="italic">"{quote}"</span>
                               </div>
                             )}
 
-                            <p className="text-xs text-neutral-800 leading-relaxed mt-1 break-words">{bodyText}</p>
+                            <p className="text-xs text-neutral-800 dark:text-neutral-200 leading-relaxed mt-1 break-words">{bodyText}</p>
                           </div>
                         </div>
 
                         {replies.length > 0 && (
-                          <div className="pl-4 md:pl-8 space-y-3 border-l-2 border-neutral-100 ml-4">
+                          <div className="pl-4 md:pl-8 space-y-3 border-l-2 border-neutral-100 dark:border-neutral-800 ml-4">
                             {replies.map((reply) => {
                               const replyMeta = parseAnnotationMeta(reply.content);
                               const isReplyFlashed = flashedCommentId === reply.$id;
@@ -1039,23 +1039,23 @@ export default function NotebookPage() {
                               const replyLikedByList: string[] = reply.liked_by || [];
 
                               return (
-                                <div key={reply.$id} ref={(el) => { commentElementsRef.current[reply.$id] = el; }} className={`flex gap-3 items-start group/replycard p-3.5 rounded-xl border bg-neutral-50/60 transition-all duration-300 ${isReplyFlashed ? "border-blue-300 shadow-sm bg-blue-50/20" : "border-neutral-200/60"}`}>
+                                <div key={reply.$id} ref={(el) => { commentElementsRef.current[reply.$id] = el; }} className={`flex gap-3 items-start group/replycard p-3.5 rounded-xl border bg-neutral-50/60 dark:bg-neutral-900/60 transition-all duration-300 ${isReplyFlashed ? "border-blue-300 dark:border-blue-700 shadow-sm bg-blue-50/20 dark:bg-blue-950/20" : "border-neutral-200/60 dark:border-neutral-800"}`}>
                                   <HoverCard handle={reply.handle}>
-                                    <div className="w-7 h-7 rounded-full bg-neutral-900 text-white text-[10px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden cursor-pointer">
+                                    <div className="w-7 h-7 rounded-full bg-neutral-900 dark:bg-neutral-800 text-white text-[10px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden cursor-pointer">
                                       {reply.avatar_url ? <img src={reply.avatar_url} alt="" className="w-full h-full object-cover" /> : reply.handle?.charAt(0) || "?"}
                                     </div>
                                   </HoverCard>
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
                                       <HoverCard handle={reply.handle}>
-                                        <span className="text-xs font-bold text-neutral-900 cursor-pointer hover:underline truncate">{reply.name || `@${reply.handle}`}</span>
+                                        <span className="text-xs font-bold text-neutral-900 dark:text-white cursor-pointer hover:underline truncate">{reply.name || `@${reply.handle}`}</span>
                                       </HoverCard>
 
                                       <div className="flex items-center gap-3 opacity-100 md:opacity-0 md:group-hover/replycard:opacity-100 transition-opacity">
                                         <button
                                           onClick={() => handleLikeCommentToggle(reply)}
                                           className={`flex items-center gap-1 text-[11px] font-semibold transition ${
-                                            replyLiked ? "text-[#0084FF]" : "text-neutral-500 hover:text-neutral-900"
+                                            replyLiked ? "text-[#0084FF]" : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
                                           }`}
                                         >
                                           <ThumbsUp className={`w-3.5 h-3.5 ${replyLiked ? "fill-[#0084FF]" : ""}`} />
@@ -1063,14 +1063,14 @@ export default function NotebookPage() {
                                         </button>
 
                                         {currentUser?.$id === reply.user_id && (
-                                          <button onClick={() => setItemToDelete({ type: "comment", id: reply.$id })} className="text-neutral-400 hover:text-rose-600 transition" title="Delete reply">
+                                          <button onClick={() => setItemToDelete({ type: "comment", id: reply.$id })} className="text-neutral-400 hover:text-rose-600 dark:hover:text-rose-400 transition" title="Delete reply">
                                             <Trash2 className="w-3.5 h-3.5" />
                                           </button>
                                         )}
                                       </div>
                                     </div>
 
-                                    <p className="text-xs text-neutral-700 leading-relaxed break-words">{replyMeta.bodyText}</p>
+                                    <p className="text-xs text-neutral-700 dark:text-neutral-300 leading-relaxed break-words">{replyMeta.bodyText}</p>
                                   </div>
                                 </div>
                               );
@@ -1080,14 +1080,14 @@ export default function NotebookPage() {
 
                         {replyingToId === c.$id && (
                           <div className="pl-4 md:pl-8 ml-4 pt-1 animate-in fade-in duration-200">
-                            <div className="p-3 bg-neutral-50 border border-neutral-200 rounded-xl space-y-2.5">
-                              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-neutral-500">
+                            <div className="p-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl space-y-2.5">
+                              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-neutral-500 dark:text-neutral-400">
                                 <CornerDownRight className="w-3 h-3 text-[#0084FF]" />
                                 <span className="truncate">Replying to {c.name || `@${c.handle}`}</span>
                               </div>
-                              <textarea value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Write a reply..." className="w-full p-2.5 min-h-[60px] rounded-lg border border-neutral-200 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-[#0084FF] resize-none placeholder:text-neutral-400 transition" />
+                              <textarea value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Write a reply..." className="w-full p-2.5 min-h-[60px] rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 text-xs text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-[#0084FF] resize-none placeholder:text-neutral-400 transition" />
                               <div className="flex items-center justify-end gap-2">
-                                <button type="button" onClick={() => { setReplyingToId(null); setReplyText(""); }} className="px-2.5 py-1 text-xs font-semibold text-neutral-500 hover:text-neutral-800 transition">Cancel</button>
+                                <button type="button" onClick={() => { setReplyingToId(null); setReplyText(""); }} className="px-2.5 py-1 text-xs font-semibold text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-white transition">Cancel</button>
                                 <button type="button" onClick={() => handlePostReply(c.$id)} disabled={postingReply || !replyText.trim()} style={{ backgroundColor: "#0084FF" }} className="h-7 px-3 text-white rounded-md text-xs font-medium shadow-sm transition flex items-center gap-1.5 disabled:opacity-50 hover:opacity-90">
                                   <Send className="w-3 h-3" />
                                   {postingReply ? "Posting..." : "Reply"}
@@ -1102,26 +1102,26 @@ export default function NotebookPage() {
                 </div>
               )}
 
-              <div className="flex gap-3 items-start py-4 bg-neutral-50/50 p-4 rounded-2xl border border-neutral-200/80">
-                <div className="w-8 h-8 rounded-full bg-neutral-900 text-white text-[11px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden shadow-sm">
+              <div className="flex gap-3 items-start py-4 bg-neutral-50/50 dark:bg-neutral-900/50 p-4 rounded-2xl border border-neutral-200/80 dark:border-neutral-800">
+                <div className="w-8 h-8 rounded-full bg-neutral-900 dark:bg-neutral-800 text-white text-[11px] font-bold flex items-center justify-center uppercase shrink-0 overflow-hidden shadow-sm">
                   {currentUserProfile?.avatar_url ? <img src={currentUserProfile.avatar_url} alt="" className="w-full h-full object-cover" /> : currentUserProfile?.handle?.charAt(0) || "U"}
                 </div>
                 <div className="flex-1 min-w-0 space-y-2.5">
                   {selectedTextQuote && (
-                    <div className="flex items-center justify-between gap-4 bg-green-50/60 border border-green-200 rounded-lg px-3 py-2 text-xs">
-                      <div className="flex items-center gap-2 text-neutral-700 min-w-0">
+                    <div className="flex items-center justify-between gap-4 bg-green-50/60 dark:bg-green-950/40 border border-green-200 dark:border-green-900 rounded-lg px-3 py-2 text-xs">
+                      <div className="flex items-center gap-2 text-neutral-700 dark:text-neutral-300 min-w-0">
                         <MessageSquare className="w-4 h-4 text-[#0084FF] shrink-0" />
                         <span className="italic truncate font-medium">Annotating selection: "{selectedTextQuote}"</span>
                       </div>
-                      <button onClick={() => setSelectedTextQuote("")} className="p-1 rounded hover:bg-green-100 text-neutral-400 hover:text-neutral-700 transition shrink-0">
+                      <button onClick={() => setSelectedTextQuote("")} className="p-1 rounded hover:bg-green-100 dark:hover:bg-green-900 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition shrink-0">
                         <X className="w-3 h-3" />
                       </button>
                     </div>
                   )}
-                  <textarea ref={textareaRef} value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder={currentUser ? "Write a public response or leave an annotated feedback note..." : "Log in to post annotations"} disabled={!currentUser} className="w-full p-3 min-h-[80px] rounded-xl border border-neutral-200 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-[#0084FF] resize-none placeholder:text-neutral-400 transition disabled:opacity-50 shadow-2xs" />
+                  <textarea ref={textareaRef} value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder={currentUser ? "Write a public response or leave an annotated feedback note..." : "Log in to post annotations"} disabled={!currentUser} className="w-full p-3 min-h-[80px] rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 text-xs text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-[#0084FF] resize-none placeholder:text-neutral-400 transition disabled:opacity-50 shadow-2xs" />
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     {currentUser ? (
-                      <button type="button" onClick={() => setIsPrivateNote(!isPrivateNote)} className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border transition ${isPrivateNote ? "bg-purple-50 border-purple-200 text-purple-700 shadow-sm" : "bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50"}`}>
+                      <button type="button" onClick={() => setIsPrivateNote(!isPrivateNote)} className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border transition ${isPrivateNote ? "bg-purple-50 dark:bg-purple-950/65 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 shadow-sm" : "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"}`}>
                         {isPrivateNote ? <Lock className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                         <span>{isPrivateNote ? "Private comment" : "Public Comment"}</span>
                       </button>
