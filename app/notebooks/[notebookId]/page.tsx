@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     console.error("Failed to fetch notebook metadata for sharing:", err);
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://joinping.up.railway.app";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://pingblogs.com";
   const imageUrl = `${siteUrl}/notebooks/${notebookId}/image`;
 
   return {
