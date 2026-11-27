@@ -100,7 +100,7 @@ export async function GET(
                 color: "#64748b",
               }}
             >
-              joinping.up.railway.app/@{authorHandle}
+              pingblogs.com/@{authorHandle}
             </span>
           </div>
 
