@@ -419,7 +419,7 @@ export default function NotebookPage() {
 
   const handleLikeToggle = async () => {
     if (!currentUser) {
-      router.push("/signup");
+      router.push("/login");
       return;
     }
     setLikeLoading(true);
@@ -448,7 +448,7 @@ export default function NotebookPage() {
 
   const handlePostComment = async () => {
     if (!currentUser) {
-      router.push("/signup");
+      router.push("/login");
       return;
     }
     if (!newComment.trim()) return;
@@ -477,7 +477,7 @@ export default function NotebookPage() {
 
   const handlePostReply = async (parentCommentId: string) => {
     if (!currentUser) {
-      router.push("/signup");
+      router.push("/login");
       return;
     }
     if (!replyText.trim()) return;
@@ -515,7 +515,7 @@ export default function NotebookPage() {
 
   const handleLikeCommentToggle = async (comment: any) => {
     if (!currentUser) {
-      router.push("/signup");
+      router.push("/login");
       return;
     }
     try {

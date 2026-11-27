@@ -221,7 +221,7 @@ export default function OnboardingPage() {
         await databases.createDocument(
           DATABASE_ID,
           PINGS_COLLECTION_ID,
-          "unique()",
+          user.$id,
           payload
         );
       }

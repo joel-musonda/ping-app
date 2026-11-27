@@ -1,31 +1,27 @@
-import { account } from "@/lib/appwrite"; 
-import { ID, OAuthProvider } from "appwrite";
+import {
+  account,
+  databases,
+  DATABASE_ID,
+  PINGS_COLLECTION_ID,
+  getPingByUserId,
+} from "@/lib/appwrite";
+import { AppwriteException, ID, OAuthProvider, Permission, Role, type Models } from "appwrite";
 
-export async function signUp(email: string, password: string) {
-  try {
-    await account.deleteSession("current");
-  } catch {
+const OAUTH_PENDING_KEY = "ping:oauth_pending";
+const OAUTH_PENDING_TTL_MS = 10 * 60 * 1000;
 
+export class AuthFlowError extends Error {
+  constructor(public reason: "oauth_failed" | "oauth_state") {
+    super(reason);
   }
-
-  // 1. Create the Appwrite Auth user
-  const user = await account.create(ID.unique(), email, password);
-  
-
-  await account.createEmailPasswordSession(email, password);
-
-
-  
-  return user;
 }
 
-export async function logIn(email: string, password: string) {
+async function clearCurrentSession() {
   try {
-    await account.deleteSession("current");
+    await account.deleteSession({ sessionId: "current" });
   } catch {
-    
+    // No active session.
   }
-  await account.createEmailPasswordSession(email, password);
 }
 
 export async function logOut() {
@@ -49,39 +45,108 @@ export async function getCurrentUser() {
   }
 }
 
+export async function sendEmailOtp(email: string): Promise<string> {
+  const token = await account.createEmailToken({
+    userId: ID.unique(),
+    email: email.trim().toLowerCase(),
+  });
+  return token.userId;
+}
+
+export async function verifyEmailOtp(userId: string, code: string) {
+  await clearCurrentSession();
+  await account.createSession({ userId, secret: code.trim() });
+}
+
 export async function signInWithGoogle() {
-  try {
-    await account.deleteSession("current");
-  } catch {
-    
+  await clearCurrentSession();
+  sessionStorage.setItem(OAUTH_PENDING_KEY, String(Date.now()));
+  account.createOAuth2Token({
+    provider: OAuthProvider.Google,
+    success: `${window.location.origin}/auth/callback`,
+    failure: `${window.location.origin}/login?error=oauth_failed`,
+  });
+}
+
+// Only completes a callback that this browser started, so a crafted
+// /auth/callback link cannot sign a visitor into someone else's account.
+export async function completeOAuthSignIn(userId: string | null, secret: string | null) {
+  const startedAt = Number(sessionStorage.getItem(OAUTH_PENDING_KEY));
+  sessionStorage.removeItem(OAUTH_PENDING_KEY);
+
+  if (!startedAt || Date.now() - startedAt > OAUTH_PENDING_TTL_MS) {
+    throw new AuthFlowError("oauth_state");
   }
-  account.createOAuth2Session(
-    OAuthProvider.Google,
-    `${window.location.origin}/auth/callback`,
-    `${window.location.origin}/login`
-  );
-}
-
-export async function signInWithGithub() {
-  try {
-    await account.deleteSession("current");
-  } catch {
-   
+  if (!userId || !secret) {
+    throw new AuthFlowError("oauth_failed");
   }
-  account.createOAuth2Session(
-    OAuthProvider.Github,
-    `${window.location.origin}/auth/callback`,
-    `${window.location.origin}/login`
-  );
+
+  await clearCurrentSession();
+  await account.createSession({ userId, secret });
 }
 
-export async function sendPasswordRecovery(email: string) {
-  const redirectUrl = `${window.location.origin}/reset-password`;
-  return await account.createRecovery(email, redirectUrl);
+function starterHandle(user: Models.User<Models.Preferences>) {
+  const fromEmail = (user.email || "").split("@")[0].toLowerCase().replace(/[^a-z0-9_]/g, "");
+  return fromEmail || `user_${user.$id.slice(0, 8).toLowerCase()}`;
 }
 
-export async function confirmPasswordRecovery(userId: string, secret: string, password: string) {
-  return await account.updateRecovery(userId, secret, password);
+// Profiles for new accounts use the account ID as the document ID, so
+// concurrent sign-ins cannot create a second profile for the same user.
+async function ensurePingProfile(user: Models.User<Models.Preferences>) {
+  const existing = await getPingByUserId(user.$id);
+  if (existing) return existing;
+
+  const base = starterHandle(user);
+  const candidates = [base, `${base}_${user.$id.slice(-4).toLowerCase()}`];
+
+  for (const handle of candidates) {
+    try {
+      return await databases.createDocument(
+        DATABASE_ID,
+        PINGS_COLLECTION_ID,
+        user.$id,
+        { handle, bio: "", user_id: user.$id },
+        [
+          Permission.read(Role.any()),
+          Permission.update(Role.user(user.$id)),
+          Permission.delete(Role.user(user.$id)),
+        ]
+      );
+    } catch (err) {
+      if (!(err instanceof AppwriteException) || err.code !== 409) throw err;
+      const created = await getPingByUserId(user.$id);
+      if (created) return created;
+    }
+  }
+  return null;
+}
+
+// Returning users (finished onboarding) go to their profile; everyone else to onboarding.
+export async function getPostAuthDestination(user: Models.User<Models.Preferences>) {
+  const profile = await ensurePingProfile(user);
+  if (profile?.onboarded && profile.handle) return `/${profile.handle}`;
+  return "/onboarding";
+}
+
+export function describeAuthError(err: unknown): string {
+  if (err instanceof AuthFlowError) {
+    return err.reason === "oauth_state"
+      ? "That sign-in link has expired or was not started from this browser. Please try again."
+      : "Google sign-in was cancelled or failed. Please try again.";
+  }
+  if (err instanceof AppwriteException) {
+    if (err.code === 429) return "Too many attempts. Please wait a few minutes and try again.";
+    if (err.type === "user_invalid_token" || err.type === "user_invalid_credentials") {
+      return "That code is incorrect or has expired.";
+    }
+    if (err.type === "user_blocked") return "This account has been disabled.";
+    if (err.type === "user_already_exists" || err.type === "user_email_already_exists") {
+      return "This email is already linked to another sign-in method. Continue with email instead.";
+    }
+    if (err.type === "general_argument_invalid") return "Please enter a valid email address.";
+    if (err.code === 402 || err.code >= 500) return "Ping is temporarily unavailable. Please try again later.";
+  }
+  return "Something went wrong. Please try again.";
 }
 
 export async function sendEmailVerification() {
