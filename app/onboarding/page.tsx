@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { getCurrentUser, sendEmailVerification } from "@/lib/auth";
 import { databases, account, DATABASE_ID, PINGS_COLLECTION_ID } from "@/lib/appwrite";
 import { Query } from "appwrite";
+import posthog from "posthog-js";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -225,6 +226,11 @@ export default function OnboardingPage() {
           payload
         );
       }
+      posthog.capture("onboarding_completed", {
+        profile_action: profileDoc ? "updated" : "created",
+        has_avatar: Boolean(avatarDataUrl),
+        has_social_links: Boolean(website || twitter || github),
+      });
       router.push(`/${finalizedHandle}`);
     } catch (err) {
       console.error("Failed to write onboarded user to Database:", err);

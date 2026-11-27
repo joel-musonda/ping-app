@@ -15,6 +15,7 @@ import {
 import { Query } from "appwrite";
 import { Camera, User, Trash2, AlertTriangle, Book, Lock, Info, Bell, Share2, CreditCard, FileText, ShieldCheck, ChevronRight } from "lucide-react";
 import { Button, toast } from "@heroui/react";
+import posthog from "posthog-js";
 
 export default function SettingsClient() {
   const router = useRouter();
@@ -158,6 +159,10 @@ export default function SettingsClient() {
       });
 
       setProfileDoc((prev: any) => ({ ...prev, handle: trimmedHandle || prev.handle }));
+      posthog.capture("profile_updated", {
+        has_avatar: Boolean(avatarDataUrl),
+        has_social_links: Boolean(website || twitter || github),
+      });
       setSaveStatus("Saved successfully");
       toast("Profile updated", {
         description: "Your profile changes have been saved successfully.",
@@ -214,6 +219,7 @@ export default function SettingsClient() {
         throw new Error(data.error || "Failed to delete account");
       }
 
+      posthog.capture("account_deleted", { notebook_count: notebooks.length });
       await logOut();
       router.push("/");
     } catch (err: any) {

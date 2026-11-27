@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { logIn, signInWithGoogle, signInWithGithub } from "@/lib/auth";
 import { Button, Checkbox } from "@heroui/react";
 import Image from "next/image";
+import posthog from "posthog-js";
 
 function LoginForm() {
   const [email, setEmail] = useState("");
@@ -37,7 +38,9 @@ function LoginForm() {
     setError("");
     setLoading(true);
     try {
-      await logIn(email, password);
+      const session = await logIn(email, password);
+      posthog.identify(session.userId, { email });
+      posthog.capture("user_logged_in", { auth_method: "email_password" });
       router.push("/");
     } catch (err: any) {
       setError(err.message ?? "Something went wrong");

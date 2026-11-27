@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getPingByUserId, createPingProfile } from "@/lib/appwrite"; 
+import posthog from "posthog-js";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function AuthCallbackPage() {
         if (!isMounted) return;
 
         if (user && user.$id) {
+          posthog.identify(user.$id, { email: user.email, name: user.name });
           let profile = null;
           let retries = 3;
 

@@ -14,6 +14,7 @@ import {
   getFollowerCount
 } from "@/lib/appwrite";
 import { Query } from "appwrite";
+import posthog from "posthog-js";
 
 interface CommunityUser {
   id: string;          
@@ -127,6 +128,7 @@ export default function CommunityPage() {
         await followUser(currentUser.$id, targetUser.userId, currentUser.name, targetUser.handle);
         const newId = await checkIsFollowing(currentUser.$id, targetUser.userId);
         setUsers((prev) => prev.map((u) => u.id === targetUser.id ? { ...u, followDocId: newId } : u));
+        posthog.capture("user_followed");
       }
     } catch (err) {
       console.error("Failed to mutate follow metrics record link:", err);
