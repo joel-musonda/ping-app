@@ -1,81 +1,76 @@
+<div align="center">
+
+<img src="./assets/logo.png" alt="Ping logo" width="96" />
+
 # Ping
 
-Every great idea has the potential to change something — so doesn't it deserve a place where it can be kept, thought through, and shared with the world? I think so too. That's why I built **Ping**.
+**Notebooks for your journeys, ideas, projects, and reflections.**
 
-![ping logo](./assets/logo.png)
+Write in chapters, not scattered posts, and share your body of work as one connected story.
 
-Ping is a social web platform for writers, builders, and researchers to document journeys, ideas, projects, and reflections. Instead of scattered, standalone posts, everything lives in **notebooks** that are divided into **chapters**, so a body of work can grow and be read as one connected story.
+[Live site](https://pingblogs.com) · [Report a bug](https://github.com/joel-musonda/ping-app/issues) · [Request a feature](https://github.com/joel-musonda/ping-app/issues)
 
----
+![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white) ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black) ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white) ![Appwrite](https://img.shields.io/badge/Appwrite-Cloud-FD366E?logo=appwrite&logoColor=white) ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white) ![License: MIT](https://img.shields.io/badge/License-MIT-green)
 
-## 🎨 The Inspiration
-
-Ping was inspired by the need for a seamless, lightweight, and deeply aesthetic writing tool—free from the visual bloat of traditional document editors. The workspace features independent scrolling panels, absolute color demarcations, and a distraction-free environment.
-
-Ping serves as an intuitive digital workbench where thoughts instantly translate into organized chapters, archives, and distributed public streams.
+</div>
 
 ---
 
-## ✨ Features
+## Table of Contents
 
-* **Notebooks & chapters** — create public or private notebooks with a description and cover image, then write ordered chapters inside them.
-* **Rich-text editor** — Tiptap-based editor with headings, text alignment, underline, sub/superscript, images, and syntax-highlighted code blocks.
-* **Public profiles** — every user gets a handle and a profile page at `/<handle>` listing their public notebooks, follower counts, and an activity calendar.
-* **Social layer** — follow writers, like and comment on chapters, and receive follow/like notifications.
-* **Community feed & search** — discover public notebooks and search across users and notebooks.
-* **Dashboard & analytics** — manage your notebooks and view engagement (likes, comments, chapters) per notebook.
-* **Authentication** — email/password sign-up with email verification, password reset, and Google/GitHub OAuth.
-* **Account settings** — profile editing, light/dark theme, and account deletion.
-* **Share images** — auto-generated Open Graph images for notebooks (`/notebooks/[notebookId]/image`).
+- [About](#about)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Environment Variables](#environment-variables)
+  - [Appwrite Setup](#appwrite-setup)
+  - [Running Locally](#running-locally)
+- [Scripts](#scripts)
+- [Project Structure](#project-structure)
+- [Architecture](#architecture)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+- [License](#license)
 
----
+## About
 
-## 🏗️ Technical Stack
+Every great idea deserves a place where it can be kept, thought through, and shared. Ping is a social writing platform for writers, builders, and researchers. Instead of standalone articles, work lives in **notebooks** divided into **chapters**, so a project or journey can grow over time and be read from start to finish.
 
-* **Framework:** Next.js 16 (App Router) with React 19 and TypeScript
-* **Text Engine:** Tiptap 3 (ProseMirror-backed editor) with `lowlight` for code highlighting
-* **Database, Auth & Storage:** Appwrite Cloud (`appwrite` client SDK + `node-appwrite` for server routes)
-* **Styling:** Tailwind CSS v4 (minimalist monochrome palette), shadcn/ui, and HeroUI
-* **Data & Motion:** TanStack Query, Framer Motion, date-fns
-* **Icons:** Lucide React and Hugeicons
+The workspace is deliberately minimal: a distraction-free, monochrome interface with independently scrolling panels, built to stay out of the way of the writing.
 
----
+## Features
 
-## ⚙️ Engineering Principles & Process
+| Area | What you get |
+| --- | --- |
+| **Writing** | Public or private notebooks with cover images; ordered chapters; Tiptap editor with headings, alignment, underline, sub/superscript, images, and syntax-highlighted code blocks |
+| **Profiles** | A public page at `/<handle>` with notebooks, follower counts, and an activity calendar |
+| **Social** | Follow writers, like and comment on chapters, follow/like notifications |
+| **Discovery** | Community feed of public notebooks and search across users and notebooks |
+| **Insights** | Dashboard and per-notebook engagement (likes, comments, chapters) |
+| **Accounts** | Email/password with verification, password reset, Google and GitHub OAuth, light/dark theme, account deletion |
+| **Sharing** | Auto-generated Open Graph images for every notebook |
 
-The codebase is built on an architectural standard that guarantees rapid feature shipping without sacrificing maintainability.
+## Tech Stack
 
-### 🛡️ SOLID Design Implementation
-* **Single Responsibility Principle (SRP):** Components are isolated modules. Core logic handles single data flows—like the `AuthCallbackPage` handling authentication tokens exclusively, passing routing states cleanly forward.
-* **Open/Closed Principle (OCP):** Core modules are open to extension but closed to modification. For example, our custom Tiptap extension suite hooks seamlessly into default packages without modifying underlying editor code arrays.
-* **Liskov Substitution Principle (LSP):** Object and parameter typing structures are predictable, meaning utility modules and database managers share cleanly polymorphic data payloads.
-* **Interface Segregation Principle (ISP):** Client views receive only the narrow API datasets they require to render, preventing over-fetching anomalies.
-* **Dependency Inversion Principle (DIP):** High-level page orchestrators depend strictly on abstractions (`@/lib/appwrite`) rather than raw, hardcoded endpoint strings, allowing fluid environment swapping.
+| Layer | Technology |
+| --- | --- |
+| Framework | [Next.js 16](https://nextjs.org) (App Router), React 19, TypeScript |
+| Editor | [Tiptap 3](https://tiptap.dev) (ProseMirror) with `lowlight` |
+| Backend | [Appwrite](https://appwrite.io): Auth, Databases, Storage (`appwrite` + `node-appwrite`) |
+| Styling | Tailwind CSS 4, shadcn/ui, HeroUI |
+| Data & motion | TanStack Query, Framer Motion, date-fns |
+| Icons | Lucide, Hugeicons |
 
-### 📐 Structural Guidelines
-* **KISS (Keep It Simple, Stupid):** Avoiding convoluted client abstractions. OAuth callbacks use native web states (`window.location.origin`) to seamlessly manage transitions without heavy environment management scripts.
-* **DRY (Don't Repeat Yourself):** Asset pipeline endpoints, file upload bridges, and telemetry logic are consolidated entirely inside uniform helper utilities (`lib/appwrite.ts`) to avoid duplicate logic nodes.
-
----
-
-## 🔁 Agile Development Methodology
-
-Ping is engineered through adaptive, rapid-cycle execution:
-
-* **Sprints:** Development is broken down into high-velocity micro-sprints focusing on critical product areas (Authentication Handshakes ➡️ Layout Optimization ➡️ Editor Integrity).
-* **Feedback-Driven Iteration:** Early builds are continuously deployed and shared with users inside isolated beta loops to catch multi-device design or routing anomalies quickly.
-* **Continuous Integration:** GitHub-driven deployment pipelines deploy builds to Appwrite Sites for automated build verification and releases.
-
----
-
-## 🚀 Local Installation & Setup
+## Getting Started
 
 ### Prerequisites
 
-* Node.js 20+ and npm
-* An [Appwrite Cloud](https://cloud.appwrite.io) project (or a self-hosted Appwrite instance)
+- Node.js 20+ and npm
+- An [Appwrite Cloud](https://cloud.appwrite.io) project (or a self-hosted Appwrite instance)
 
-### 1. Clone and install
+### Installation
 
 ```bash
 git clone https://github.com/joel-musonda/ping-app.git
@@ -83,35 +78,35 @@ cd ping-app
 npm install
 ```
 
-### 2. Configure environment variables
+### Environment Variables
 
 Create a `.env.local` file in the project root (it is git-ignored):
 
 ```bash
-# Appwrite project
 NEXT_PUBLIC_APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
-NEXT_PUBLIC_APPWRITE_PROJECT_ID=your-project-id
-
-# Appwrite database and collections
-NEXT_PUBLIC_APPWRITE_DATABASE_ID=your-database-id
-NEXT_PUBLIC_APPWRITE_PINGS_COLLECTION_ID=your-pings-collection-id
-NEXT_PUBLIC_APPWRITE_NOTEBOOKS_COLLECTION_ID=your-notebooks-collection-id
-NEXT_PUBLIC_APPWRITE_CHAPTERS_COLLECTION_ID=your-chapters-collection-id
-
-# Server-only API key (used by /api/delete-account and server-side reads)
-APPWRITE_API_KEY=your-server-api-key
-
-# Public URL of the deployed site (used for share links / Open Graph metadata)
+NEXT_PUBLIC_APPWRITE_PROJECT_ID=
+NEXT_PUBLIC_APPWRITE_DATABASE_ID=
+NEXT_PUBLIC_APPWRITE_PINGS_COLLECTION_ID=
+NEXT_PUBLIC_APPWRITE_NOTEBOOKS_COLLECTION_ID=
+NEXT_PUBLIC_APPWRITE_CHAPTERS_COLLECTION_ID=
+APPWRITE_API_KEY=
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
-> `APPWRITE_API_KEY` must never be exposed to the browser — keep it without the `NEXT_PUBLIC_` prefix. It needs the `users.write` scope for account deletion.
+| Variable | Description |
+| --- | --- |
+| `NEXT_PUBLIC_APPWRITE_ENDPOINT` | Appwrite API endpoint |
+| `NEXT_PUBLIC_APPWRITE_PROJECT_ID` | Appwrite project ID |
+| `NEXT_PUBLIC_APPWRITE_DATABASE_ID` | Database containing all collections |
+| `NEXT_PUBLIC_APPWRITE_*_COLLECTION_ID` | IDs of the Pings, Notebooks, and Chapters collections |
+| `APPWRITE_API_KEY` | **Server-only** key with `users.write` scope, used to delete accounts. Never prefix with `NEXT_PUBLIC_` |
+| `NEXT_PUBLIC_SITE_URL` | Public site URL used in share links and Open Graph metadata (defaults to `https://pingblogs.com`) |
 
-### 3. Set up Appwrite
+### Appwrite Setup
 
-In your Appwrite project, create one database containing these collections:
+Create one database with the following collections:
 
-| Collection | ID | Key attributes |
+| Collection | ID | Attributes |
 | --- | --- | --- |
 | Pings (profiles) | from env | `user_id`, `handle`, `bio` |
 | Notebooks | from env | `owner_id`, `title`, `description`, `is_public`, `snapshot`, `cover_image_url`, `collaborator_ids` |
@@ -123,20 +118,20 @@ In your Appwrite project, create one database containing these collections:
 
 Then:
 
-* Add **full-text indexes** on Notebooks `title` and Pings `handle` (required for search).
-* Create a **Storage bucket** for notebook cover images and set its ID as `IMAGES_BUCKET_ID` in `lib/appwrite.ts`.
-* Add a **Web platform** for `localhost` (and your production domain).
-* Enable the **Email/Password**, **Google**, and **GitHub** auth providers. OAuth callbacks return to `/auth/callback`.
+1. Add **full-text indexes** on Notebooks `title` and Pings `handle` (required for search).
+2. Create a **Storage bucket** for cover images and set its ID as `IMAGES_BUCKET_ID` in `lib/appwrite.ts`.
+3. Register a **Web platform** for `localhost` and your production domain.
+4. Enable the **Email/Password**, **Google**, and **GitHub** auth providers. OAuth redirects return to `/auth/callback`.
 
-### 4. Run the development server
+### Running Locally
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000).
 
-### Available scripts
+## Scripts
 
 | Command | Description |
 | --- | --- |
@@ -145,23 +140,40 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | `npm run start` | Serve the production build |
 | `npm run lint` | Run ESLint |
 
----
-
-## 📁 Project Structure
+## Project Structure
 
 ```
-app/            # Next.js App Router pages and API routes
-  [handle]/     # Public user profiles
-  notebooks/    # Notebook, chapter, and new-notebook pages + OG image route
-  api/          # Server routes (e.g. delete-account)
-  ...           # dashboard, community, analytics, settings, auth pages
-components/     # Editor, Navbar, notebook/chapter views, shadcn/ui primitives
-lib/            # Appwrite clients and data helpers, auth, theme, utils
-public/         # Static assets and icons
+app/
+├── [handle]/          # Public user profiles
+├── notebooks/         # Notebook, chapter, and editor pages + OG image route
+├── api/               # Server routes (e.g. delete-account)
+└── ...                # Dashboard, community, analytics, settings, auth flows
+components/            # Editor, Navbar, notebook/chapter views, shadcn/ui primitives
+lib/                   # Appwrite clients and data helpers, auth, theme, utils
+public/                # Static assets and icons
 ```
 
----
+## Architecture
 
-## 📄 License
+- **Thin pages, shared data layer.** Pages depend on helpers in `lib/appwrite.ts` and `lib/auth.ts` rather than calling Appwrite endpoints directly, so data access lives in one place.
+- **Single-responsibility components.** Each route and component owns one flow (for example, `app/auth/callback` only completes OAuth sign-in).
+- **Extensible editor.** Editor behaviour is composed from Tiptap extensions instead of modifying editor internals.
+- **Server-only privileges.** Privileged operations such as account deletion run in route handlers with the Appwrite API key and verify the caller's session first.
 
-Released under the [MIT License](./LICENSE).
+## Deployment
+
+Production is deployed on **Appwrite Sites** and served at [pingblogs.com](https://pingblogs.com). Set the environment variables above in the Appwrite Sites project settings.
+
+## Contributing
+
+Contributions are welcome.
+
+1. Fork the repository and create a branch: `git checkout -b feature/my-change`
+2. Make your changes and run `npm run lint` and `npm run build`
+3. Open a pull request describing the change
+
+For bugs and feature ideas, please [open an issue](https://github.com/joel-musonda/ping-app/issues).
+
+## License
+
+Distributed under the [MIT License](./LICENSE). © 2026 Joel Musonda
