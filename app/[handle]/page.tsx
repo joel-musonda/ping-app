@@ -29,21 +29,21 @@ import { Modal, Avatar, ListBox, Label, Description } from "@heroui/react";
 
 function ProfileSkeleton() {
   return (
-    <div className="flex flex-col md:items-center space-y-4 animate-pulse">
+    <div className="flex flex-col space-y-4 animate-pulse">
       <div className="w-32 h-32 md:w-40 md:h-40 bg-neutral-100 dark:bg-neutral-800 rounded-full shrink-0" />
-      <div className="w-full space-y-2">
-        <div className="h-6 bg-neutral-100 dark:bg-neutral-800 rounded w-3/4 md:mx-auto" />
-        <div className="h-4 bg-neutral-100 dark:bg-neutral-800 rounded w-1/2 md:mx-auto" />
+      <div className="space-y-2">
+        <div className="h-6 bg-neutral-100 dark:bg-neutral-800 rounded w-3/4" />
+        <div className="h-4 bg-neutral-100 dark:bg-neutral-800 rounded w-1/2" />
       </div>
       <div className="h-9 bg-neutral-100 dark:bg-neutral-800 rounded-md w-full" />
-      <div className="w-full space-y-2 pt-2">
+      <div className="space-y-2 pt-2">
         <div className="h-4 bg-neutral-100 dark:bg-neutral-800 rounded w-full" />
-        <div className="h-4 bg-neutral-100 dark:bg-neutral-800 rounded w-5/6 md:mx-auto" />
+        <div className="h-4 bg-neutral-100 dark:bg-neutral-800 rounded w-5/6" />
       </div>
       <div className="h-4 bg-neutral-100 dark:bg-neutral-800 rounded w-2/3 pt-1" />
-      <div className="w-full space-y-2 pt-3 border-t border-neutral-100 dark:border-neutral-800">
-        <div className="h-3 bg-neutral-100 dark:bg-neutral-800 rounded w-1/2 md:mx-auto" />
-        <div className="h-3 bg-neutral-100 dark:bg-neutral-800 rounded w-2/3 md:mx-auto" />
+      <div className="space-y-2 pt-3 border-t border-neutral-100 dark:border-neutral-800">
+        <div className="h-3 bg-neutral-100 dark:bg-neutral-800 rounded w-1/2" />
+        <div className="h-3 bg-neutral-100 dark:bg-neutral-800 rounded w-2/3" />
       </div>
     </div>
   );
@@ -374,11 +374,11 @@ export default function PingProfilePage() {
   }
 
   return (
-    <main className="max-w-6xl w-full mx-auto px-4 md:px-6 py-4 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 md:h-[calc(100vh-65px)] md:overflow-hidden relative">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12 h-full">
+    <main className="w-full px-4 sm:px-6 py-4 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 md:h-[calc(100vh-65px)] md:overflow-hidden relative">
+      <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] lg:grid-cols-[280px_1fr] gap-8 md:gap-12 h-full">
 
         {/* Left Profile Sidebar */}
-        <div className="col-span-1 flex flex-col space-y-4 md:items-center md:text-center md:overflow-y-auto md:pr-2 h-full pb-4 md:pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="col-span-1 flex flex-col space-y-4 md:overflow-y-auto md:pr-2 h-full pb-4 md:pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {loading ? (
             <ProfileSkeleton />
           ) : (
@@ -399,7 +399,7 @@ export default function PingProfilePage() {
                 )}
               </div>
 
-              <div className="w-full space-y-0.5 shrink-0">
+              <div className="space-y-0.5 shrink-0">
                 <h2 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 leading-tight">
                   {ping?.name || handle}
                 </h2>
@@ -427,7 +427,7 @@ export default function PingProfilePage() {
                 </button>
               )}
 
-              <p className="w-full text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed pt-1 shrink-0 break-words whitespace-pre-wrap">
+              <p className="text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed pt-1 shrink-0 break-words whitespace-pre-wrap">
                 {ping?.bio || "Hello There, Welcome to my Ping"}
               </p>
 
@@ -451,15 +451,15 @@ export default function PingProfilePage() {
               </div>
 
               {ping?.location || ping?.website || ping?.github || ping?.twitter ? (
-                <div className="w-full space-y-2 pt-3 text-xs font-medium text-neutral-500 dark:text-neutral-400 border-t border-neutral-100 dark:border-neutral-800 shrink-0">
+                <div className="space-y-2 pt-3 text-xs font-medium text-neutral-500 dark:text-neutral-400 border-t border-neutral-100 dark:border-neutral-800 shrink-0">
                   {ping?.location && (
-                    <div className="flex items-center md:justify-center gap-2">
+                    <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-neutral-400 dark:text-neutral-500" />
                       <span>{ping.location}</span>
                     </div>
                   )}
                   {ping?.website && (
-                    <div className="flex items-center md:justify-center gap-2">
+                    <div className="flex items-center gap-2">
                       <Globe className="w-4 h-4 text-neutral-400 dark:text-neutral-500" />
                       <a
                         href={ping.website.startsWith("http") ? ping.website : `https://${ping.website}`}
@@ -472,7 +472,7 @@ export default function PingProfilePage() {
                     </div>
                   )}
                   {ping?.github && (
-                    <div className="flex items-center md:justify-center gap-2">
+                    <div className="flex items-center gap-2">
                       <Globe className="w-4 h-4 text-neutral-400 dark:text-neutral-500" />
                       <a
                         href={ping.github.startsWith("http") ? ping.github : `https://${ping.github.replace('@', '')}`}
@@ -485,7 +485,7 @@ export default function PingProfilePage() {
                     </div>
                   )}
                   {ping?.twitter && (
-                    <div className="flex items-center md:justify-center gap-2">
+                    <div className="flex items-center gap-2">
                       <Globe className="w-4 h-4 text-neutral-400 dark:text-neutral-500" />
                       <a
                         href={ping.twitter.startsWith("http") ? ping.twitter : `https://${ping.twitter.replace('@', '')}`}
@@ -504,13 +504,13 @@ export default function PingProfilePage() {
         </div>
 
         {/* Right Dashboard Feed */}
-        <div className="col-span-1 md:col-span-3 flex flex-col space-y-8 md:overflow-y-auto md:pr-1 h-full pb-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="col-span-1 flex flex-col space-y-8 md:overflow-y-auto md:pr-1 h-full pb-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 
           <div className="space-y-4 shrink-0">
             <h3 className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">Your Notebooks</h3>
 
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 min-[1800px]:grid-cols-4 gap-4">
                 <NotebookSkeleton />
                 <NotebookSkeleton />
                 <NotebookSkeleton />
@@ -522,7 +522,7 @@ export default function PingProfilePage() {
                 <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400">No notebooks available yet.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 min-[1800px]:grid-cols-4 gap-4">
                 {sortedNotebooks.map((nb) => {
                   const createdDate = nb.$createdAt
                     ? new Date(nb.$createdAt).toLocaleDateString("en-US", {
