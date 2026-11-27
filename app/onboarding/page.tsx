@@ -20,6 +20,12 @@ import {
   Save
 } from "lucide-react";
 
+// Top-level routes a handle would shadow at /<handle>.
+const RESERVED_HANDLES = new Set([
+  "analytics", "api", "auth", "community", "dashboard", "login", "signup", "forgot-password",
+  "reset-password", "notebooks", "onboarding", "settings", "verify-email",
+]);
+
 export default function OnboardingPage() {
   const [user, setUser] = useState<any>(null);
   const [profileDoc, setProfileDoc] = useState<any>(null);
@@ -161,6 +167,11 @@ export default function OnboardingPage() {
     }
 
     const cleanHandle = handle.toLowerCase().replace(/[^a-z0-9_]/g, "");
+
+    if (RESERVED_HANDLES.has(cleanHandle)) {
+      setIsAvailable(false);
+      return;
+    }
 
     if (profileDoc && cleanHandle === profileDoc.handle) {
       setIsAvailable(true);
