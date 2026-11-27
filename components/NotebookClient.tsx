@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import ChapterContent from "@/components/ChapterContent";
 import HoverCard from "@/components/HoverCard";
+import posthog from "posthog-js";
 
 function NotebookPageSkeleton() {
   return (
@@ -366,6 +367,10 @@ export default function NotebookPage() {
         "",
         nextOrder
       );
+      posthog.capture("chapter_created", {
+        chapter_index: nextOrder,
+        notebook_is_public: notebook.is_public,
+      });
       router.push(`/notebooks/${notebookId}/chapters/${chapter.$id}`); 
     } catch (err) {
       console.error(err);
@@ -432,6 +437,9 @@ export default function NotebookPage() {
         const newLike = await likeChapter(currentUser.$id, selectedChapter.$id);
         setLikeId(newLike.$id);
         setLikeCount((c) => c + 1);
+        posthog.capture("chapter_liked", {
+          notebook_is_public: notebook.is_public,
+        });
         try {
           await notifyLike(
             notebook.owner_id, currentUser.$id, currentUserProfile?.name || "",
@@ -464,6 +472,10 @@ export default function NotebookPage() {
         totalPayload, currentUserProfile?.name || "", currentUserProfile?.avatar_url || ""
       );
       setComments((prev) => [comment, ...prev]);
+      posthog.capture("comment_created", {
+        comment_type: selectedTextQuote ? "annotation" : "comment",
+        is_private: isPrivateNote,
+      });
       setNewComment("");
       setSelectedTextQuote("");
       setIsPrivateNote(false);

@@ -26,6 +26,7 @@ import {
   AlignLeft, AlignCenter, AlignRight, Lock, Unlock, Undo2, Redo2, Minus
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
+import posthog from "posthog-js";
 import {
   uploadNotebookCoverImage, getNotebookCoverImageUrl, createNotebook, createChapter,
   getPingByUserId, searchPingsByHandle, inviteCollaborator
@@ -323,6 +324,11 @@ export default function CreateNotebookPage() {
         }
       }
 
+      posthog.capture("notebook_created", {
+        is_public: isPublic,
+        collaborator_count: selectedCollaborators.length,
+        has_cover_image: Boolean(coverImageUrl),
+      });
       setIsPublishModalOpen(false);
       window.location.href = `/notebooks/${targetNotebookId}`;
     } catch (err: any) {

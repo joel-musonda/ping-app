@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { signUp, signInWithGoogle, signInWithGithub, sendEmailVerification } from "@/lib/auth";
 import { Button } from "@heroui/react";
 import Image from "next/image";
+import posthog from "posthog-js";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -19,7 +20,9 @@ export default function SignupPage() {
     setLoading(true);
     try {
       // Registers standard auth account in Appwrite
-      await signUp(email, password);
+      const user = await signUp(email, password);
+      posthog.identify(user.$id, { email: user.email, name: user.name });
+      posthog.capture("user_signed_up", { auth_method: "email_password" });
 
       try {
         await sendEmailVerification();

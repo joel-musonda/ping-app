@@ -1,7 +1,9 @@
 import { account } from "@/lib/appwrite"; 
 import { ID, OAuthProvider } from "appwrite";
+import posthog from "posthog-js";
 
 export async function signUp(email: string, password: string) {
+  posthog.reset();
   try {
     await account.deleteSession("current");
   } catch {
@@ -20,12 +22,13 @@ export async function signUp(email: string, password: string) {
 }
 
 export async function logIn(email: string, password: string) {
+  posthog.reset();
   try {
     await account.deleteSession("current");
   } catch {
     
   }
-  await account.createEmailPasswordSession(email, password);
+  return await account.createEmailPasswordSession(email, password);
 }
 
 export async function logOut() {
@@ -39,6 +42,7 @@ export async function logOut() {
       
     }
   }
+  posthog.reset();
 }
 
 export async function getCurrentUser() {
@@ -50,6 +54,7 @@ export async function getCurrentUser() {
 }
 
 export async function signInWithGoogle() {
+  posthog.reset();
   try {
     await account.deleteSession("current");
   } catch {
@@ -63,6 +68,7 @@ export async function signInWithGoogle() {
 }
 
 export async function signInWithGithub() {
+  posthog.reset();
   try {
     await account.deleteSession("current");
   } catch {

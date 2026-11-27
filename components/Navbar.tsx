@@ -18,6 +18,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import HoverCard from "@/components/HoverCard";
+import posthog from "posthog-js";
 
 // Helper function to format timestamps into relative time strings
 function formatRelativeTime(dateString?: string) {
@@ -83,6 +84,9 @@ export default function Navbar() {
           setProfileData(null);
           return;
         }
+
+        posthog.identify(user.$id, { email: user.email, name: user.name });
+
         const ping = await getPingByUserId(user.$id);
         if (ping) {
           setProfileData({

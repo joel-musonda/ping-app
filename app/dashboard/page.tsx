@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { databases, DATABASE_ID, NOTEBOOKS_COLLECTION_ID } from "@/lib/appwrite";
 import { Query } from "appwrite";
+import posthog from "posthog-js";
 
 interface Notebook {
   $id: string;
@@ -116,6 +117,7 @@ export default function MyNotebooksPage() {
       if (isLocal) {
         localStorage.removeItem("notebook_local_draft");
         setNotebooks((prev) => prev.filter((nb) => nb.$id !== notebookId));
+        posthog.capture("notebook_deleted", { deletion_scope: "local_draft" });
         showToast("Local draft deleted successfully");
         return;
       }
@@ -127,6 +129,7 @@ export default function MyNotebooksPage() {
       );
 
       setNotebooks((prev) => prev.filter((nb) => nb.$id !== notebookId));
+      posthog.capture("notebook_deleted", { deletion_scope: "published_or_draft" });
       showToast("Notebook deleted successfully");
     } catch (err) {
       console.error(err);
@@ -162,6 +165,10 @@ export default function MyNotebooksPage() {
             : nb
         )
       );
+      posthog.capture("notebook_publication_updated", {
+        is_draft: updatedDraftStatus,
+        is_public: updatedPublicStatus,
+      });
       showToast(updatedDraftStatus ? "Moved notebook to drafts" : "Notebook published successfully!");
     } catch (err) {
       console.error(err);
