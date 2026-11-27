@@ -16,7 +16,7 @@ function AuthCallback() {
 
     const userId = searchParams.get("userId");
     const secret = searchParams.get("secret");
-    window.history.replaceState(null, "", "/auth/callback");
+    window.history.replaceState(window.history.state, "", window.location.pathname);
 
     (async () => {
       try {
