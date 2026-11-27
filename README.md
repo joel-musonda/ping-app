@@ -121,7 +121,7 @@ Then:
 1. Add **full-text indexes** on Notebooks `title` and Pings `handle` (required for search).
 2. Create a **Storage bucket** for cover images and set its ID as `IMAGES_BUCKET_ID` in `lib/appwrite.ts`.
 3. Register a **Web platform** for `localhost` and your production domain.
-4. In **Auth → Settings**, enable **Email OTP** and the **Google** OAuth provider, and disable **Email/Password**. Google sign-in returns to `/auth/callback`; only hostnames registered as Web platforms are accepted as redirect targets.
+4. In **Auth → Settings**, enable **Email OTP** and the **Google** OAuth provider, and disable **Email/Password**. Google sign-in returns to `/auth/callback/<state>`; only hostnames registered as Web platforms are accepted as redirect targets.
 
 ### Running Locally
 

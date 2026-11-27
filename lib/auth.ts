@@ -60,21 +60,31 @@ export async function verifyEmailOtp(userId: string, code: string) {
 
 export async function signInWithGoogle() {
   await clearCurrentSession();
-  sessionStorage.setItem(OAUTH_PENDING_KEY, String(Date.now()));
+  const state = crypto.randomUUID();
+  sessionStorage.setItem(OAUTH_PENDING_KEY, JSON.stringify({ state, startedAt: Date.now() }));
   account.createOAuth2Token({
     provider: OAuthProvider.Google,
-    success: `${window.location.origin}/auth/callback`,
+    success: `${window.location.origin}/auth/callback/${state}`,
     failure: `${window.location.origin}/login?error=oauth_failed`,
   });
 }
 
-// Only completes a callback that this browser started, so a crafted
-// /auth/callback link cannot sign a visitor into someone else's account.
-export async function completeOAuthSignIn(userId: string | null, secret: string | null) {
-  const startedAt = Number(sessionStorage.getItem(OAUTH_PENDING_KEY));
+// Only completes the callback for the sign-in this tab started (random state in
+// the callback path), so a crafted callback link cannot sign a visitor into
+// someone else's account.
+export async function completeOAuthSignIn(state: string, userId: string | null, secret: string | null) {
+  let pending: { state?: string; startedAt?: number } = {};
+  try {
+    pending = JSON.parse(sessionStorage.getItem(OAUTH_PENDING_KEY) || "{}");
+  } catch {}
   sessionStorage.removeItem(OAUTH_PENDING_KEY);
 
-  if (!startedAt || Date.now() - startedAt > OAUTH_PENDING_TTL_MS) {
+  if (
+    !pending.state ||
+    pending.state !== state ||
+    !pending.startedAt ||
+    Date.now() - pending.startedAt > OAUTH_PENDING_TTL_MS
+  ) {
     throw new AuthFlowError("oauth_state");
   }
   if (!userId || !secret) {

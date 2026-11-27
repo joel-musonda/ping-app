@@ -254,7 +254,7 @@ export default function Navbar() {
   if (
     pathname === "/login" ||
     pathname === "/onboarding" ||
-    pathname === "/auth/callback"
+    pathname?.startsWith("/auth/callback")
   ) {
     return null;
   }

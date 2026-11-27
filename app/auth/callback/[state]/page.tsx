@@ -1,12 +1,13 @@
 "use client";
 
 import { Suspense, useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { completeOAuthSignIn, getCurrentUser, getPostAuthDestination, AuthFlowError } from "@/lib/auth";
 
 function AuthCallback() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { state } = useParams<{ state: string }>();
   const started = useRef(false);
 
   useEffect(() => {
@@ -19,7 +20,7 @@ function AuthCallback() {
 
     (async () => {
       try {
-        await completeOAuthSignIn(userId, secret);
+        await completeOAuthSignIn(state, userId, secret);
         const user = await getCurrentUser();
         if (!user) throw new AuthFlowError("oauth_failed");
         router.replace(await getPostAuthDestination(user));
@@ -29,7 +30,7 @@ function AuthCallback() {
         router.replace(`/login?error=${reason}`);
       }
     })();
-  }, [router, searchParams]);
+  }, [router, searchParams, state]);
 
   return (
     <main className="flex flex-col items-center justify-center min-h-[100dvh] bg-white px-4">
