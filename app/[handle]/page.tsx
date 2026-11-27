@@ -374,8 +374,8 @@ export default function PingProfilePage() {
   }
 
   return (
-    <main className="max-w-6xl w-full mx-auto px-4 md:px-6 py-4 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 md:h-[calc(100vh-65px)] md:overflow-hidden relative">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12 h-full">
+    <main className="w-full px-4 sm:px-6 py-4 bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 md:h-[calc(100vh-65px)] md:overflow-hidden relative">
+      <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] lg:grid-cols-[280px_1fr] gap-8 md:gap-12 h-full">
 
         {/* Left Profile Sidebar */}
         <div className="col-span-1 flex flex-col space-y-4 md:overflow-y-auto md:pr-2 h-full pb-4 md:pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -504,13 +504,13 @@ export default function PingProfilePage() {
         </div>
 
         {/* Right Dashboard Feed */}
-        <div className="col-span-1 md:col-span-3 flex flex-col space-y-8 md:overflow-y-auto md:pr-1 h-full pb-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="col-span-1 flex flex-col space-y-8 md:overflow-y-auto md:pr-1 h-full pb-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 
           <div className="space-y-4 shrink-0">
             <h3 className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">Your Notebooks</h3>
 
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 min-[1800px]:grid-cols-4 gap-4">
                 <NotebookSkeleton />
                 <NotebookSkeleton />
                 <NotebookSkeleton />
@@ -522,7 +522,7 @@ export default function PingProfilePage() {
                 <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400">No notebooks available yet.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 min-[1800px]:grid-cols-4 gap-4">
                 {sortedNotebooks.map((nb) => {
                   const createdDate = nb.$createdAt
                     ? new Date(nb.$createdAt).toLocaleDateString("en-US", {
