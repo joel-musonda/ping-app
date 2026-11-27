@@ -8,6 +8,7 @@ import {
   updateProfile,
   getNotebooksForUser,
   deleteNotebookCascade,
+  account,
   databases,
   DATABASE_ID,
   PINGS_COLLECTION_ID,
@@ -203,10 +204,10 @@ export default function SettingsClient() {
         await databases.deleteDocument(DATABASE_ID, PINGS_COLLECTION_ID, profileDoc.$id);
       }
 
+      const { jwt } = await account.createJWT();
       const res = await fetch("/api/delete-account", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.$id }),
+        headers: { Authorization: `Bearer ${jwt}` },
       });
 
       if (!res.ok) {
