@@ -64,7 +64,7 @@ Ping is engineered through adaptive, rapid-cycle execution:
 
 * **Sprints:** Development is broken down into high-velocity micro-sprints focusing on critical product areas (Authentication Handshakes ➡️ Layout Optimization ➡️ Editor Integrity).
 * **Feedback-Driven Iteration:** Early builds are continuously deployed and shared with users inside isolated beta loops to catch multi-device design or routing anomalies quickly.
-* **Continuous Integration:** Utilizing GitHub-driven deployment pipelines directly to Vercel for instant automated compilation verifications and server builds.
+* **Continuous Integration:** GitHub-driven deployment pipelines ship builds to Ping's hosting on Cloudflare and Appwrite for automated build verification and releases.
 
 ---
 
