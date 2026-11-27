@@ -510,7 +510,7 @@ export default function PingProfilePage() {
             <h3 className="text-xs font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">Your Notebooks</h3>
 
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 min-[1800px]:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 min-[1800px]:grid-cols-4 gap-4">
                 <NotebookSkeleton />
                 <NotebookSkeleton />
                 <NotebookSkeleton />
@@ -522,7 +522,7 @@ export default function PingProfilePage() {
                 <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400">No notebooks available yet.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 min-[1800px]:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 min-[1800px]:grid-cols-4 gap-4">
                 {sortedNotebooks.map((nb) => {
                   const createdDate = nb.$createdAt
                     ? new Date(nb.$createdAt).toLocaleDateString("en-US", {
