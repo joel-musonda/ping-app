@@ -95,9 +95,9 @@ export async function completeOAuthSignIn(state: string, userId: string | null, 
   await account.createSession({ userId, secret });
 }
 
+// Placeholder until onboarding; unique per account and reveals nothing about the email.
 function starterHandle(user: Models.User<Models.Preferences>) {
-  const fromEmail = (user.email || "").split("@")[0].toLowerCase().replace(/[^a-z0-9_]/g, "");
-  return fromEmail || `user_${user.$id.slice(0, 8).toLowerCase()}`;
+  return `user_${user.$id.toLowerCase().replace(/[^a-z0-9_]/g, "")}`;
 }
 
 // Profiles for new accounts use the account ID as the document ID, so
@@ -106,29 +106,22 @@ async function ensurePingProfile(user: Models.User<Models.Preferences>) {
   const existing = await getPingByUserId(user.$id);
   if (existing) return existing;
 
-  const base = starterHandle(user);
-  const candidates = [base, `${base}_${user.$id.slice(-4).toLowerCase()}`];
-
-  for (const handle of candidates) {
-    try {
-      return await databases.createDocument(
-        DATABASE_ID,
-        PINGS_COLLECTION_ID,
-        user.$id,
-        { handle, bio: "", user_id: user.$id },
-        [
-          Permission.read(Role.any()),
-          Permission.update(Role.user(user.$id)),
-          Permission.delete(Role.user(user.$id)),
-        ]
-      );
-    } catch (err) {
-      if (!(err instanceof AppwriteException) || err.code !== 409) throw err;
-      const created = await getPingByUserId(user.$id);
-      if (created) return created;
-    }
+  try {
+    return await databases.createDocument(
+      DATABASE_ID,
+      PINGS_COLLECTION_ID,
+      user.$id,
+      { handle: starterHandle(user), bio: "", user_id: user.$id },
+      [
+        Permission.read(Role.any()),
+        Permission.update(Role.user(user.$id)),
+        Permission.delete(Role.user(user.$id)),
+      ]
+    );
+  } catch (err) {
+    if (!(err instanceof AppwriteException) || err.code !== 409) throw err;
+    return await getPingByUserId(user.$id);
   }
-  return null;
 }
 
 // Returning users (finished onboarding) go to their profile; everyone else to onboarding.
