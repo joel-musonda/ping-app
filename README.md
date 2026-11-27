@@ -49,7 +49,7 @@ The workspace is deliberately minimal: a distraction-free, monochrome interface 
 | **Social** | Follow writers, like and comment on chapters, follow/like notifications |
 | **Discovery** | Community feed of public notebooks and search across users and notebooks |
 | **Insights** | Dashboard and per-notebook engagement (likes, comments, chapters) |
-| **Accounts** | Email/password with verification, password reset, Google and GitHub OAuth, light/dark theme, account deletion |
+| **Accounts** | Passwordless sign-in with Google or a one-time email code, automatic account creation, light/dark theme, account deletion |
 | **Sharing** | Auto-generated Open Graph images for every notebook |
 
 ## Tech Stack
@@ -121,7 +121,7 @@ Then:
 1. Add **full-text indexes** on Notebooks `title` and Pings `handle` (required for search).
 2. Create a **Storage bucket** for cover images and set its ID as `IMAGES_BUCKET_ID` in `lib/appwrite.ts`.
 3. Register a **Web platform** for `localhost` and your production domain.
-4. Enable the **Email/Password**, **Google**, and **GitHub** auth providers. OAuth redirects return to `/auth/callback`.
+4. In **Auth → Settings**, enable **Email OTP** and the **Google** OAuth provider, and disable **Email/Password**. Google sign-in returns to `/auth/callback/<state>`; only hostnames registered as Web platforms are accepted as redirect targets.
 
 ### Running Locally
 

@@ -48,7 +48,7 @@ export default function MyNotebooksPage() {
       try {
         const user = await getCurrentUser();
         if (!user) {
-          router.push("/signup");
+          router.push("/login");
           return;
         }
         setCurrentUser(user);

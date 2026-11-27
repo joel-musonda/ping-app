@@ -253,11 +253,8 @@ export default function Navbar() {
 
   if (
     pathname === "/login" ||
-    pathname === "/signup" ||
     pathname === "/onboarding" ||
-    pathname === "/forgot-password" ||
-    pathname === "/reset-password" ||
-    pathname === "/auth/callback"
+    pathname?.startsWith("/auth/callback")
   ) {
     return null;
   }
@@ -668,11 +665,8 @@ export default function Navbar() {
               </>
             ) : (
               <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                <a href="/login" className="text-xs font-semibold text-neutral-600 dark:text-neutral-300 hover:text-neutral-950 dark:hover:text-neutral-100 px-2.5 py-1.5 transition-colors whitespace-nowrap">
-                  Log in
-                </a>
-                <a href="/signup" className="bg-[#0084FF] hover:bg-[#0073e6] active:bg-[#0062c4] text-white rounded-xl px-3 py-1.5 text-xs font-semibold shadow-sm transition-all whitespace-nowrap">
-                  Sign up
+                <a href="/login" className="bg-[#0084FF] hover:bg-[#0073e6] active:bg-[#0062c4] text-white rounded-xl px-3 py-1.5 text-xs font-semibold shadow-sm transition-all whitespace-nowrap">
+                  Sign in
                 </a>
               </div>
             )}
